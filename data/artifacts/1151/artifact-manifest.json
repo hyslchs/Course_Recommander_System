@@ -1,0 +1,30 @@
+{
+  "artifact_version": "fju_recommender_v1",
+  "academic_year": 115,
+  "semester": 1,
+  "generated_at": "2026-08-01T15:02:36+00:00",
+  "model_name": "intfloat/multilingual-e5-small",
+  "model_revision": "614241f622f53c4eeff9890bdc4f31cfecc418b3",
+  "dimension": 384,
+  "course_count": 4233,
+  "section_weights": {
+    "objective": 0.45,
+    "weekly_progress": 0.3,
+    "prerequisite": 0.15,
+    "skills": 0.1
+  },
+  "files": {
+    "catalog.json": {
+      "sha256": "74a8618d6b4af3c648ac5fec0c7a9d3587043b510acee62f0942d7fe4f9e8d8d",
+      "bytes": 16111609
+    },
+    "embedding-index.json": {
+      "sha256": "8e36702527b3219e83ae650ace50643d44c212b27e4033f3935d73ffa72f94f3",
+      "bytes": 38190
+    },
+    "course-embeddings.f32": {
+      "sha256": "8d6c5ef5213db4fab2bbcecf860c370fa46e62fafdcb43181d85942d7328595b",
+      "bytes": 6501888
+    }
+  }
+}

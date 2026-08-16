@@ -39,6 +39,10 @@ class DatasetPaths:
         return self.base_dir / "data" / "derived"
 
     @property
+    def reference_dir(self) -> Path:
+        return self.base_dir / "data" / "reference"
+
+    @property
     def artifacts_dir(self) -> Path:
         return self.base_dir / "data" / "artifacts" / self.tag
 
@@ -66,11 +70,16 @@ class DatasetPaths:
     def validation_json(self) -> Path:
         return self.log_dir / f"validation_{self.tag}.json"
 
+    @property
+    def department_catalog_json(self) -> Path:
+        return self.reference_dir / f"departments_{self.hy}.json"
+
     def ensure_dirs(self) -> None:
         for path in (
             self.raw_dir,
             self.canonical_dir,
             self.derived_dir,
+            self.reference_dir,
             self.artifacts_dir,
             self.log_dir,
         ):

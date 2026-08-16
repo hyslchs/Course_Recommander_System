@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .config import DEFAULT_LCID, DEFAULT_SCO_TYP, SOURCE_VIEW_URL
+from .departments import enrich_organization_department
+from .eligibility import infer_audience_grade, infer_study_level, normalize_audience_department
 
 
 RELATION_LABELS = {
@@ -26,7 +28,11 @@ def now_iso() -> str:
     return datetime.now(timezone.utc).astimezone().isoformat(timespec="seconds")
 
 
-def normalize_course_record(raw: dict[str, Any]) -> dict[str, Any]:
+def normalize_course_record(
+    raw: dict[str, Any],
+    *,
+    department_catalog: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     list_row = raw["list_row"]
     detail = _result(raw.get("course_details"))
     relations = _result(raw.get("relations"), default=[])
@@ -37,6 +43,15 @@ def normalize_course_record(raw: dict[str, Any]) -> dict[str, Any]:
 
     jon_cou_sn = detail.get("jonCouSn") or list_row.get("jonCouSn")
     lcid = raw.get("lcid", DEFAULT_LCID)
+
+    organization = _normalize_organization(detail)
+    organization["audience_department"] = normalize_audience_department(
+        organization.get("department_name_zh")
+    )
+    organization["study_level"] = infer_study_level(organization)
+    organization["audience_grade"] = infer_audience_grade(organization)
+    if department_catalog:
+        enrich_organization_department(organization, department_catalog)
 
     canonical = {
         "schema_version": "fju_outline_v1",
@@ -53,7 +68,7 @@ def normalize_course_record(raw: dict[str, Any]) -> dict[str, Any]:
             "pdf_params": {"jonCouSn": jon_cou_sn, "lcid": lcid},
         },
         "course": _normalize_course(list_row, detail),
-        "organization": _normalize_organization(detail),
+        "organization": organization,
         "teachers": _normalize_teachers(list_row, detail, info_book),
         "class_meetings": _normalize_class_meetings(list_row, detail),
         "outline": {

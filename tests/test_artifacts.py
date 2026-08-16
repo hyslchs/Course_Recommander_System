@@ -68,3 +68,24 @@ def test_build_and_validate_versioned_artifacts(tmp_path):
     assert validate_artifacts(output)["model_revision"] == "test-revision"
     catalog = json.loads((output / "catalog.json").read_text(encoding="utf-8"))
     assert catalog[0]["meetings"][0]["sections"] == ["D1"]
+    assert catalog[0]["audience_department"] == "資工"
+    assert catalog[0]["study_level"] == "undergraduate"
+    assert catalog[0]["audience_grade"] == 3
+
+
+def test_catalog_preserves_official_department_identity():
+    record = _record("1", "鞈?蝘飛")
+    record["organization"].update(
+        {
+            "division_code": "D",
+            "official_department_code": "K36",
+            "official_department_name_zh": "企業財稅管理學分學程",
+            "official_department_label": "K36-企業財稅管理學分學程",
+            "official_department_type": "credit_program",
+        }
+    )
+    from fju_outline.artifacts import build_catalog_course
+
+    catalog = build_catalog_course(record)
+    assert catalog["department_identity"] == "D:K36:credit_program"
+    assert catalog["department_display"] == "K36-企業財稅管理學分學程"

@@ -11,10 +11,16 @@ from typing import Any, Iterable, Protocol
 import numpy as np
 import orjson
 
-from .eligibility import base_eligibility_status, extract_eligibility_rules
+from .eligibility import (
+    base_eligibility_status,
+    extract_eligibility_rules,
+    infer_audience_grade,
+    infer_study_level,
+    normalize_audience_department,
+)
 
 
-ARTIFACT_VERSION = "fju_recommender_v1"
+ARTIFACT_VERSION = "fju_recommender_v2"
 DEFAULT_MODEL = "intfloat/multilingual-e5-small"
 SECTION_WEIGHTS = {
     "objective": 0.45,
@@ -124,6 +130,22 @@ def build_catalog_course(record: dict[str, Any]) -> dict[str, Any]:
     )
     sections = _document_sections(record)
     rules = extract_eligibility_rules(record)
+    study_level = infer_study_level(organization)
+    audience_grade = infer_audience_grade(organization)
+    audience_department = normalize_audience_department(
+        organization.get("department_name_zh")
+    )
+    department_code = _as_optional_text(
+        organization.get("official_department_code")
+        or organization.get("department_code")
+    )
+    department_type = _as_optional_text(organization.get("official_department_type"))
+    division_code = _as_optional_text(organization.get("division_code"))
+    department_identity = _department_identity(
+        division_code=division_code,
+        department_code=department_code,
+        department_type=department_type,
+    )
     return {
         "course_id": str(course.get("course_id") or ""),
         "ava_no": course.get("ava_no"),
@@ -134,7 +156,18 @@ def build_catalog_course(record: dict[str, Any]) -> dict[str, Any]:
         "academic_year": course.get("year"),
         "semester": course.get("semester"),
         "department": base_department,
+        "audience_department": audience_department,
         "raw_department": organization.get("department_name_zh"),
+        "department_identity": department_identity,
+        "department_display": organization.get("official_department_label") or organization.get("department_name_zh") or base_department,
+        "division_code": division_code,
+        "department_code": department_code,
+        "official_department_name_zh": organization.get("official_department_name_zh"),
+        "official_department_label": organization.get("official_department_label"),
+        "official_department_type": organization.get("official_department_type"),
+        "department_match": organization.get("department_match"),
+        "study_level": study_level,
+        "audience_grade": audience_grade,
         "grade": grade,
         "class_group": class_group,
         "division": organization.get("division_name_zh"),
@@ -164,6 +197,23 @@ def split_department_grade(value: str) -> tuple[str, int | None, str]:
         return value.strip(), None, ""
     base, grade_text, class_text = match.groups()
     return base, GRADE_MAP[grade_text], f"{class_text}班" if class_text else ""
+
+
+def _as_optional_text(value: Any) -> str | None:
+    return None if value is None or value == "" else str(value)
+
+
+def _department_identity(
+    *,
+    division_code: str | None,
+    department_code: str | None,
+    department_type: str | None,
+) -> str | None:
+    if not department_code:
+        return None
+    return ":".join(
+        [division_code or "unknown", department_code.upper(), department_type or "unknown"]
+    )
 
 
 def validate_artifacts(output_dir: Path, *, verify_hashes: bool = True) -> dict[str, Any]:

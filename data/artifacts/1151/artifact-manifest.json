@@ -1,5 +1,5 @@
 {
-  "artifact_version": "fju_recommender_v1",
+  "artifact_version": "fju_recommender_v2",
   "academic_year": 115,
   "semester": 1,
   "generated_at": "2026-08-01T15:02:36+00:00",
@@ -15,11 +15,11 @@
   },
   "files": {
     "catalog.json": {
-      "sha256": "74a8618d6b4af3c648ac5fec0c7a9d3587043b510acee62f0942d7fe4f9e8d8d",
-      "bytes": 16111609
+      "sha256": "851740aab786683e64534944b54a071acfaea91526b27aad343347e9f12e6e76",
+      "bytes": 18946091
     },
     "embedding-index.json": {
-      "sha256": "8e36702527b3219e83ae650ace50643d44c212b27e4033f3935d73ffa72f94f3",
+      "sha256": "bdc540001bf6cf50ae1fccb9b0701b1fb4d97e5cccafd72a6e1f67bfccf33c21",
       "bytes": 38190
     },
     "course-embeddings.f32": {

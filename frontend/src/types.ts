@@ -4,6 +4,8 @@ export type EligibilityStatus =
   | "blocked_confirmed"
   | "needs_confirmation";
 
+export type StudyLevel = "undergraduate" | "master" | "doctoral" | "unknown";
+
 export interface EligibilityRule {
   kind: string;
   reason_code: string;
@@ -30,7 +32,30 @@ export interface Course {
   academic_year: number;
   semester: number;
   department: string;
+  audience_department?: string | null;
   raw_department: string;
+  department_identity?: string | null;
+  department_display?: string | null;
+  division_code?: string | null;
+  department_code?: string | null;
+  official_department_name_zh?: string | null;
+  official_department_label?: string | null;
+  official_department_type?: string | null;
+  department_match?: {
+    status: "matched" | "ambiguous" | "unmatched";
+    method: string;
+    confidence: number;
+    candidate_codes: Array<string | null>;
+    candidate_details?: Array<{
+      code: string | null;
+      division_code?: string | null;
+      label: string | null;
+      name_zh: string | null;
+      department_type: string;
+    }>;
+  } | null;
+  study_level?: StudyLevel;
+  audience_grade?: number | null;
   grade: number | null;
   class_group: string;
   division: string;
@@ -49,11 +74,16 @@ export interface Profile {
   id: "current";
   division: string;
   department: string;
+  department_identity?: string | null;
+  division_code?: string | null;
+  department_code?: string | null;
+  official_department_name_zh?: string | null;
+  official_department_type?: string | null;
   grade: number;
+  studyLevel?: StudyLevel;
   admissionYear: number;
   interests: string;
   preferredWeekdays: number[];
-  targetCredits: number;
   allowCrossDepartment: boolean;
   updatedAt: string;
 }
@@ -96,6 +126,9 @@ export type RecommendationCategory =
   | "home_elective"
   | "general_education"
   | "external_department";
+
+export type RecommendationCategoryFilter = RecommendationCategory;
+export type RecommendationCategoryFilters = RecommendationCategory[];
 
 export interface Recommendation {
   course: Course;

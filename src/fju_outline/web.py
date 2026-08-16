@@ -59,7 +59,7 @@ class ArtifactStore:
 
     def facets(self) -> dict[str, Any]:
         return {
-            "departments": _options(item.get("department") for item in self.catalog),
+            "departments": _department_options(self.catalog),
             "grades": [
                 {"value": str(value), "label": f"{value} 年級"}
                 for value in sorted({item.get("grade") for item in self.catalog if item.get("grade")})
@@ -70,7 +70,7 @@ class ArtifactStore:
                 item.get("required_elective_name") for item in self.catalog
             ),
             "eligibility_statuses": [
-                {"value": "no_known_restriction", "label": "未發現限制"},
+                {"value": "no_known_restriction", "label": "尚未判定出明確限制"},
                 {"value": "needs_confirmation", "label": "需要確認"},
                 {"value": "eligible_confirmed", "label": "確認可修"},
                 {"value": "blocked_confirmed", "label": "確認不可修"},
@@ -96,7 +96,7 @@ class ArtifactStore:
         for item in self.catalog:
             if query and query not in _search_text(item):
                 continue
-            if department and item.get("department") != department:
+            if department and not _department_filter_matches(item, department):
                 continue
             if grade and item.get("grade") != grade:
                 continue
@@ -330,7 +330,11 @@ def register_routes(application: FastAPI) -> None:
         store = require_store(request)
         return {
             "courses": len(store.catalog),
-            "departments": len({item.get("department") for item in store.catalog}),
+            "departments": len({
+                item.get("department_identity") or f"legacy:{item.get('department')}"
+                for item in store.catalog
+                if item.get("department")
+            }),
             "teachers": len({item.get("teacher") for item in store.catalog}),
             "weekly_progress": sum(bool(item["sections"].get("weekly_progress")) for item in store.catalog),
             "relations": 0,
@@ -411,10 +415,51 @@ def _options(values) -> list[dict[str, str]]:
     return [{"value": value, "label": value} for value in unique]
 
 
+def _department_options(items: list[dict[str, Any]]) -> list[dict[str, str | None]]:
+    options: dict[str, dict[str, str | None]] = {}
+    for item in items:
+        department = str(item.get("department") or "").strip()
+        if not department:
+            continue
+        identity = str(item.get("department_identity") or f"legacy:{department}")
+        options.setdefault(
+            identity,
+            {
+                "value": identity,
+                "label": str(
+                    item.get("official_department_label")
+                    or item.get("department_display")
+                    or department
+                ),
+                "code": item.get("department_code"),
+                "name_zh": item.get("official_department_name_zh"),
+                "department_type": item.get("official_department_type"),
+            },
+        )
+    return sorted(options.values(), key=lambda item: str(item.get("label") or ""))
+
+
+def _department_filter_matches(item: dict[str, Any], value: str) -> bool:
+    identity = item.get("department_identity")
+    if identity:
+        return str(identity) == value
+    return str(item.get("department") or "") == value
+
+
 def _search_text(item: dict[str, Any]) -> str:
     return " ".join(
         str(item.get(key) or "")
-        for key in ("name_zh", "name_en", "ava_no", "teacher", "teacher_en", "department", "division")
+        for key in (
+            "name_zh",
+            "name_en",
+            "ava_no",
+            "teacher",
+            "teacher_en",
+            "department",
+            "department_display",
+            "official_department_label",
+            "division",
+        )
     ).lower()
 
 

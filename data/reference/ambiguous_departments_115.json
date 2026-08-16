@@ -1,0 +1,1547 @@
+{
+  "schema_version": "fju_department_manual_review_v2",
+  "generated_at": "2026-08-14T15:37:17+08:00",
+  "source": {
+    "academic_year": 115,
+    "semester": 1,
+    "catalog": "data/reference/departments_115.json",
+    "canonical": "data/canonical/course_outlines_1151.jsonl"
+  },
+  "ambiguous_records": 651,
+  "ambiguous_patterns": 94,
+  "candidate_groups": [
+    {
+      "division_code": "D",
+      "course_record_count": 80,
+      "candidate_codes": [
+        "0E",
+        "K14",
+        "K36"
+      ],
+      "candidate_labels": [
+        "0E-企業管理學系",
+        "K14-國際企業管理學程",
+        "K36-企業財稅管理學分學程"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "企管四",
+          "course_record_count": 34,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "企管三",
+          "course_record_count": 18,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "企管一甲",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "企管二甲",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "企管一乙",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "企管二乙",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "企管一丙",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "企管二丙",
+          "course_record_count": 3,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "企管三乙",
+          "course_record_count": 2,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "企管二",
+          "course_record_count": 1,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "企管三甲",
+          "course_record_count": 1,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "企管三丙",
+          "course_record_count": 1,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "0E",
+          "label": "0E-企業管理學系",
+          "name_zh": "企業管理學系",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "K14",
+          "label": "K14-國際企業管理學程",
+          "name_zh": "國際企業管理學程",
+          "department_type": "program",
+          "division_code": "D"
+        },
+        {
+          "code": "K36",
+          "label": "K36-企業財稅管理學分學程",
+          "name_zh": "企業財稅管理學分學程",
+          "department_type": "credit_program",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 61,
+      "candidate_codes": [
+        "1P",
+        "K44"
+      ],
+      "candidate_labels": [
+        "1P-國際溝通與科技創新學士學位學程",
+        "K44-科技創新創業學分學程"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "科創學程一",
+          "course_record_count": 25,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "科創學程二",
+          "course_record_count": 24,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "科創學程三",
+          "course_record_count": 12,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "1P",
+          "label": "1P-國際溝通與科技創新學士學位學程",
+          "name_zh": "國際溝通與科技創新學士學位學程",
+          "department_type": "degree_program",
+          "division_code": "D"
+        },
+        {
+          "code": "K44",
+          "label": "K44-科技創新創業學分學程",
+          "name_zh": "科技創新創業學分學程",
+          "department_type": "credit_program",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 53,
+      "candidate_codes": [
+        "66",
+        "JG"
+      ],
+      "candidate_labels": [
+        "66-法律學系",
+        "JG-法律學院"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "法律三",
+          "course_record_count": 17,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "法律二",
+          "course_record_count": 16,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "法律四",
+          "course_record_count": 11,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "法律一",
+          "course_record_count": 9,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "66",
+          "label": "66-法律學系",
+          "name_zh": "法律學系",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "JG",
+          "label": "JG-法律學院",
+          "name_zh": "法律學院",
+          "department_type": "college",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 50,
+      "candidate_codes": [
+        "01",
+        "K42"
+      ],
+      "candidate_labels": [
+        "01-中國文學系",
+        "K42-應用中文學分學程"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "中文二",
+          "course_record_count": 16,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "中文三",
+          "course_record_count": 13,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "中文一",
+          "course_record_count": 6,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "中文四",
+          "course_record_count": 6,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "中文一甲",
+          "course_record_count": 5,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "中文一乙",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "01",
+          "label": "01-中國文學系",
+          "name_zh": "中國文學系",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "K42",
+          "label": "K42-應用中文學分學程",
+          "name_zh": "應用中文學分學程",
+          "department_type": "credit_program",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 50,
+      "candidate_codes": [
+        "K26",
+        "LT"
+      ],
+      "candidate_labels": [
+        "K26-哲學諮商與輔導學分學程",
+        "LT-全人教育核心課程-人生哲學"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "哲學二",
+          "course_record_count": 20,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "哲學",
+          "course_record_count": 6,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "哲學二愛",
+          "course_record_count": 5,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "哲學二智",
+          "course_record_count": 5,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "哲學一愛",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "哲學一智",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "哲學三愛",
+          "course_record_count": 2,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "哲學三智",
+          "course_record_count": 2,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "哲學四愛",
+          "course_record_count": 1,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "哲學四智",
+          "course_record_count": 1,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "K26",
+          "label": "K26-哲學諮商與輔導學分學程",
+          "name_zh": "哲學諮商與輔導學分學程",
+          "department_type": "credit_program",
+          "division_code": "D"
+        },
+        {
+          "code": "LT",
+          "label": "LT-全人教育核心課程-人生哲學",
+          "name_zh": "全人教育核心課程-人生哲學",
+          "department_type": "",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 47,
+      "candidate_codes": [
+        "20",
+        "V1"
+      ],
+      "candidate_labels": [
+        "20-英國語文學系",
+        "V1-全校進階英文"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "英文二",
+          "course_record_count": 16,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "英文三",
+          "course_record_count": 14,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "英文一",
+          "course_record_count": 12,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "英文系",
+          "course_record_count": 3,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "英文四",
+          "course_record_count": 2,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "20",
+          "label": "20-英國語文學系",
+          "name_zh": "英國語文學系",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "V1",
+          "label": "V1-全校進階英文",
+          "name_zh": "全校進階英文",
+          "department_type": "",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 41,
+      "candidate_codes": [
+        "25",
+        "K02"
+      ],
+      "candidate_labels": [
+        "25-義大利語文學系",
+        "K02-外交學程義文組"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "義文三",
+          "course_record_count": 14,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "義文二",
+          "course_record_count": 12,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "義文一",
+          "course_record_count": 8,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "義文四",
+          "course_record_count": 6,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "義文系",
+          "course_record_count": 1,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "25",
+          "label": "25-義大利語文學系",
+          "name_zh": "義大利語文學系",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "K02",
+          "label": "K02-外交學程義文組",
+          "name_zh": "外交學程義文組",
+          "department_type": "program",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 41,
+      "candidate_codes": [
+        "86",
+        "K46"
+      ],
+      "candidate_labels": [
+        "86-營養科學系",
+        "K46-營養與運動健康促進學分學程"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "營養二",
+          "course_record_count": 14,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "營養三",
+          "course_record_count": 14,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "營養四",
+          "course_record_count": 7,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "營養一",
+          "course_record_count": 6,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "86",
+          "label": "86-營養科學系",
+          "name_zh": "營養科學系",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "K46",
+          "label": "K46-營養與運動健康促進學分學程",
+          "name_zh": "營養與運動健康促進學分學程",
+          "department_type": "credit_program",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 37,
+      "candidate_codes": [
+        "46",
+        "69"
+      ],
+      "candidate_labels": [
+        "46-織品服裝學系織品設計組",
+        "69-織品服裝學系服飾設計組"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "織品設計三",
+          "course_record_count": 10,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "織品設計一",
+          "course_record_count": 9,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "織品設計系",
+          "course_record_count": 8,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "織品設計二",
+          "course_record_count": 5,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "織品設計四",
+          "course_record_count": 5,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "46",
+          "label": "46-織品服裝學系織品設計組",
+          "name_zh": "織品服裝學系織品設計組",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "69",
+          "label": "69-織品服裝學系服飾設計組",
+          "name_zh": "織品服裝學系服飾設計組",
+          "department_type": "department",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 33,
+      "candidate_codes": [
+        "48",
+        "69"
+      ],
+      "candidate_labels": [
+        "48-織品服裝學系織品服飾行銷組",
+        "69-織品服裝學系服飾設計組"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "服飾組二",
+          "course_record_count": 11,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "服飾組一",
+          "course_record_count": 9,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "服飾組三",
+          "course_record_count": 9,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "服飾組四",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "48",
+          "label": "48-織品服裝學系織品服飾行銷組",
+          "name_zh": "織品服裝學系織品服飾行銷組",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "69",
+          "label": "69-織品服裝學系服飾設計組",
+          "name_zh": "織品服裝學系服飾設計組",
+          "department_type": "department",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 24,
+      "candidate_codes": [
+        "0W",
+        "K30",
+        "K47"
+      ],
+      "candidate_labels": [
+        "0W-醫學資訊與創新應用學士學位學程",
+        "K30-醫學工程學分學程",
+        "K47-醫事爭議溝通與處理學分學程"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "醫學三",
+          "course_record_count": 8,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "醫學二",
+          "course_record_count": 7,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "醫學四",
+          "course_record_count": 5,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "醫學一",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "0W",
+          "label": "0W-醫學資訊與創新應用學士學位學程",
+          "name_zh": "醫學資訊與創新應用學士學位學程",
+          "department_type": "degree_program",
+          "division_code": "D"
+        },
+        {
+          "code": "K30",
+          "label": "K30-醫學工程學分學程",
+          "name_zh": "醫學工程學分學程",
+          "department_type": "credit_program",
+          "division_code": "D"
+        },
+        {
+          "code": "K47",
+          "label": "K47-醫事爭議溝通與處理學分學程",
+          "name_zh": "醫事爭議溝通與處理學分學程",
+          "department_type": "credit_program",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 23,
+      "candidate_codes": [
+        "16",
+        "17",
+        "18"
+      ],
+      "candidate_labels": [
+        "16-體育學系體育學組",
+        "17-體育學系運動競技組",
+        "18-體育學系運動健康管理組"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "體育學組一",
+          "course_record_count": 7,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "體育學組二",
+          "course_record_count": 6,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "體育學組三",
+          "course_record_count": 6,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "體育學組四",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "16",
+          "label": "16-體育學系體育學組",
+          "name_zh": "體育學系體育學組",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "17",
+          "label": "17-體育學系運動競技組",
+          "name_zh": "體育學系運動競技組",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "18",
+          "label": "18-體育學系運動健康管理組",
+          "name_zh": "體育學系運動健康管理組",
+          "department_type": "department",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 19,
+      "candidate_codes": [
+        "1R",
+        "56"
+      ],
+      "candidate_labels": [
+        "1R-物理學系電子物理組",
+        "56-物理學系光電物理組"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "物理電物三",
+          "course_record_count": 8,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "物理電物二",
+          "course_record_count": 6,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "物理電物一",
+          "course_record_count": 5,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "1R",
+          "label": "1R-物理學系電子物理組",
+          "name_zh": "物理學系電子物理組",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "56",
+          "label": "56-物理學系光電物理組",
+          "name_zh": "物理學系光電物理組",
+          "department_type": "department",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 16,
+      "candidate_codes": [
+        "31",
+        "K45"
+      ],
+      "candidate_labels": [
+        "31-數學系應用數學組",
+        "K45-行動應用與數位互動微學程"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "應數二",
+          "course_record_count": 6,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "應數三",
+          "course_record_count": 5,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "應數一",
+          "course_record_count": 5,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "31",
+          "label": "31-數學系應用數學組",
+          "name_zh": "數學系應用數學組",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "K45",
+          "label": "K45-行動應用與數位互動微學程",
+          "name_zh": "行動應用與數位互動微學程",
+          "department_type": "micro_program",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "G",
+      "course_record_count": 16,
+      "candidate_codes": [
+        "0E5",
+        "0E6",
+        "0M5",
+        "0N6",
+        "0R6",
+        "575",
+        "576",
+        "745",
+        "746",
+        "785",
+        "795"
+      ],
+      "candidate_labels": [
+        "0E5-企業管理學系管理學碩士在職專班",
+        "0E6-企業管理學系管理學碩士班",
+        "0M5-非營利組織管理碩士學位學程在職專班",
+        "0N6-國際經營管理碩士學位學程",
+        "0R6-品牌與時尚經營管理碩士學位學程",
+        "575-餐旅管理學系碩士在職專班",
+        "576-餐旅管理學系碩士班",
+        "745-資訊管理學系碩士在職專班",
+        "746-資訊管理學系碩士班",
+        "785-科技管理碩士學位學程在職專班",
+        "795-國際創業與經營管理碩士學位學程在職專班"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "管理碩",
+          "course_record_count": 9,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "管理碩一",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "管理碩二",
+          "course_record_count": 3,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "0E5",
+          "label": "0E5-企業管理學系管理學碩士在職專班",
+          "name_zh": "企業管理學系管理學碩士在職專班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "0E6",
+          "label": "0E6-企業管理學系管理學碩士班",
+          "name_zh": "企業管理學系管理學碩士班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "0M5",
+          "label": "0M5-非營利組織管理碩士學位學程在職專班",
+          "name_zh": "非營利組織管理碩士學位學程在職專班",
+          "department_type": "degree_program",
+          "division_code": "G"
+        },
+        {
+          "code": "0N6",
+          "label": "0N6-國際經營管理碩士學位學程",
+          "name_zh": "國際經營管理碩士學位學程",
+          "department_type": "degree_program",
+          "division_code": "G"
+        },
+        {
+          "code": "0R6",
+          "label": "0R6-品牌與時尚經營管理碩士學位學程",
+          "name_zh": "品牌與時尚經營管理碩士學位學程",
+          "department_type": "degree_program",
+          "division_code": "G"
+        },
+        {
+          "code": "575",
+          "label": "575-餐旅管理學系碩士在職專班",
+          "name_zh": "餐旅管理學系碩士在職專班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "576",
+          "label": "576-餐旅管理學系碩士班",
+          "name_zh": "餐旅管理學系碩士班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "745",
+          "label": "745-資訊管理學系碩士在職專班",
+          "name_zh": "資訊管理學系碩士在職專班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "746",
+          "label": "746-資訊管理學系碩士班",
+          "name_zh": "資訊管理學系碩士班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "785",
+          "label": "785-科技管理碩士學位學程在職專班",
+          "name_zh": "科技管理碩士學位學程在職專班",
+          "department_type": "degree_program",
+          "division_code": "G"
+        },
+        {
+          "code": "795",
+          "label": "795-國際創業與經營管理碩士學位學程在職專班",
+          "name_zh": "國際創業與經營管理碩士學位學程在職專班",
+          "department_type": "degree_program",
+          "division_code": "G"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 14,
+      "candidate_codes": [
+        "1N",
+        "K31"
+      ],
+      "candidate_labels": [
+        "1N-人文與社區創新學士學位學程",
+        "K31-社會創新創業學分學程"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "社創學程一",
+          "course_record_count": 5,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "社創學程三",
+          "course_record_count": 5,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "社創學程二",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "1N",
+          "label": "1N-人文與社區創新學士學位學程",
+          "name_zh": "人文與社區創新學士學位學程",
+          "department_type": "degree_program",
+          "division_code": "D"
+        },
+        {
+          "code": "K31",
+          "label": "K31-社會創新創業學分學程",
+          "name_zh": "社會創新創業學分學程",
+          "department_type": "credit_program",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "G",
+      "course_record_count": 9,
+      "candidate_codes": [
+        "0E5",
+        "0M5",
+        "575",
+        "745",
+        "785",
+        "795"
+      ],
+      "candidate_labels": [
+        "0E5-企業管理學系管理學碩士在職專班",
+        "0M5-非營利組織管理碩士學位學程在職專班",
+        "575-餐旅管理學系碩士在職專班",
+        "745-資訊管理學系碩士在職專班",
+        "785-科技管理碩士學位學程在職專班",
+        "795-國際創業與經營管理碩士學位學程在職專班"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "管理碩職",
+          "course_record_count": 3,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "管理碩職一",
+          "course_record_count": 3,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "管理碩職二",
+          "course_record_count": 3,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "0E5",
+          "label": "0E5-企業管理學系管理學碩士在職專班",
+          "name_zh": "企業管理學系管理學碩士在職專班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "0M5",
+          "label": "0M5-非營利組織管理碩士學位學程在職專班",
+          "name_zh": "非營利組織管理碩士學位學程在職專班",
+          "department_type": "degree_program",
+          "division_code": "G"
+        },
+        {
+          "code": "575",
+          "label": "575-餐旅管理學系碩士在職專班",
+          "name_zh": "餐旅管理學系碩士在職專班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "745",
+          "label": "745-資訊管理學系碩士在職專班",
+          "name_zh": "資訊管理學系碩士在職專班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "785",
+          "label": "785-科技管理碩士學位學程在職專班",
+          "name_zh": "科技管理碩士學位學程在職專班",
+          "department_type": "degree_program",
+          "division_code": "G"
+        },
+        {
+          "code": "795",
+          "label": "795-國際創業與經營管理碩士學位學程在職專班",
+          "name_zh": "國際創業與經營管理碩士學位學程在職專班",
+          "department_type": "degree_program",
+          "division_code": "G"
+        }
+      ]
+    },
+    {
+      "division_code": "G",
+      "course_record_count": 8,
+      "candidate_codes": [
+        "0N6",
+        "795"
+      ],
+      "candidate_labels": [
+        "0N6-國際經營管理碩士學位學程",
+        "795-國際創業與經營管理碩士學位學程在職專班"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "國際經管",
+          "course_record_count": 8,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "0N6",
+          "label": "0N6-國際經營管理碩士學位學程",
+          "name_zh": "國際經營管理碩士學位學程",
+          "department_type": "degree_program",
+          "division_code": "G"
+        },
+        {
+          "code": "795",
+          "label": "795-國際創業與經營管理碩士學位學程在職專班",
+          "name_zh": "國際創業與經營管理碩士學位學程在職專班",
+          "department_type": "degree_program",
+          "division_code": "G"
+        }
+      ]
+    },
+    {
+      "division_code": "G",
+      "course_record_count": 8,
+      "candidate_codes": [
+        "795",
+        "K53",
+        "K73"
+      ],
+      "candidate_labels": [
+        "795-國際創業與經營管理碩士學位學程在職專班",
+        "K53-國際文創與商務溝通學分學程",
+        "K73-國際行銷與數位創新微學程"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "國創學程一",
+          "course_record_count": 6,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "國創學程二",
+          "course_record_count": 2,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "795",
+          "label": "795-國際創業與經營管理碩士學位學程在職專班",
+          "name_zh": "國際創業與經營管理碩士學位學程在職專班",
+          "department_type": "degree_program",
+          "division_code": "G"
+        },
+        {
+          "code": "K53",
+          "label": "K53-國際文創與商務溝通學分學程",
+          "name_zh": "國際文創與商務溝通學分學程",
+          "department_type": "credit_program",
+          "division_code": "G"
+        },
+        {
+          "code": "K73",
+          "label": "K73-國際行銷與數位創新微學程",
+          "name_zh": "國際行銷與數位創新微學程",
+          "department_type": "micro_program",
+          "division_code": "G"
+        }
+      ]
+    },
+    {
+      "division_code": "G",
+      "course_record_count": 6,
+      "candidate_codes": [
+        "0F5",
+        "0F6",
+        "1K5"
+      ],
+      "candidate_labels": [
+        "0F5-金融與國際企業學系金融碩士在職專班",
+        "0F6-金融與國際企業學系金融碩士班",
+        "1K5-金融與國際企業現役軍人營區碩士在職專班"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "金融碩一",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "金融碩二",
+          "course_record_count": 1,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "金融碩",
+          "course_record_count": 1,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "0F5",
+          "label": "0F5-金融與國際企業學系金融碩士在職專班",
+          "name_zh": "金融與國際企業學系金融碩士在職專班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "0F6",
+          "label": "0F6-金融與國際企業學系金融碩士班",
+          "name_zh": "金融與國際企業學系金融碩士班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "1K5",
+          "label": "1K5-金融與國際企業現役軍人營區碩士在職專班",
+          "name_zh": "金融與國際企業現役軍人營區碩士在職專班",
+          "department_type": "",
+          "division_code": "G"
+        }
+      ]
+    },
+    {
+      "division_code": "G",
+      "course_record_count": 4,
+      "candidate_codes": [
+        "0F5",
+        "1K5"
+      ],
+      "candidate_labels": [
+        "0F5-金融與國際企業學系金融碩士在職專班",
+        "1K5-金融與國際企業現役軍人營區碩士在職專班"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "金融碩職一",
+          "course_record_count": 3,
+          "selected_code": null,
+          "review_note": ""
+        },
+        {
+          "course_label": "金融碩職二",
+          "course_record_count": 1,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "0F5",
+          "label": "0F5-金融與國際企業學系金融碩士在職專班",
+          "name_zh": "金融與國際企業學系金融碩士在職專班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "1K5",
+          "label": "1K5-金融與國際企業現役軍人營區碩士在職專班",
+          "name_zh": "金融與國際企業現役軍人營區碩士在職專班",
+          "department_type": "",
+          "division_code": "G"
+        }
+      ]
+    },
+    {
+      "division_code": "G",
+      "course_record_count": 4,
+      "candidate_codes": [
+        "1C5",
+        "665"
+      ],
+      "candidate_labels": [
+        "1C5-財經法律學系原住民碩士在職專班",
+        "665-法律學系碩士在職專班"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "法律碩職",
+          "course_record_count": 4,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "1C5",
+          "label": "1C5-財經法律學系原住民碩士在職專班",
+          "name_zh": "財經法律學系原住民碩士在職專班",
+          "department_type": "department",
+          "division_code": "G"
+        },
+        {
+          "code": "665",
+          "label": "665-法律學系碩士在職專班",
+          "name_zh": "法律學系碩士在職專班",
+          "department_type": "department",
+          "division_code": "G"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 3,
+      "candidate_codes": [
+        "K27",
+        "K42"
+      ],
+      "candidate_labels": [
+        "K27-歐盟語言與文化研究學分學程",
+        "K42-應用中文學分學程"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "文學",
+          "course_record_count": 3,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "K27",
+          "label": "K27-歐盟語言與文化研究學分學程",
+          "name_zh": "歐盟語言與文化研究學分學程",
+          "department_type": "credit_program",
+          "division_code": "D"
+        },
+        {
+          "code": "K42",
+          "label": "K42-應用中文學分學程",
+          "name_zh": "應用中文學分學程",
+          "department_type": "credit_program",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "D",
+      "course_record_count": 2,
+      "candidate_codes": [
+        "1R",
+        "55",
+        "56"
+      ],
+      "candidate_labels": [
+        "1R-物理學系電子物理組",
+        "55-物理學系物理組",
+        "56-物理學系光電物理組"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "物理四",
+          "course_record_count": 2,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "1R",
+          "label": "1R-物理學系電子物理組",
+          "name_zh": "物理學系電子物理組",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "55",
+          "label": "55-物理學系物理組",
+          "name_zh": "物理學系物理組",
+          "department_type": "department",
+          "division_code": "D"
+        },
+        {
+          "code": "56",
+          "label": "56-物理學系光電物理組",
+          "name_zh": "物理學系光電物理組",
+          "department_type": "department",
+          "division_code": "D"
+        }
+      ]
+    },
+    {
+      "division_code": "C",
+      "course_record_count": 1,
+      "candidate_codes": [
+        "K62",
+        "Q2",
+        "Q3",
+        "Q4"
+      ],
+      "candidate_labels": [
+        "K62-文化產業學群微學程",
+        "Q2-英國語文學系培力專班",
+        "Q3-中國文學系培力專班",
+        "Q4-藝術與文化創意學士學位學程培力專班"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "文學",
+          "course_record_count": 1,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "K62",
+          "label": "K62-文化產業學群微學程",
+          "name_zh": "文化產業學群微學程",
+          "department_type": "micro_program",
+          "division_code": "C"
+        },
+        {
+          "code": "Q2",
+          "label": "Q2-英國語文學系培力專班",
+          "name_zh": "英國語文學系培力專班",
+          "department_type": "department",
+          "division_code": "C"
+        },
+        {
+          "code": "Q3",
+          "label": "Q3-中國文學系培力專班",
+          "name_zh": "中國文學系培力專班",
+          "department_type": "department",
+          "division_code": "C"
+        },
+        {
+          "code": "Q4",
+          "label": "Q4-藝術與文化創意學士學位學程培力專班",
+          "name_zh": "藝術與文化創意學士學位學程培力專班",
+          "department_type": "degree_program",
+          "division_code": "C"
+        }
+      ]
+    },
+    {
+      "division_code": "G",
+      "course_record_count": 1,
+      "candidate_codes": [
+        "K01",
+        "K87"
+      ],
+      "candidate_labels": [
+        "K01-西洋古典暨中世紀文化學分學程",
+        "K87-西洋古典暨中世紀語言與文化學分學程"
+      ],
+      "course_label_decisions": [
+        {
+          "course_label": "古中學程",
+          "course_record_count": 1,
+          "selected_code": null,
+          "review_note": ""
+        }
+      ],
+      "candidate_details": [
+        {
+          "code": "K01",
+          "label": "K01-西洋古典暨中世紀文化學分學程",
+          "name_zh": "西洋古典暨中世紀文化學分學程",
+          "department_type": "credit_program",
+          "division_code": "G"
+        },
+        {
+          "code": "K87",
+          "label": "K87-西洋古典暨中世紀語言與文化學分學程",
+          "name_zh": "西洋古典暨中世紀語言與文化學分學程",
+          "department_type": "credit_program",
+          "division_code": "G"
+        }
+      ]
+    }
+  ]
+}

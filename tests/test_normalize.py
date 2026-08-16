@@ -70,6 +70,9 @@ def test_normalize_course_record_keeps_raw_and_core_sections():
 
     assert record["course"]["course_id"] == "753926"
     assert record["organization"]["department_name_zh"] == "中文系"
+    assert record["organization"]["audience_department"] == "中文系"
+    assert record["organization"]["study_level"] == "undergraduate"
+    assert record["organization"]["audience_grade"] is None
     assert record["class_meetings"][0]["sections"] == ["D7", "D8"]
     assert record["outline"]["literacy"][0]["relation_label"] == "直接相關"
     assert record["outline"]["special_issues"][0]["name"] == "生命教育"

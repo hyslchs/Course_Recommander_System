@@ -16,8 +16,8 @@ from .config import (
     DatasetPaths,
 )
 from .crawler import crawl_all, discover
+from .departments import fetch_official_department_catalog
 from .artifacts import DEFAULT_MODEL, SentenceTransformerEncoder, build_artifacts
-from .export import export_parquet
 from .io import iter_jsonl, write_json, write_jsonl
 from .normalize import normalize_course_record
 
@@ -27,6 +27,8 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
     if args.command == "discover":
         _run_discover(args)
+    elif args.command == "departments":
+        _run_departments(args)
     elif args.command == "crawl":
         _run_crawl(args)
     elif args.command == "normalize":
@@ -51,7 +53,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="HTTP transport. auto prefers Scrapling, then httpx, then urllib.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
-    for name in ("discover", "crawl", "normalize", "export", "validate", "artifacts"):
+    for name in ("discover", "departments", "crawl", "normalize", "export", "validate", "artifacts"):
         sub = subparsers.add_parser(name)
         _add_dataset_args(sub)
     crawl = subparsers.choices["crawl"]
@@ -92,6 +94,23 @@ def _run_discover(args: argparse.Namespace) -> None:
     print(_summary(result))
 
 
+def _run_departments(args: argparse.Namespace) -> None:
+    paths = _paths(args)
+    result = asyncio.run(
+        fetch_official_department_catalog(
+            _client(args),
+            hy=args.hy,
+            lcid=args.lcid,
+        )
+    )
+    write_json(paths.department_catalog_json, result)
+    print(_summary({
+        "departments": len(result.get("departments") or []),
+        "divisions": len(result.get("divisions") or []),
+        "output": str(paths.department_catalog_json),
+    }))
+
+
 def _run_crawl(args: argparse.Namespace) -> None:
     result = asyncio.run(
         crawl_all(
@@ -111,12 +130,22 @@ def _run_crawl(args: argparse.Namespace) -> None:
 
 def _run_normalize(args: argparse.Namespace) -> None:
     paths = _paths(args)
-    records = (normalize_course_record(row) for row in iter_jsonl(paths.raw_jsonl) or [])
+    department_catalog = None
+    if paths.department_catalog_json.exists():
+        import orjson
+
+        department_catalog = orjson.loads(paths.department_catalog_json.read_bytes())
+    records = (
+        normalize_course_record(row, department_catalog=department_catalog)
+        for row in iter_jsonl(paths.raw_jsonl) or []
+    )
     count = write_jsonl(paths.canonical_jsonl, records)
     print(_summary({"canonical_records": count, "output": str(paths.canonical_jsonl)}))
 
 
 def _run_export(args: argparse.Namespace) -> None:
+    from .export import export_parquet
+
     paths = _paths(args)
     records = list(iter_jsonl(paths.canonical_jsonl) or [])
     counts = export_parquet(records, paths.derived_dir)

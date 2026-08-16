@@ -1,0 +1,4995 @@
+{
+  "schema_version": "fju_department_catalog_v2",
+  "fetched_at": "2026-08-14T01:58:04+08:00",
+  "source": {
+    "base_url": "https://travellerlink.fju.edu.tw/Outline/api",
+    "division_endpoint": "Common/VwDayNgtRefDDL",
+    "department_endpoint": "Common/DptByDayNgtAndGroDDL",
+    "parameters": {
+      "HY": 115,
+      "lcid": 1028
+    }
+  },
+  "hy": 115,
+  "lcid": 1028,
+  "divisions": [
+    {
+      "code": "C",
+      "label": "C-進修部",
+      "name_zh": "進修部",
+      "departments": [
+        {
+          "code": "01",
+          "label": "01-中國文學系",
+          "name_zh": "中國文學系",
+          "department_type": "department"
+        },
+        {
+          "code": "02",
+          "label": "02-歷史學系",
+          "name_zh": "歷史學系",
+          "department_type": "department"
+        },
+        {
+          "code": "03",
+          "label": "03-哲學系",
+          "name_zh": "哲學系",
+          "department_type": "department"
+        },
+        {
+          "code": "0E",
+          "label": "0E-企業管理學系",
+          "name_zh": "企業管理學系",
+          "department_type": "department"
+        },
+        {
+          "code": "0F",
+          "label": "0F-金融與國際企業學系",
+          "name_zh": "金融與國際企業學系",
+          "department_type": "department"
+        },
+        {
+          "code": "0G",
+          "label": "0G-大眾傳播學士學位學程",
+          "name_zh": "大眾傳播學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0H",
+          "label": "0H-運動休閒管理學士學位學程",
+          "name_zh": "運動休閒管理學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0I",
+          "label": "0I-商業管理學士學位學程",
+          "name_zh": "商業管理學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0J",
+          "label": "0J-藝術與文化創意學士學位學程",
+          "name_zh": "藝術與文化創意學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0T",
+          "label": "0T-軟體工程與數位創意學士學位學程",
+          "name_zh": "軟體工程與數位創意學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "10",
+          "label": "10-圖書資訊學系",
+          "name_zh": "圖書資訊學系",
+          "department_type": "department"
+        },
+        {
+          "code": "1D",
+          "label": "1D-人文社會服務進修學士學位學程",
+          "name_zh": "人文社會服務進修學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "1E",
+          "label": "1E-長期照護與健康管理進修學士學位學程",
+          "name_zh": "長期照護與健康管理進修學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "1F",
+          "label": "1F-室內設計進修學士學位學程",
+          "name_zh": "室內設計進修學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "1G",
+          "label": "1G-資訊創新與數位生活進修學士學位學程",
+          "name_zh": "資訊創新與數位生活進修學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "1H",
+          "label": "1H-醫學資訊與健康科技進修學士學位學程",
+          "name_zh": "醫學資訊與健康科技進修學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "1Q",
+          "label": "1Q-服飾採購與行銷進修學士學位學程",
+          "name_zh": "服飾採購與行銷進修學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "1T",
+          "label": "1T-運動資訊與健康生活進修學士學位學程",
+          "name_zh": "運動資訊與健康生活進修學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "20",
+          "label": "20-英國語文學系",
+          "name_zh": "英國語文學系",
+          "department_type": "department"
+        },
+        {
+          "code": "24",
+          "label": "24-日本語文學系",
+          "name_zh": "日本語文學系",
+          "department_type": "department"
+        },
+        {
+          "code": "36",
+          "label": "36-數學系",
+          "name_zh": "數學系",
+          "department_type": "department"
+        },
+        {
+          "code": "57",
+          "label": "57-餐旅管理學系",
+          "name_zh": "餐旅管理學系",
+          "department_type": "department"
+        },
+        {
+          "code": "65",
+          "label": "65-經濟學系",
+          "name_zh": "經濟學系",
+          "department_type": "department"
+        },
+        {
+          "code": "66",
+          "label": "66-法律學系",
+          "name_zh": "法律學系",
+          "department_type": "department"
+        },
+        {
+          "code": "71",
+          "label": "71-會計學系",
+          "name_zh": "會計學系",
+          "department_type": "department"
+        },
+        {
+          "code": "76",
+          "label": "76-統計資訊學系",
+          "name_zh": "統計資訊學系",
+          "department_type": "department"
+        },
+        {
+          "code": "81",
+          "label": "81-應用美術學系",
+          "name_zh": "應用美術學系",
+          "department_type": "department"
+        },
+        {
+          "code": "90",
+          "label": "90-宗教學系",
+          "name_zh": "宗教學系",
+          "department_type": "department"
+        },
+        {
+          "code": "AT",
+          "label": "AT-全人教育核心課程-體育",
+          "name_zh": "全人教育核心課程-體育",
+          "department_type": ""
+        },
+        {
+          "code": "CT",
+          "label": "CT-基本能力課程-國文",
+          "name_zh": "基本能力課程-國文",
+          "department_type": ""
+        },
+        {
+          "code": "DT",
+          "label": "DT-通識涵養課程-永續素養",
+          "name_zh": "通識涵養課程-永續素養",
+          "department_type": ""
+        },
+        {
+          "code": "ET",
+          "label": "ET-全人教育核心課程-專業倫理",
+          "name_zh": "全人教育核心課程-專業倫理",
+          "department_type": ""
+        },
+        {
+          "code": "FT",
+          "label": "FT-基本能力課程-外國語文",
+          "name_zh": "基本能力課程-外國語文",
+          "department_type": ""
+        },
+        {
+          "code": "IT",
+          "label": "IT-全人教育核心課程-大學入門",
+          "name_zh": "全人教育核心課程-大學入門",
+          "department_type": ""
+        },
+        {
+          "code": "K10",
+          "label": "K10-經貿日語菁英學程",
+          "name_zh": "經貿日語菁英學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K11",
+          "label": "K11-商業管理菁英學程",
+          "name_zh": "商業管理菁英學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K62",
+          "label": "K62-文化產業學群微學程",
+          "name_zh": "文化產業學群微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K63",
+          "label": "K63-健康產業學群微學程",
+          "name_zh": "健康產業學群微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K64",
+          "label": "K64-商務學群微學程",
+          "name_zh": "商務學群微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K65",
+          "label": "K65-設計學群微學程",
+          "name_zh": "設計學群微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "LC",
+          "label": "LC-(全)英語聽講",
+          "name_zh": "(全)英語聽講",
+          "department_type": ""
+        },
+        {
+          "code": "LT",
+          "label": "LT-全人教育核心課程-人生哲學",
+          "name_zh": "全人教育核心課程-人生哲學",
+          "department_type": ""
+        },
+        {
+          "code": "NT",
+          "label": "NT-通識涵養課程-自然科技",
+          "name_zh": "通識涵養課程-自然科技",
+          "department_type": ""
+        },
+        {
+          "code": "PT",
+          "label": "PT-通識涵養課程-人文藝術",
+          "name_zh": "通識涵養課程-人文藝術",
+          "department_type": ""
+        },
+        {
+          "code": "Q1",
+          "label": "Q1-學士後AI創新應用多元培力專班",
+          "name_zh": "學士後AI創新應用多元培力專班",
+          "department_type": ""
+        },
+        {
+          "code": "Q2",
+          "label": "Q2-英國語文學系培力專班",
+          "name_zh": "英國語文學系培力專班",
+          "department_type": "department"
+        },
+        {
+          "code": "Q3",
+          "label": "Q3-中國文學系培力專班",
+          "name_zh": "中國文學系培力專班",
+          "department_type": "department"
+        },
+        {
+          "code": "Q4",
+          "label": "Q4-藝術與文化創意學士學位學程培力專班",
+          "name_zh": "藝術與文化創意學士學位學程培力專班",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "R1",
+          "label": "R1-創意思考與服務設計學分學程",
+          "name_zh": "創意思考與服務設計學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "R2",
+          "label": "R2-休閒產業與地方創生學分學程",
+          "name_zh": "休閒產業與地方創生學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "R3",
+          "label": "R3-投資策略與資產管理學分學程",
+          "name_zh": "投資策略與資產管理學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "ST",
+          "label": "ST-通識涵養課程-社會科學",
+          "name_zh": "通識涵養課程-社會科學",
+          "department_type": ""
+        },
+        {
+          "code": "TG",
+          "label": "TG-跨領域學院",
+          "name_zh": "跨領域學院",
+          "department_type": "college"
+        },
+        {
+          "code": "YT",
+          "label": "YT-軍訓課程",
+          "name_zh": "軍訓課程",
+          "department_type": ""
+        }
+      ]
+    },
+    {
+      "code": "D",
+      "label": "D-日間部",
+      "name_zh": "日間部",
+      "departments": [
+        {
+          "code": "01",
+          "label": "01-中國文學系",
+          "name_zh": "中國文學系",
+          "department_type": "department"
+        },
+        {
+          "code": "02",
+          "label": "02-歷史學系",
+          "name_zh": "歷史學系",
+          "department_type": "department"
+        },
+        {
+          "code": "03",
+          "label": "03-哲學系",
+          "name_zh": "哲學系",
+          "department_type": "department"
+        },
+        {
+          "code": "0E",
+          "label": "0E-企業管理學系",
+          "name_zh": "企業管理學系",
+          "department_type": "department"
+        },
+        {
+          "code": "0F",
+          "label": "0F-金融與國際企業學系",
+          "name_zh": "金融與國際企業學系",
+          "department_type": "department"
+        },
+        {
+          "code": "0L",
+          "label": "0L-天主教研修學士學位學程",
+          "name_zh": "天主教研修學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0V",
+          "label": "0V-教育領導與科技發展學士學位學程",
+          "name_zh": "教育領導與科技發展學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0W",
+          "label": "0W-醫學資訊與創新應用學士學位學程",
+          "name_zh": "醫學資訊與創新應用學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "10",
+          "label": "10-圖書資訊學系",
+          "name_zh": "圖書資訊學系",
+          "department_type": "department"
+        },
+        {
+          "code": "11",
+          "label": "11-影像傳播學系",
+          "name_zh": "影像傳播學系",
+          "department_type": "department"
+        },
+        {
+          "code": "12",
+          "label": "12-新聞傳播學系",
+          "name_zh": "新聞傳播學系",
+          "department_type": "department"
+        },
+        {
+          "code": "13",
+          "label": "13-廣告傳播學系",
+          "name_zh": "廣告傳播學系",
+          "department_type": "department"
+        },
+        {
+          "code": "16",
+          "label": "16-體育學系體育學組",
+          "name_zh": "體育學系體育學組",
+          "department_type": "department"
+        },
+        {
+          "code": "17",
+          "label": "17-體育學系運動競技組",
+          "name_zh": "體育學系運動競技組",
+          "department_type": "department"
+        },
+        {
+          "code": "18",
+          "label": "18-體育學系運動健康管理組",
+          "name_zh": "體育學系運動健康管理組",
+          "department_type": "department"
+        },
+        {
+          "code": "19",
+          "label": "19-電機工程學系系統與晶片設計組",
+          "name_zh": "電機工程學系系統與晶片設計組",
+          "department_type": "department"
+        },
+        {
+          "code": "1B",
+          "label": "1B-數學系資訊數學組",
+          "name_zh": "數學系資訊數學組",
+          "department_type": "department"
+        },
+        {
+          "code": "1I",
+          "label": "1I-人工智慧與資訊安全學士學位學程",
+          "name_zh": "人工智慧與資訊安全學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "1J",
+          "label": "1J-跨領域全英語學士學位學程",
+          "name_zh": "跨領域全英語學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "1N",
+          "label": "1N-人文與社區創新學士學位學程",
+          "name_zh": "人文與社區創新學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "1P",
+          "label": "1P-國際溝通與科技創新學士學位學程",
+          "name_zh": "國際溝通與科技創新學士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "1R",
+          "label": "1R-物理學系電子物理組",
+          "name_zh": "物理學系電子物理組",
+          "department_type": "department"
+        },
+        {
+          "code": "1S",
+          "label": "1S-學士後護理學系",
+          "name_zh": "學士後護理學系",
+          "department_type": "department"
+        },
+        {
+          "code": "20",
+          "label": "20-英國語文學系",
+          "name_zh": "英國語文學系",
+          "department_type": "department"
+        },
+        {
+          "code": "22",
+          "label": "22-法國語文學系",
+          "name_zh": "法國語文學系",
+          "department_type": "department"
+        },
+        {
+          "code": "23",
+          "label": "23-西班牙語文學系",
+          "name_zh": "西班牙語文學系",
+          "department_type": "department"
+        },
+        {
+          "code": "24",
+          "label": "24-日本語文學系",
+          "name_zh": "日本語文學系",
+          "department_type": "department"
+        },
+        {
+          "code": "25",
+          "label": "25-義大利語文學系",
+          "name_zh": "義大利語文學系",
+          "department_type": "department"
+        },
+        {
+          "code": "26",
+          "label": "26-德語語文學系",
+          "name_zh": "德語語文學系",
+          "department_type": "department"
+        },
+        {
+          "code": "30",
+          "label": "30-數學系純數學組",
+          "name_zh": "數學系純數學組",
+          "department_type": "department"
+        },
+        {
+          "code": "31",
+          "label": "31-數學系應用數學組",
+          "name_zh": "數學系應用數學組",
+          "department_type": "department"
+        },
+        {
+          "code": "33",
+          "label": "33-化學系",
+          "name_zh": "化學系",
+          "department_type": "department"
+        },
+        {
+          "code": "39",
+          "label": "39-心理學系",
+          "name_zh": "心理學系",
+          "department_type": "department"
+        },
+        {
+          "code": "46",
+          "label": "46-織品服裝學系織品設計組",
+          "name_zh": "織品服裝學系織品設計組",
+          "department_type": "department"
+        },
+        {
+          "code": "48",
+          "label": "48-織品服裝學系織品服飾行銷組",
+          "name_zh": "織品服裝學系織品服飾行銷組",
+          "department_type": "department"
+        },
+        {
+          "code": "51",
+          "label": "51-資訊工程學系",
+          "name_zh": "資訊工程學系",
+          "department_type": "department"
+        },
+        {
+          "code": "54",
+          "label": "54-生命科學系",
+          "name_zh": "生命科學系",
+          "department_type": "department"
+        },
+        {
+          "code": "55",
+          "label": "55-物理學系物理組",
+          "name_zh": "物理學系物理組",
+          "department_type": "department"
+        },
+        {
+          "code": "56",
+          "label": "56-物理學系光電物理組",
+          "name_zh": "物理學系光電物理組",
+          "department_type": "department"
+        },
+        {
+          "code": "57",
+          "label": "57-餐旅管理學系",
+          "name_zh": "餐旅管理學系",
+          "department_type": "department"
+        },
+        {
+          "code": "58",
+          "label": "58-兒童與家庭學系",
+          "name_zh": "兒童與家庭學系",
+          "department_type": "department"
+        },
+        {
+          "code": "63",
+          "label": "63-社會學系",
+          "name_zh": "社會學系",
+          "department_type": "department"
+        },
+        {
+          "code": "64",
+          "label": "64-社會工作學系",
+          "name_zh": "社會工作學系",
+          "department_type": "department"
+        },
+        {
+          "code": "65",
+          "label": "65-經濟學系",
+          "name_zh": "經濟學系",
+          "department_type": "department"
+        },
+        {
+          "code": "66",
+          "label": "66-法律學系",
+          "name_zh": "法律學系",
+          "department_type": "department"
+        },
+        {
+          "code": "67",
+          "label": "67-財經法律學系",
+          "name_zh": "財經法律學系",
+          "department_type": "department"
+        },
+        {
+          "code": "68",
+          "label": "68-學士後法律學系",
+          "name_zh": "學士後法律學系",
+          "department_type": "department"
+        },
+        {
+          "code": "69",
+          "label": "69-織品服裝學系服飾設計組",
+          "name_zh": "織品服裝學系服飾設計組",
+          "department_type": "department"
+        },
+        {
+          "code": "71",
+          "label": "71-會計學系",
+          "name_zh": "會計學系",
+          "department_type": "department"
+        },
+        {
+          "code": "74",
+          "label": "74-資訊管理學系",
+          "name_zh": "資訊管理學系",
+          "department_type": "department"
+        },
+        {
+          "code": "76",
+          "label": "76-統計資訊學系",
+          "name_zh": "統計資訊學系",
+          "department_type": "department"
+        },
+        {
+          "code": "80",
+          "label": "80-音樂學系",
+          "name_zh": "音樂學系",
+          "department_type": "department"
+        },
+        {
+          "code": "81",
+          "label": "81-應用美術學系",
+          "name_zh": "應用美術學系",
+          "department_type": "department"
+        },
+        {
+          "code": "82",
+          "label": "82-景觀設計學系",
+          "name_zh": "景觀設計學系",
+          "department_type": "department"
+        },
+        {
+          "code": "85",
+          "label": "85-食品科學系",
+          "name_zh": "食品科學系",
+          "department_type": "department"
+        },
+        {
+          "code": "86",
+          "label": "86-營養科學系",
+          "name_zh": "營養科學系",
+          "department_type": "department"
+        },
+        {
+          "code": "89",
+          "label": "89-電機工程學系",
+          "name_zh": "電機工程學系",
+          "department_type": "department"
+        },
+        {
+          "code": "90",
+          "label": "90-宗教學系",
+          "name_zh": "宗教學系",
+          "department_type": "department"
+        },
+        {
+          "code": "91",
+          "label": "91-護理學系",
+          "name_zh": "護理學系",
+          "department_type": "department"
+        },
+        {
+          "code": "92",
+          "label": "92-公共衛生學系",
+          "name_zh": "公共衛生學系",
+          "department_type": "department"
+        },
+        {
+          "code": "94",
+          "label": "94-醫學系",
+          "name_zh": "醫學系",
+          "department_type": "department"
+        },
+        {
+          "code": "95",
+          "label": "95-臨床心理學系",
+          "name_zh": "臨床心理學系",
+          "department_type": "department"
+        },
+        {
+          "code": "96",
+          "label": "96-職能治療學系",
+          "name_zh": "職能治療學系",
+          "department_type": "department"
+        },
+        {
+          "code": "98",
+          "label": "98-呼吸治療學系",
+          "name_zh": "呼吸治療學系",
+          "department_type": "department"
+        },
+        {
+          "code": "99",
+          "label": "99-電機工程學系電腦與通訊工程組",
+          "name_zh": "電機工程學系電腦與通訊工程組",
+          "department_type": "department"
+        },
+        {
+          "code": "AG",
+          "label": "AG-藝術學院",
+          "name_zh": "藝術學院",
+          "department_type": "college"
+        },
+        {
+          "code": "AT",
+          "label": "AT-全人教育核心課程-體育",
+          "name_zh": "全人教育核心課程-體育",
+          "department_type": ""
+        },
+        {
+          "code": "CG",
+          "label": "CG-文學院",
+          "name_zh": "文學院",
+          "department_type": "college"
+        },
+        {
+          "code": "CT",
+          "label": "CT-基本能力課程-國文",
+          "name_zh": "基本能力課程-國文",
+          "department_type": ""
+        },
+        {
+          "code": "DG",
+          "label": "DG-醫學院",
+          "name_zh": "醫學院",
+          "department_type": "college"
+        },
+        {
+          "code": "DT",
+          "label": "DT-通識涵養課程-永續素養",
+          "name_zh": "通識涵養課程-永續素養",
+          "department_type": ""
+        },
+        {
+          "code": "E1",
+          "label": "E1-中等學校教師教育學程",
+          "name_zh": "中等學校教師教育學程",
+          "department_type": "program"
+        },
+        {
+          "code": "E3",
+          "label": "E3-國小教師教育學程",
+          "name_zh": "國小教師教育學程",
+          "department_type": "program"
+        },
+        {
+          "code": "ET",
+          "label": "ET-全人教育核心課程-專業倫理",
+          "name_zh": "全人教育核心課程-專業倫理",
+          "department_type": ""
+        },
+        {
+          "code": "FG",
+          "label": "FG-外語學院",
+          "name_zh": "外語學院",
+          "department_type": "college"
+        },
+        {
+          "code": "FT",
+          "label": "FT-基本能力課程-外國語文",
+          "name_zh": "基本能力課程-外國語文",
+          "department_type": ""
+        },
+        {
+          "code": "HG",
+          "label": "HG-民生學院",
+          "name_zh": "民生學院",
+          "department_type": "college"
+        },
+        {
+          "code": "IT",
+          "label": "IT-全人教育核心課程-大學入門",
+          "name_zh": "全人教育核心課程-大學入門",
+          "department_type": ""
+        },
+        {
+          "code": "JG",
+          "label": "JG-法律學院",
+          "name_zh": "法律學院",
+          "department_type": "college"
+        },
+        {
+          "code": "K02",
+          "label": "K02-外交學程義文組",
+          "name_zh": "外交學程義文組",
+          "department_type": "program"
+        },
+        {
+          "code": "K03",
+          "label": "K03-翻譯學程",
+          "name_zh": "翻譯學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K04",
+          "label": "K04-英語授課商業管理學程",
+          "name_zh": "英語授課商業管理學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K05",
+          "label": "K05-電子商務學分學程",
+          "name_zh": "電子商務學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K06",
+          "label": "K06-中國古籍整理學分學程",
+          "name_zh": "中國古籍整理學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K07",
+          "label": "K07-非營利組織管理學程",
+          "name_zh": "非營利組織管理學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K08",
+          "label": "K08-比較文化研究學程",
+          "name_zh": "比較文化研究學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K09",
+          "label": "K09-老人學學分學程",
+          "name_zh": "老人學學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K12",
+          "label": "K12-英語菁英學分學程",
+          "name_zh": "英語菁英學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K13",
+          "label": "K13-商業智慧與資料決策學程",
+          "name_zh": "商業智慧與資料決策學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K14",
+          "label": "K14-國際企業管理學程",
+          "name_zh": "國際企業管理學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K15",
+          "label": "K15-創意創新創業學程",
+          "name_zh": "創意創新創業學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K17",
+          "label": "K17-輔仁大學服務-學習與領導學程",
+          "name_zh": "輔仁大學服務-學習與領導學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K18",
+          "label": "K18-外交與國際事務學分學程",
+          "name_zh": "外交與國際事務學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K19",
+          "label": "K19-對外華語教學學分學程",
+          "name_zh": "對外華語教學學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K1A",
+          "label": "K1A-人工智慧工業應用學分學程",
+          "name_zh": "人工智慧工業應用學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K1B",
+          "label": "K1B-人工智慧自然語言技術學分學程",
+          "name_zh": "人工智慧自然語言技術學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K1C",
+          "label": "K1C-人工智慧探索應用學分學程",
+          "name_zh": "人工智慧探索應用學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K1D",
+          "label": "K1D-人工智慧視覺技術學分學程",
+          "name_zh": "人工智慧視覺技術學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K21",
+          "label": "K21-財務工程學程",
+          "name_zh": "財務工程學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K22",
+          "label": "K22-RFID資訊技術與應用學程",
+          "name_zh": "RFID資訊技術與應用學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K23",
+          "label": "K23-嵌入式系統與軟體學程",
+          "name_zh": "嵌入式系統與軟體學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K24",
+          "label": "K24-網路與多媒體學分學程",
+          "name_zh": "網路與多媒體學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K25",
+          "label": "K25-產業智慧與資料決策學程",
+          "name_zh": "產業智慧與資料決策學程",
+          "department_type": "program"
+        },
+        {
+          "code": "K26",
+          "label": "K26-哲學諮商與輔導學分學程",
+          "name_zh": "哲學諮商與輔導學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K27",
+          "label": "K27-歐盟語言與文化研究學分學程",
+          "name_zh": "歐盟語言與文化研究學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K28",
+          "label": "K28-雲端服務趨勢學分學程",
+          "name_zh": "雲端服務趨勢學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K29",
+          "label": "K29-物聯網學分學分學程",
+          "name_zh": "物聯網學分學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K30",
+          "label": "K30-醫學工程學分學程",
+          "name_zh": "醫學工程學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K31",
+          "label": "K31-社會創新創業學分學程",
+          "name_zh": "社會創新創業學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K32",
+          "label": "K32-應用史學學分學程",
+          "name_zh": "應用史學學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K33",
+          "label": "K33-科技產業化學分學程",
+          "name_zh": "科技產業化學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K34",
+          "label": "K34-3D列印設計與應用學分學程",
+          "name_zh": "3D列印設計與應用學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K36",
+          "label": "K36-企業財稅管理學分學程",
+          "name_zh": "企業財稅管理學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K37",
+          "label": "K37-大數據產業智慧學分學程",
+          "name_zh": "大數據產業智慧學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K38",
+          "label": "K38-智能機器人與互動創意設計學分學程",
+          "name_zh": "智能機器人與互動創意設計學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K39",
+          "label": "K39-APP創意設計微學分學程",
+          "name_zh": "APP創意設計微學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K40",
+          "label": "K40-動態資訊視覺設計微學程",
+          "name_zh": "動態資訊視覺設計微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K41",
+          "label": "K41-體感互動設計微學程",
+          "name_zh": "體感互動設計微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K42",
+          "label": "K42-應用中文學分學程",
+          "name_zh": "應用中文學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K43",
+          "label": "K43-3D列印設計與應用微學分學程",
+          "name_zh": "3D列印設計與應用微學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K44",
+          "label": "K44-科技創新創業學分學程",
+          "name_zh": "科技創新創業學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K45",
+          "label": "K45-行動應用與數位互動微學程",
+          "name_zh": "行動應用與數位互動微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K46",
+          "label": "K46-營養與運動健康促進學分學程",
+          "name_zh": "營養與運動健康促進學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K47",
+          "label": "K47-醫事爭議溝通與處理學分學程",
+          "name_zh": "醫事爭議溝通與處理學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K48",
+          "label": "K48-健康產業經營學分學程",
+          "name_zh": "健康產業經營學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K49",
+          "label": "K49-優質領導菁英微學程",
+          "name_zh": "優質領導菁英微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K50",
+          "label": "K50-全英語全球傳播微學程",
+          "name_zh": "全英語全球傳播微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K51",
+          "label": "K51-樂齡新創產品設計微學分學程",
+          "name_zh": "樂齡新創產品設計微學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K52",
+          "label": "K52-跨域醫療服務設計思考微學程",
+          "name_zh": "跨域醫療服務設計思考微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K54",
+          "label": "K54-AI微學程",
+          "name_zh": "AI微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K55",
+          "label": "K55-大數據跨領域微學程",
+          "name_zh": "大數據跨領域微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K56",
+          "label": "K56-生命教育學分學程",
+          "name_zh": "生命教育學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K57",
+          "label": "K57-資料科學與應用微學程",
+          "name_zh": "資料科學與應用微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K58",
+          "label": "K58-運動傷害防護學分學程",
+          "name_zh": "運動傷害防護學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K59",
+          "label": "K59-實用英語數位微學程",
+          "name_zh": "實用英語數位微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K60",
+          "label": "K60-永續管理微學程",
+          "name_zh": "永續管理微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K61",
+          "label": "K61-電商金融科技微學程",
+          "name_zh": "電商金融科技微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K66",
+          "label": "K66-音樂治療學分學程",
+          "name_zh": "音樂治療學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K67",
+          "label": "K67-高齡照護學分學程",
+          "name_zh": "高齡照護學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K69",
+          "label": "K69-民生創新創業微學程",
+          "name_zh": "民生創新創業微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K70",
+          "label": "K70-永續時尚微學程",
+          "name_zh": "永續時尚微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K71",
+          "label": "K71-人工智慧應用微學程",
+          "name_zh": "人工智慧應用微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K72",
+          "label": "K72-健康產業經營微學程",
+          "name_zh": "健康產業經營微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K73",
+          "label": "K73-國際行銷與數位創新微學程",
+          "name_zh": "國際行銷與數位創新微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K74",
+          "label": "K74-智慧零售微學程",
+          "name_zh": "智慧零售微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K75",
+          "label": "K75-智慧營運管理微學程",
+          "name_zh": "智慧營運管理微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K76",
+          "label": "K76-銀髮科技照護微學程",
+          "name_zh": "銀髮科技照護微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K77",
+          "label": "K77-原住民族流行音樂微學程",
+          "name_zh": "原住民族流行音樂微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K78",
+          "label": "K78-原住民族流行音樂學分學程",
+          "name_zh": "原住民族流行音樂學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K79",
+          "label": "K79-跨界敘事人文力微學程",
+          "name_zh": "跨界敘事人文力微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K80",
+          "label": "K80-實用專業英語數位微學程",
+          "name_zh": "實用專業英語數位微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K81",
+          "label": "K81-五創微學程",
+          "name_zh": "五創微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K82",
+          "label": "K82-五創學分學程",
+          "name_zh": "五創學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K83",
+          "label": "K83-金融大數據微學程",
+          "name_zh": "金融大數據微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K84",
+          "label": "K84-國際與英美法律微學程",
+          "name_zh": "國際與英美法律微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K85",
+          "label": "K85-全英語民生跨域微學程",
+          "name_zh": "全英語民生跨域微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K86",
+          "label": "K86-教育大數據微學程",
+          "name_zh": "教育大數據微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K88",
+          "label": "K88-新莊好學跨領域微學程",
+          "name_zh": "新莊好學跨領域微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K89",
+          "label": "K89-新莊好學跨領域學分學程",
+          "name_zh": "新莊好學跨領域學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K91",
+          "label": "K91-永續與設計思考微學程",
+          "name_zh": "永續與設計思考微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K92",
+          "label": "K92-永續與設計思考學分學程",
+          "name_zh": "永續與設計思考學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K93",
+          "label": "K93-永續產品與服務創新微學程",
+          "name_zh": "永續產品與服務創新微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K94",
+          "label": "K94-跨文化數位行銷與數據分析微學程",
+          "name_zh": "跨文化數位行銷與數據分析微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K95",
+          "label": "K95-國際溝通與社會實踐微學程",
+          "name_zh": "國際溝通與社會實踐微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K96",
+          "label": "K96-國際文創與商務溝通實務微學程",
+          "name_zh": "國際文創與商務溝通實務微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K97",
+          "label": "K97-人工智慧與文本資料處理微學程",
+          "name_zh": "人工智慧與文本資料處理微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K98",
+          "label": "K98-原住民族傳統樂舞微學程",
+          "name_zh": "原住民族傳統樂舞微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K99",
+          "label": "K99-永續思維與創新設計微學程",
+          "name_zh": "永續思維與創新設計微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "LT",
+          "label": "LT-全人教育核心課程-人生哲學",
+          "name_zh": "全人教育核心課程-人生哲學",
+          "department_type": ""
+        },
+        {
+          "code": "MG",
+          "label": "MG-管理學院",
+          "name_zh": "管理學院",
+          "department_type": "college"
+        },
+        {
+          "code": "NT",
+          "label": "NT-通識涵養課程-自然科技",
+          "name_zh": "通識涵養課程-自然科技",
+          "department_type": ""
+        },
+        {
+          "code": "OG",
+          "label": "OG-織品服裝學院",
+          "name_zh": "織品服裝學院",
+          "department_type": "college"
+        },
+        {
+          "code": "PT",
+          "label": "PT-通識涵養課程-人文藝術",
+          "name_zh": "通識涵養課程-人文藝術",
+          "department_type": ""
+        },
+        {
+          "code": "SG",
+          "label": "SG-理工學院",
+          "name_zh": "理工學院",
+          "department_type": "college"
+        },
+        {
+          "code": "ST",
+          "label": "ST-通識涵養課程-社會科學",
+          "name_zh": "通識涵養課程-社會科學",
+          "department_type": ""
+        },
+        {
+          "code": "TG",
+          "label": "TG-跨領域學院",
+          "name_zh": "跨領域學院",
+          "department_type": "college"
+        },
+        {
+          "code": "U0",
+          "label": "U0-國際菁英學士班",
+          "name_zh": "國際菁英學士班",
+          "department_type": ""
+        },
+        {
+          "code": "V1",
+          "label": "V1-全校進階英文",
+          "name_zh": "全校進階英文",
+          "department_type": ""
+        },
+        {
+          "code": "WG",
+          "label": "WG-社會科學院",
+          "name_zh": "社會科學院",
+          "department_type": "college"
+        },
+        {
+          "code": "X1",
+          "label": "X1-兒童與家庭學系學士後學位學程教保員專班",
+          "name_zh": "兒童與家庭學系學士後學位學程教保員專班",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "YT",
+          "label": "YT-軍訓課程",
+          "name_zh": "軍訓課程",
+          "department_type": ""
+        }
+      ]
+    },
+    {
+      "code": "G",
+      "label": "G-研究所",
+      "name_zh": "研究所",
+      "departments": [
+        {
+          "code": "016",
+          "label": "016-中國文學系碩士班",
+          "name_zh": "中國文學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "018",
+          "label": "018-中國文學系博士班",
+          "name_zh": "中國文學系博士班",
+          "department_type": "department"
+        },
+        {
+          "code": "026",
+          "label": "026-歷史學系碩士班",
+          "name_zh": "歷史學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "035",
+          "label": "035-哲學系碩士在職專班",
+          "name_zh": "哲學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "036",
+          "label": "036-哲學系碩士班",
+          "name_zh": "哲學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "038",
+          "label": "038-哲學系博士班",
+          "name_zh": "哲學系博士班",
+          "department_type": "department"
+        },
+        {
+          "code": "085",
+          "label": "085-體育學系碩士在職專班",
+          "name_zh": "體育學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "086",
+          "label": "086-體育學系碩士班",
+          "name_zh": "體育學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "095",
+          "label": "095-大眾傳播學研究所碩士在職專班",
+          "name_zh": "大眾傳播學研究所碩士在職專班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "096",
+          "label": "096-大眾傳播學研究所碩士班",
+          "name_zh": "大眾傳播學研究所碩士班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "0A6",
+          "label": "0A6-跨文化研究所語言學碩士班",
+          "name_zh": "跨文化研究所語言學碩士班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "0B5",
+          "label": "0B5-跨文化研究所翻譯學碩士在職專班",
+          "name_zh": "跨文化研究所翻譯學碩士在職專班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "0B6",
+          "label": "0B6-跨文化研究所翻譯學碩士班",
+          "name_zh": "跨文化研究所翻譯學碩士班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "0C8",
+          "label": "0C8-跨文化研究所比較文學博士班",
+          "name_zh": "跨文化研究所比較文學博士班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "0D8",
+          "label": "0D8-食品營養博士學位學程",
+          "name_zh": "食品營養博士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0E5",
+          "label": "0E5-企業管理學系管理學碩士在職專班",
+          "name_zh": "企業管理學系管理學碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "0E6",
+          "label": "0E6-企業管理學系管理學碩士班",
+          "name_zh": "企業管理學系管理學碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "0F5",
+          "label": "0F5-金融與國際企業學系金融碩士在職專班",
+          "name_zh": "金融與國際企業學系金融碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "0F6",
+          "label": "0F6-金融與國際企業學系金融碩士班",
+          "name_zh": "金融與國際企業學系金融碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "0M5",
+          "label": "0M5-非營利組織管理碩士學位學程在職專班",
+          "name_zh": "非營利組織管理碩士學位學程在職專班",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0N6",
+          "label": "0N6-國際經營管理碩士學位學程",
+          "name_zh": "國際經營管理碩士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0Q6",
+          "label": "0Q6-台灣研究國際碩士學位學程",
+          "name_zh": "台灣研究國際碩士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0R6",
+          "label": "0R6-品牌與時尚經營管理碩士學位學程",
+          "name_zh": "品牌與時尚經營管理碩士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0S5",
+          "label": "0S5-跨專業長期照護碩士學位學程在職專班",
+          "name_zh": "跨專業長期照護碩士學位學程在職專班",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0U5",
+          "label": "0U5-社會企業碩士在職學位學程",
+          "name_zh": "社會企業碩士在職學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0U6",
+          "label": "0U6-社會企業碩士學位學程",
+          "name_zh": "社會企業碩士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0X6",
+          "label": "0X6-生物醫學暨藥學研究所碩士班",
+          "name_zh": "生物醫學暨藥學研究所碩士班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "0Y8",
+          "label": "0Y8-生技醫藥博士學位學程",
+          "name_zh": "生技醫藥博士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "0Z6",
+          "label": "0Z6-生物醫學海量資料分析碩士學位學程",
+          "name_zh": "生物醫學海量資料分析碩士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "106",
+          "label": "106-圖書資訊學系碩士班",
+          "name_zh": "圖書資訊學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "145",
+          "label": "145-教育領導與發展研究所碩士在職專班",
+          "name_zh": "教育領導與發展研究所碩士在職專班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "146",
+          "label": "146-教育領導與發展研究所碩士班",
+          "name_zh": "教育領導與發展研究所碩士班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "156",
+          "label": "156-博物館學研究所碩士班",
+          "name_zh": "博物館學研究所碩士班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "1A8",
+          "label": "1A8-跨文化研究所比較文學與跨文化研究博士班",
+          "name_zh": "跨文化研究所比較文學與跨文化研究博士班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "1C5",
+          "label": "1C5-財經法律學系原住民碩士在職專班",
+          "name_zh": "財經法律學系原住民碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "1K5",
+          "label": "1K5-金融與國際企業現役軍人營區碩士在職專班",
+          "name_zh": "金融與國際企業現役軍人營區碩士在職專班",
+          "department_type": ""
+        },
+        {
+          "code": "1L6",
+          "label": "1L6-醫療暨健康產業大數據碩士學位學程",
+          "name_zh": "醫療暨健康產業大數據碩士學位學程",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "1M6",
+          "label": "1M6-跨文化研究所華語教學與語言科技碩士班",
+          "name_zh": "跨文化研究所華語教學與語言科技碩士班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "206",
+          "label": "206-英國語文學系碩士班",
+          "name_zh": "英國語文學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "226",
+          "label": "226-法國語文學系碩士班",
+          "name_zh": "法國語文學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "236",
+          "label": "236-西班牙語文學系碩士班",
+          "name_zh": "西班牙語文學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "246",
+          "label": "246-日本語文學系碩士班",
+          "name_zh": "日本語文學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "266",
+          "label": "266-德語語文學系碩士班",
+          "name_zh": "德語語文學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "326",
+          "label": "326-物理學系碩士班",
+          "name_zh": "物理學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "336",
+          "label": "336-化學系碩士班",
+          "name_zh": "化學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "338",
+          "label": "338-化學系博士班",
+          "name_zh": "化學系博士班",
+          "department_type": "department"
+        },
+        {
+          "code": "366",
+          "label": "366-數學系碩士班",
+          "name_zh": "數學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "395",
+          "label": "395-心理學系碩士在職專班",
+          "name_zh": "心理學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "396",
+          "label": "396-心理學系碩士班",
+          "name_zh": "心理學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "398",
+          "label": "398-心理學系博士班",
+          "name_zh": "心理學系博士班",
+          "department_type": "department"
+        },
+        {
+          "code": "435",
+          "label": "435-織品服裝學系碩士在職專班",
+          "name_zh": "織品服裝學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "436",
+          "label": "436-織品服裝學系碩士班",
+          "name_zh": "織品服裝學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "515",
+          "label": "515-資訊工程學系碩士在職專班",
+          "name_zh": "資訊工程學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "516",
+          "label": "516-資訊工程學系碩士班",
+          "name_zh": "資訊工程學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "546",
+          "label": "546-生命科學系碩士班",
+          "name_zh": "生命科學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "575",
+          "label": "575-餐旅管理學系碩士在職專班",
+          "name_zh": "餐旅管理學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "576",
+          "label": "576-餐旅管理學系碩士班",
+          "name_zh": "餐旅管理學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "585",
+          "label": "585-兒童與家庭學系碩士在職專班",
+          "name_zh": "兒童與家庭學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "586",
+          "label": "586-兒童與家庭學系碩士班",
+          "name_zh": "兒童與家庭學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "598",
+          "label": "598-應用科學與工程研究所博士班",
+          "name_zh": "應用科學與工程研究所博士班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "636",
+          "label": "636-社會學系碩士班",
+          "name_zh": "社會學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "646",
+          "label": "646-社會工作學系碩士班",
+          "name_zh": "社會工作學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "656",
+          "label": "656-經濟學系碩士班",
+          "name_zh": "經濟學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "665",
+          "label": "665-法律學系碩士在職專班",
+          "name_zh": "法律學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "666",
+          "label": "666-法律學系碩士班",
+          "name_zh": "法律學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "668",
+          "label": "668-法律學系博士班",
+          "name_zh": "法律學系博士班",
+          "department_type": "department"
+        },
+        {
+          "code": "676",
+          "label": "676-財經法律學系碩士班",
+          "name_zh": "財經法律學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "715",
+          "label": "715-會計學系碩士在職專班",
+          "name_zh": "會計學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "716",
+          "label": "716-會計學系碩士班",
+          "name_zh": "會計學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "745",
+          "label": "745-資訊管理學系碩士在職專班",
+          "name_zh": "資訊管理學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "746",
+          "label": "746-資訊管理學系碩士班",
+          "name_zh": "資訊管理學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "765",
+          "label": "765-統計資訊學系應用統計碩士在職專班",
+          "name_zh": "統計資訊學系應用統計碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "766",
+          "label": "766-統計資訊學系應用統計碩士班",
+          "name_zh": "統計資訊學系應用統計碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "778",
+          "label": "778-商學研究所博士班",
+          "name_zh": "商學研究所博士班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "785",
+          "label": "785-科技管理碩士學位學程在職專班",
+          "name_zh": "科技管理碩士學位學程在職專班",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "795",
+          "label": "795-國際創業與經營管理碩士學位學程在職專班",
+          "name_zh": "國際創業與經營管理碩士學位學程在職專班",
+          "department_type": "degree_program"
+        },
+        {
+          "code": "805",
+          "label": "805-音樂學系碩士在職專班",
+          "name_zh": "音樂學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "806",
+          "label": "806-音樂學系碩士班",
+          "name_zh": "音樂學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "816",
+          "label": "816-應用美術學系碩士班",
+          "name_zh": "應用美術學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "826",
+          "label": "826-景觀設計學系碩士班",
+          "name_zh": "景觀設計學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "838",
+          "label": "838-音樂學系博士班音樂學組",
+          "name_zh": "音樂學系博士班音樂學組",
+          "department_type": "department"
+        },
+        {
+          "code": "848",
+          "label": "848-音樂學系博士班演奏組",
+          "name_zh": "音樂學系博士班演奏組",
+          "department_type": "department"
+        },
+        {
+          "code": "855",
+          "label": "855-食品科學系碩士在職專班",
+          "name_zh": "食品科學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "856",
+          "label": "856-食品科學系碩士班",
+          "name_zh": "食品科學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "865",
+          "label": "865-營養科學系碩士在職專班",
+          "name_zh": "營養科學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "866",
+          "label": "866-營養科學系碩士班",
+          "name_zh": "營養科學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "895",
+          "label": "895-電機工程學系碩士在職專班",
+          "name_zh": "電機工程學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "896",
+          "label": "896-電機工程學系碩士班",
+          "name_zh": "電機工程學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "905",
+          "label": "905-宗教學系碩士在職專班",
+          "name_zh": "宗教學系碩士在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "906",
+          "label": "906-宗教學系碩士班",
+          "name_zh": "宗教學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "908",
+          "label": "908-宗教學系博士班",
+          "name_zh": "宗教學系博士班",
+          "department_type": "department"
+        },
+        {
+          "code": "916",
+          "label": "916-護理學系碩士班",
+          "name_zh": "護理學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "926",
+          "label": "926-公共衛生學系碩士班",
+          "name_zh": "公共衛生學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "956",
+          "label": "956-臨床心理學系碩士班",
+          "name_zh": "臨床心理學系碩士班",
+          "department_type": "department"
+        },
+        {
+          "code": "976",
+          "label": "976-基礎醫學研究所碩士班",
+          "name_zh": "基礎醫學研究所碩士班",
+          "department_type": "graduate_institute"
+        },
+        {
+          "code": "CG",
+          "label": "CG-文學院",
+          "name_zh": "文學院",
+          "department_type": "college"
+        },
+        {
+          "code": "DG",
+          "label": "DG-醫學院",
+          "name_zh": "醫學院",
+          "department_type": "college"
+        },
+        {
+          "code": "FG",
+          "label": "FG-外語學院",
+          "name_zh": "外語學院",
+          "department_type": "college"
+        },
+        {
+          "code": "K01",
+          "label": "K01-西洋古典暨中世紀文化學分學程",
+          "name_zh": "西洋古典暨中世紀文化學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K16",
+          "label": "K16-老人長期照護學分學程",
+          "name_zh": "老人長期照護學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K20",
+          "label": "K20-財經法律翻譯學分學程",
+          "name_zh": "財經法律翻譯學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K35",
+          "label": "K35-國際醫療翻譯學分學程",
+          "name_zh": "國際醫療翻譯學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K53",
+          "label": "K53-國際文創與商務溝通學分學程",
+          "name_zh": "國際文創與商務溝通學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K68",
+          "label": "K68-外交事務學分學程",
+          "name_zh": "外交事務學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K73",
+          "label": "K73-國際行銷與數位創新微學程",
+          "name_zh": "國際行銷與數位創新微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "K87",
+          "label": "K87-西洋古典暨中世紀語言與文化學分學程",
+          "name_zh": "西洋古典暨中世紀語言與文化學分學程",
+          "department_type": "credit_program"
+        },
+        {
+          "code": "K90",
+          "label": "K90-生命科技與法律微學程",
+          "name_zh": "生命科技與法律微學程",
+          "department_type": "micro_program"
+        },
+        {
+          "code": "MG",
+          "label": "MG-管理學院",
+          "name_zh": "管理學院",
+          "department_type": "college"
+        },
+        {
+          "code": "SG",
+          "label": "SG-理工學院",
+          "name_zh": "理工學院",
+          "department_type": "college"
+        },
+        {
+          "code": "TG",
+          "label": "TG-跨領域學院",
+          "name_zh": "跨領域學院",
+          "department_type": "college"
+        },
+        {
+          "code": "WG",
+          "label": "WG-社會科學院",
+          "name_zh": "社會科學院",
+          "department_type": "college"
+        }
+      ]
+    },
+    {
+      "code": "S",
+      "label": "S-外校",
+      "name_zh": "外校",
+      "departments": []
+    },
+    {
+      "code": "T",
+      "label": "T-二年制",
+      "name_zh": "二年制",
+      "departments": [
+        {
+          "code": "915",
+          "label": "915-護理學系二年制在職專班",
+          "name_zh": "護理學系二年制在職專班",
+          "department_type": "department"
+        },
+        {
+          "code": "CT",
+          "label": "CT-基本能力課程-國文",
+          "name_zh": "基本能力課程-國文",
+          "department_type": ""
+        },
+        {
+          "code": "ET",
+          "label": "ET-全人教育核心課程-專業倫理",
+          "name_zh": "全人教育核心課程-專業倫理",
+          "department_type": ""
+        },
+        {
+          "code": "FT",
+          "label": "FT-基本能力課程-外國語文",
+          "name_zh": "基本能力課程-外國語文",
+          "department_type": ""
+        },
+        {
+          "code": "IT",
+          "label": "IT-全人教育核心課程-大學入門",
+          "name_zh": "全人教育核心課程-大學入門",
+          "department_type": ""
+        },
+        {
+          "code": "LT",
+          "label": "LT-全人教育核心課程-人生哲學",
+          "name_zh": "全人教育核心課程-人生哲學",
+          "department_type": ""
+        },
+        {
+          "code": "TG",
+          "label": "TG-跨領域學院",
+          "name_zh": "跨領域學院",
+          "department_type": "college"
+        }
+      ]
+    }
+  ],
+  "departments": [
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "01",
+      "label": "01-中國文學系",
+      "name_zh": "中國文學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "02",
+      "label": "02-歷史學系",
+      "name_zh": "歷史學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "03",
+      "label": "03-哲學系",
+      "name_zh": "哲學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "0E",
+      "label": "0E-企業管理學系",
+      "name_zh": "企業管理學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "0F",
+      "label": "0F-金融與國際企業學系",
+      "name_zh": "金融與國際企業學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "0G",
+      "label": "0G-大眾傳播學士學位學程",
+      "name_zh": "大眾傳播學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "0H",
+      "label": "0H-運動休閒管理學士學位學程",
+      "name_zh": "運動休閒管理學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "0I",
+      "label": "0I-商業管理學士學位學程",
+      "name_zh": "商業管理學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "0J",
+      "label": "0J-藝術與文化創意學士學位學程",
+      "name_zh": "藝術與文化創意學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "0T",
+      "label": "0T-軟體工程與數位創意學士學位學程",
+      "name_zh": "軟體工程與數位創意學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "10",
+      "label": "10-圖書資訊學系",
+      "name_zh": "圖書資訊學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "1D",
+      "label": "1D-人文社會服務進修學士學位學程",
+      "name_zh": "人文社會服務進修學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "1E",
+      "label": "1E-長期照護與健康管理進修學士學位學程",
+      "name_zh": "長期照護與健康管理進修學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "1F",
+      "label": "1F-室內設計進修學士學位學程",
+      "name_zh": "室內設計進修學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "1G",
+      "label": "1G-資訊創新與數位生活進修學士學位學程",
+      "name_zh": "資訊創新與數位生活進修學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "1H",
+      "label": "1H-醫學資訊與健康科技進修學士學位學程",
+      "name_zh": "醫學資訊與健康科技進修學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "1Q",
+      "label": "1Q-服飾採購與行銷進修學士學位學程",
+      "name_zh": "服飾採購與行銷進修學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "1T",
+      "label": "1T-運動資訊與健康生活進修學士學位學程",
+      "name_zh": "運動資訊與健康生活進修學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "20",
+      "label": "20-英國語文學系",
+      "name_zh": "英國語文學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "24",
+      "label": "24-日本語文學系",
+      "name_zh": "日本語文學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "36",
+      "label": "36-數學系",
+      "name_zh": "數學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "57",
+      "label": "57-餐旅管理學系",
+      "name_zh": "餐旅管理學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "65",
+      "label": "65-經濟學系",
+      "name_zh": "經濟學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "66",
+      "label": "66-法律學系",
+      "name_zh": "法律學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "71",
+      "label": "71-會計學系",
+      "name_zh": "會計學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "76",
+      "label": "76-統計資訊學系",
+      "name_zh": "統計資訊學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "81",
+      "label": "81-應用美術學系",
+      "name_zh": "應用美術學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "90",
+      "label": "90-宗教學系",
+      "name_zh": "宗教學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "AT",
+      "label": "AT-全人教育核心課程-體育",
+      "name_zh": "全人教育核心課程-體育",
+      "department_type": ""
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "CT",
+      "label": "CT-基本能力課程-國文",
+      "name_zh": "基本能力課程-國文",
+      "department_type": ""
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "DT",
+      "label": "DT-通識涵養課程-永續素養",
+      "name_zh": "通識涵養課程-永續素養",
+      "department_type": ""
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "ET",
+      "label": "ET-全人教育核心課程-專業倫理",
+      "name_zh": "全人教育核心課程-專業倫理",
+      "department_type": ""
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "FT",
+      "label": "FT-基本能力課程-外國語文",
+      "name_zh": "基本能力課程-外國語文",
+      "department_type": ""
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "IT",
+      "label": "IT-全人教育核心課程-大學入門",
+      "name_zh": "全人教育核心課程-大學入門",
+      "department_type": ""
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "K10",
+      "label": "K10-經貿日語菁英學程",
+      "name_zh": "經貿日語菁英學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "K11",
+      "label": "K11-商業管理菁英學程",
+      "name_zh": "商業管理菁英學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "K62",
+      "label": "K62-文化產業學群微學程",
+      "name_zh": "文化產業學群微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "K63",
+      "label": "K63-健康產業學群微學程",
+      "name_zh": "健康產業學群微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "K64",
+      "label": "K64-商務學群微學程",
+      "name_zh": "商務學群微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "K65",
+      "label": "K65-設計學群微學程",
+      "name_zh": "設計學群微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "LC",
+      "label": "LC-(全)英語聽講",
+      "name_zh": "(全)英語聽講",
+      "department_type": ""
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "LT",
+      "label": "LT-全人教育核心課程-人生哲學",
+      "name_zh": "全人教育核心課程-人生哲學",
+      "department_type": ""
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "NT",
+      "label": "NT-通識涵養課程-自然科技",
+      "name_zh": "通識涵養課程-自然科技",
+      "department_type": ""
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "PT",
+      "label": "PT-通識涵養課程-人文藝術",
+      "name_zh": "通識涵養課程-人文藝術",
+      "department_type": ""
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "Q1",
+      "label": "Q1-學士後AI創新應用多元培力專班",
+      "name_zh": "學士後AI創新應用多元培力專班",
+      "department_type": ""
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "Q2",
+      "label": "Q2-英國語文學系培力專班",
+      "name_zh": "英國語文學系培力專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "Q3",
+      "label": "Q3-中國文學系培力專班",
+      "name_zh": "中國文學系培力專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "Q4",
+      "label": "Q4-藝術與文化創意學士學位學程培力專班",
+      "name_zh": "藝術與文化創意學士學位學程培力專班",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "R1",
+      "label": "R1-創意思考與服務設計學分學程",
+      "name_zh": "創意思考與服務設計學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "R2",
+      "label": "R2-休閒產業與地方創生學分學程",
+      "name_zh": "休閒產業與地方創生學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "R3",
+      "label": "R3-投資策略與資產管理學分學程",
+      "name_zh": "投資策略與資產管理學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "ST",
+      "label": "ST-通識涵養課程-社會科學",
+      "name_zh": "通識涵養課程-社會科學",
+      "department_type": ""
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "TG",
+      "label": "TG-跨領域學院",
+      "name_zh": "跨領域學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "C",
+      "division_name_zh": "進修部",
+      "code": "YT",
+      "label": "YT-軍訓課程",
+      "name_zh": "軍訓課程",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "01",
+      "label": "01-中國文學系",
+      "name_zh": "中國文學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "02",
+      "label": "02-歷史學系",
+      "name_zh": "歷史學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "03",
+      "label": "03-哲學系",
+      "name_zh": "哲學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "0E",
+      "label": "0E-企業管理學系",
+      "name_zh": "企業管理學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "0F",
+      "label": "0F-金融與國際企業學系",
+      "name_zh": "金融與國際企業學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "0L",
+      "label": "0L-天主教研修學士學位學程",
+      "name_zh": "天主教研修學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "0V",
+      "label": "0V-教育領導與科技發展學士學位學程",
+      "name_zh": "教育領導與科技發展學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "0W",
+      "label": "0W-醫學資訊與創新應用學士學位學程",
+      "name_zh": "醫學資訊與創新應用學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "10",
+      "label": "10-圖書資訊學系",
+      "name_zh": "圖書資訊學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "11",
+      "label": "11-影像傳播學系",
+      "name_zh": "影像傳播學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "12",
+      "label": "12-新聞傳播學系",
+      "name_zh": "新聞傳播學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "13",
+      "label": "13-廣告傳播學系",
+      "name_zh": "廣告傳播學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "16",
+      "label": "16-體育學系體育學組",
+      "name_zh": "體育學系體育學組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "17",
+      "label": "17-體育學系運動競技組",
+      "name_zh": "體育學系運動競技組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "18",
+      "label": "18-體育學系運動健康管理組",
+      "name_zh": "體育學系運動健康管理組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "19",
+      "label": "19-電機工程學系系統與晶片設計組",
+      "name_zh": "電機工程學系系統與晶片設計組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "1B",
+      "label": "1B-數學系資訊數學組",
+      "name_zh": "數學系資訊數學組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "1I",
+      "label": "1I-人工智慧與資訊安全學士學位學程",
+      "name_zh": "人工智慧與資訊安全學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "1J",
+      "label": "1J-跨領域全英語學士學位學程",
+      "name_zh": "跨領域全英語學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "1N",
+      "label": "1N-人文與社區創新學士學位學程",
+      "name_zh": "人文與社區創新學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "1P",
+      "label": "1P-國際溝通與科技創新學士學位學程",
+      "name_zh": "國際溝通與科技創新學士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "1R",
+      "label": "1R-物理學系電子物理組",
+      "name_zh": "物理學系電子物理組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "1S",
+      "label": "1S-學士後護理學系",
+      "name_zh": "學士後護理學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "20",
+      "label": "20-英國語文學系",
+      "name_zh": "英國語文學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "22",
+      "label": "22-法國語文學系",
+      "name_zh": "法國語文學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "23",
+      "label": "23-西班牙語文學系",
+      "name_zh": "西班牙語文學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "24",
+      "label": "24-日本語文學系",
+      "name_zh": "日本語文學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "25",
+      "label": "25-義大利語文學系",
+      "name_zh": "義大利語文學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "26",
+      "label": "26-德語語文學系",
+      "name_zh": "德語語文學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "30",
+      "label": "30-數學系純數學組",
+      "name_zh": "數學系純數學組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "31",
+      "label": "31-數學系應用數學組",
+      "name_zh": "數學系應用數學組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "33",
+      "label": "33-化學系",
+      "name_zh": "化學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "39",
+      "label": "39-心理學系",
+      "name_zh": "心理學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "46",
+      "label": "46-織品服裝學系織品設計組",
+      "name_zh": "織品服裝學系織品設計組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "48",
+      "label": "48-織品服裝學系織品服飾行銷組",
+      "name_zh": "織品服裝學系織品服飾行銷組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "51",
+      "label": "51-資訊工程學系",
+      "name_zh": "資訊工程學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "54",
+      "label": "54-生命科學系",
+      "name_zh": "生命科學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "55",
+      "label": "55-物理學系物理組",
+      "name_zh": "物理學系物理組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "56",
+      "label": "56-物理學系光電物理組",
+      "name_zh": "物理學系光電物理組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "57",
+      "label": "57-餐旅管理學系",
+      "name_zh": "餐旅管理學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "58",
+      "label": "58-兒童與家庭學系",
+      "name_zh": "兒童與家庭學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "63",
+      "label": "63-社會學系",
+      "name_zh": "社會學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "64",
+      "label": "64-社會工作學系",
+      "name_zh": "社會工作學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "65",
+      "label": "65-經濟學系",
+      "name_zh": "經濟學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "66",
+      "label": "66-法律學系",
+      "name_zh": "法律學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "67",
+      "label": "67-財經法律學系",
+      "name_zh": "財經法律學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "68",
+      "label": "68-學士後法律學系",
+      "name_zh": "學士後法律學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "69",
+      "label": "69-織品服裝學系服飾設計組",
+      "name_zh": "織品服裝學系服飾設計組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "71",
+      "label": "71-會計學系",
+      "name_zh": "會計學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "74",
+      "label": "74-資訊管理學系",
+      "name_zh": "資訊管理學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "76",
+      "label": "76-統計資訊學系",
+      "name_zh": "統計資訊學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "80",
+      "label": "80-音樂學系",
+      "name_zh": "音樂學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "81",
+      "label": "81-應用美術學系",
+      "name_zh": "應用美術學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "82",
+      "label": "82-景觀設計學系",
+      "name_zh": "景觀設計學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "85",
+      "label": "85-食品科學系",
+      "name_zh": "食品科學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "86",
+      "label": "86-營養科學系",
+      "name_zh": "營養科學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "89",
+      "label": "89-電機工程學系",
+      "name_zh": "電機工程學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "90",
+      "label": "90-宗教學系",
+      "name_zh": "宗教學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "91",
+      "label": "91-護理學系",
+      "name_zh": "護理學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "92",
+      "label": "92-公共衛生學系",
+      "name_zh": "公共衛生學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "94",
+      "label": "94-醫學系",
+      "name_zh": "醫學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "95",
+      "label": "95-臨床心理學系",
+      "name_zh": "臨床心理學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "96",
+      "label": "96-職能治療學系",
+      "name_zh": "職能治療學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "98",
+      "label": "98-呼吸治療學系",
+      "name_zh": "呼吸治療學系",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "99",
+      "label": "99-電機工程學系電腦與通訊工程組",
+      "name_zh": "電機工程學系電腦與通訊工程組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "AG",
+      "label": "AG-藝術學院",
+      "name_zh": "藝術學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "AT",
+      "label": "AT-全人教育核心課程-體育",
+      "name_zh": "全人教育核心課程-體育",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "CG",
+      "label": "CG-文學院",
+      "name_zh": "文學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "CT",
+      "label": "CT-基本能力課程-國文",
+      "name_zh": "基本能力課程-國文",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "DG",
+      "label": "DG-醫學院",
+      "name_zh": "醫學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "DT",
+      "label": "DT-通識涵養課程-永續素養",
+      "name_zh": "通識涵養課程-永續素養",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "E1",
+      "label": "E1-中等學校教師教育學程",
+      "name_zh": "中等學校教師教育學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "E3",
+      "label": "E3-國小教師教育學程",
+      "name_zh": "國小教師教育學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "ET",
+      "label": "ET-全人教育核心課程-專業倫理",
+      "name_zh": "全人教育核心課程-專業倫理",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "FG",
+      "label": "FG-外語學院",
+      "name_zh": "外語學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "FT",
+      "label": "FT-基本能力課程-外國語文",
+      "name_zh": "基本能力課程-外國語文",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "HG",
+      "label": "HG-民生學院",
+      "name_zh": "民生學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "IT",
+      "label": "IT-全人教育核心課程-大學入門",
+      "name_zh": "全人教育核心課程-大學入門",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "JG",
+      "label": "JG-法律學院",
+      "name_zh": "法律學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K02",
+      "label": "K02-外交學程義文組",
+      "name_zh": "外交學程義文組",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K03",
+      "label": "K03-翻譯學程",
+      "name_zh": "翻譯學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K04",
+      "label": "K04-英語授課商業管理學程",
+      "name_zh": "英語授課商業管理學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K05",
+      "label": "K05-電子商務學分學程",
+      "name_zh": "電子商務學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K06",
+      "label": "K06-中國古籍整理學分學程",
+      "name_zh": "中國古籍整理學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K07",
+      "label": "K07-非營利組織管理學程",
+      "name_zh": "非營利組織管理學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K08",
+      "label": "K08-比較文化研究學程",
+      "name_zh": "比較文化研究學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K09",
+      "label": "K09-老人學學分學程",
+      "name_zh": "老人學學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K12",
+      "label": "K12-英語菁英學分學程",
+      "name_zh": "英語菁英學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K13",
+      "label": "K13-商業智慧與資料決策學程",
+      "name_zh": "商業智慧與資料決策學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K14",
+      "label": "K14-國際企業管理學程",
+      "name_zh": "國際企業管理學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K15",
+      "label": "K15-創意創新創業學程",
+      "name_zh": "創意創新創業學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K17",
+      "label": "K17-輔仁大學服務-學習與領導學程",
+      "name_zh": "輔仁大學服務-學習與領導學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K18",
+      "label": "K18-外交與國際事務學分學程",
+      "name_zh": "外交與國際事務學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K19",
+      "label": "K19-對外華語教學學分學程",
+      "name_zh": "對外華語教學學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K1A",
+      "label": "K1A-人工智慧工業應用學分學程",
+      "name_zh": "人工智慧工業應用學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K1B",
+      "label": "K1B-人工智慧自然語言技術學分學程",
+      "name_zh": "人工智慧自然語言技術學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K1C",
+      "label": "K1C-人工智慧探索應用學分學程",
+      "name_zh": "人工智慧探索應用學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K1D",
+      "label": "K1D-人工智慧視覺技術學分學程",
+      "name_zh": "人工智慧視覺技術學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K21",
+      "label": "K21-財務工程學程",
+      "name_zh": "財務工程學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K22",
+      "label": "K22-RFID資訊技術與應用學程",
+      "name_zh": "RFID資訊技術與應用學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K23",
+      "label": "K23-嵌入式系統與軟體學程",
+      "name_zh": "嵌入式系統與軟體學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K24",
+      "label": "K24-網路與多媒體學分學程",
+      "name_zh": "網路與多媒體學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K25",
+      "label": "K25-產業智慧與資料決策學程",
+      "name_zh": "產業智慧與資料決策學程",
+      "department_type": "program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K26",
+      "label": "K26-哲學諮商與輔導學分學程",
+      "name_zh": "哲學諮商與輔導學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K27",
+      "label": "K27-歐盟語言與文化研究學分學程",
+      "name_zh": "歐盟語言與文化研究學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K28",
+      "label": "K28-雲端服務趨勢學分學程",
+      "name_zh": "雲端服務趨勢學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K29",
+      "label": "K29-物聯網學分學分學程",
+      "name_zh": "物聯網學分學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K30",
+      "label": "K30-醫學工程學分學程",
+      "name_zh": "醫學工程學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K31",
+      "label": "K31-社會創新創業學分學程",
+      "name_zh": "社會創新創業學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K32",
+      "label": "K32-應用史學學分學程",
+      "name_zh": "應用史學學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K33",
+      "label": "K33-科技產業化學分學程",
+      "name_zh": "科技產業化學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K34",
+      "label": "K34-3D列印設計與應用學分學程",
+      "name_zh": "3D列印設計與應用學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K36",
+      "label": "K36-企業財稅管理學分學程",
+      "name_zh": "企業財稅管理學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K37",
+      "label": "K37-大數據產業智慧學分學程",
+      "name_zh": "大數據產業智慧學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K38",
+      "label": "K38-智能機器人與互動創意設計學分學程",
+      "name_zh": "智能機器人與互動創意設計學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K39",
+      "label": "K39-APP創意設計微學分學程",
+      "name_zh": "APP創意設計微學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K40",
+      "label": "K40-動態資訊視覺設計微學程",
+      "name_zh": "動態資訊視覺設計微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K41",
+      "label": "K41-體感互動設計微學程",
+      "name_zh": "體感互動設計微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K42",
+      "label": "K42-應用中文學分學程",
+      "name_zh": "應用中文學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K43",
+      "label": "K43-3D列印設計與應用微學分學程",
+      "name_zh": "3D列印設計與應用微學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K44",
+      "label": "K44-科技創新創業學分學程",
+      "name_zh": "科技創新創業學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K45",
+      "label": "K45-行動應用與數位互動微學程",
+      "name_zh": "行動應用與數位互動微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K46",
+      "label": "K46-營養與運動健康促進學分學程",
+      "name_zh": "營養與運動健康促進學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K47",
+      "label": "K47-醫事爭議溝通與處理學分學程",
+      "name_zh": "醫事爭議溝通與處理學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K48",
+      "label": "K48-健康產業經營學分學程",
+      "name_zh": "健康產業經營學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K49",
+      "label": "K49-優質領導菁英微學程",
+      "name_zh": "優質領導菁英微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K50",
+      "label": "K50-全英語全球傳播微學程",
+      "name_zh": "全英語全球傳播微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K51",
+      "label": "K51-樂齡新創產品設計微學分學程",
+      "name_zh": "樂齡新創產品設計微學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K52",
+      "label": "K52-跨域醫療服務設計思考微學程",
+      "name_zh": "跨域醫療服務設計思考微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K54",
+      "label": "K54-AI微學程",
+      "name_zh": "AI微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K55",
+      "label": "K55-大數據跨領域微學程",
+      "name_zh": "大數據跨領域微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K56",
+      "label": "K56-生命教育學分學程",
+      "name_zh": "生命教育學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K57",
+      "label": "K57-資料科學與應用微學程",
+      "name_zh": "資料科學與應用微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K58",
+      "label": "K58-運動傷害防護學分學程",
+      "name_zh": "運動傷害防護學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K59",
+      "label": "K59-實用英語數位微學程",
+      "name_zh": "實用英語數位微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K60",
+      "label": "K60-永續管理微學程",
+      "name_zh": "永續管理微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K61",
+      "label": "K61-電商金融科技微學程",
+      "name_zh": "電商金融科技微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K66",
+      "label": "K66-音樂治療學分學程",
+      "name_zh": "音樂治療學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K67",
+      "label": "K67-高齡照護學分學程",
+      "name_zh": "高齡照護學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K69",
+      "label": "K69-民生創新創業微學程",
+      "name_zh": "民生創新創業微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K70",
+      "label": "K70-永續時尚微學程",
+      "name_zh": "永續時尚微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K71",
+      "label": "K71-人工智慧應用微學程",
+      "name_zh": "人工智慧應用微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K72",
+      "label": "K72-健康產業經營微學程",
+      "name_zh": "健康產業經營微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K73",
+      "label": "K73-國際行銷與數位創新微學程",
+      "name_zh": "國際行銷與數位創新微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K74",
+      "label": "K74-智慧零售微學程",
+      "name_zh": "智慧零售微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K75",
+      "label": "K75-智慧營運管理微學程",
+      "name_zh": "智慧營運管理微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K76",
+      "label": "K76-銀髮科技照護微學程",
+      "name_zh": "銀髮科技照護微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K77",
+      "label": "K77-原住民族流行音樂微學程",
+      "name_zh": "原住民族流行音樂微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K78",
+      "label": "K78-原住民族流行音樂學分學程",
+      "name_zh": "原住民族流行音樂學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K79",
+      "label": "K79-跨界敘事人文力微學程",
+      "name_zh": "跨界敘事人文力微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K80",
+      "label": "K80-實用專業英語數位微學程",
+      "name_zh": "實用專業英語數位微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K81",
+      "label": "K81-五創微學程",
+      "name_zh": "五創微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K82",
+      "label": "K82-五創學分學程",
+      "name_zh": "五創學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K83",
+      "label": "K83-金融大數據微學程",
+      "name_zh": "金融大數據微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K84",
+      "label": "K84-國際與英美法律微學程",
+      "name_zh": "國際與英美法律微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K85",
+      "label": "K85-全英語民生跨域微學程",
+      "name_zh": "全英語民生跨域微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K86",
+      "label": "K86-教育大數據微學程",
+      "name_zh": "教育大數據微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K88",
+      "label": "K88-新莊好學跨領域微學程",
+      "name_zh": "新莊好學跨領域微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K89",
+      "label": "K89-新莊好學跨領域學分學程",
+      "name_zh": "新莊好學跨領域學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K91",
+      "label": "K91-永續與設計思考微學程",
+      "name_zh": "永續與設計思考微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K92",
+      "label": "K92-永續與設計思考學分學程",
+      "name_zh": "永續與設計思考學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K93",
+      "label": "K93-永續產品與服務創新微學程",
+      "name_zh": "永續產品與服務創新微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K94",
+      "label": "K94-跨文化數位行銷與數據分析微學程",
+      "name_zh": "跨文化數位行銷與數據分析微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K95",
+      "label": "K95-國際溝通與社會實踐微學程",
+      "name_zh": "國際溝通與社會實踐微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K96",
+      "label": "K96-國際文創與商務溝通實務微學程",
+      "name_zh": "國際文創與商務溝通實務微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K97",
+      "label": "K97-人工智慧與文本資料處理微學程",
+      "name_zh": "人工智慧與文本資料處理微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K98",
+      "label": "K98-原住民族傳統樂舞微學程",
+      "name_zh": "原住民族傳統樂舞微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "K99",
+      "label": "K99-永續思維與創新設計微學程",
+      "name_zh": "永續思維與創新設計微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "LT",
+      "label": "LT-全人教育核心課程-人生哲學",
+      "name_zh": "全人教育核心課程-人生哲學",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "MG",
+      "label": "MG-管理學院",
+      "name_zh": "管理學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "NT",
+      "label": "NT-通識涵養課程-自然科技",
+      "name_zh": "通識涵養課程-自然科技",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "OG",
+      "label": "OG-織品服裝學院",
+      "name_zh": "織品服裝學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "PT",
+      "label": "PT-通識涵養課程-人文藝術",
+      "name_zh": "通識涵養課程-人文藝術",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "SG",
+      "label": "SG-理工學院",
+      "name_zh": "理工學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "ST",
+      "label": "ST-通識涵養課程-社會科學",
+      "name_zh": "通識涵養課程-社會科學",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "TG",
+      "label": "TG-跨領域學院",
+      "name_zh": "跨領域學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "U0",
+      "label": "U0-國際菁英學士班",
+      "name_zh": "國際菁英學士班",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "V1",
+      "label": "V1-全校進階英文",
+      "name_zh": "全校進階英文",
+      "department_type": ""
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "WG",
+      "label": "WG-社會科學院",
+      "name_zh": "社會科學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "X1",
+      "label": "X1-兒童與家庭學系學士後學位學程教保員專班",
+      "name_zh": "兒童與家庭學系學士後學位學程教保員專班",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "D",
+      "division_name_zh": "日間部",
+      "code": "YT",
+      "label": "YT-軍訓課程",
+      "name_zh": "軍訓課程",
+      "department_type": ""
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "016",
+      "label": "016-中國文學系碩士班",
+      "name_zh": "中國文學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "018",
+      "label": "018-中國文學系博士班",
+      "name_zh": "中國文學系博士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "026",
+      "label": "026-歷史學系碩士班",
+      "name_zh": "歷史學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "035",
+      "label": "035-哲學系碩士在職專班",
+      "name_zh": "哲學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "036",
+      "label": "036-哲學系碩士班",
+      "name_zh": "哲學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "038",
+      "label": "038-哲學系博士班",
+      "name_zh": "哲學系博士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "085",
+      "label": "085-體育學系碩士在職專班",
+      "name_zh": "體育學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "086",
+      "label": "086-體育學系碩士班",
+      "name_zh": "體育學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "095",
+      "label": "095-大眾傳播學研究所碩士在職專班",
+      "name_zh": "大眾傳播學研究所碩士在職專班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "096",
+      "label": "096-大眾傳播學研究所碩士班",
+      "name_zh": "大眾傳播學研究所碩士班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0A6",
+      "label": "0A6-跨文化研究所語言學碩士班",
+      "name_zh": "跨文化研究所語言學碩士班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0B5",
+      "label": "0B5-跨文化研究所翻譯學碩士在職專班",
+      "name_zh": "跨文化研究所翻譯學碩士在職專班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0B6",
+      "label": "0B6-跨文化研究所翻譯學碩士班",
+      "name_zh": "跨文化研究所翻譯學碩士班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0C8",
+      "label": "0C8-跨文化研究所比較文學博士班",
+      "name_zh": "跨文化研究所比較文學博士班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0D8",
+      "label": "0D8-食品營養博士學位學程",
+      "name_zh": "食品營養博士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0E5",
+      "label": "0E5-企業管理學系管理學碩士在職專班",
+      "name_zh": "企業管理學系管理學碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0E6",
+      "label": "0E6-企業管理學系管理學碩士班",
+      "name_zh": "企業管理學系管理學碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0F5",
+      "label": "0F5-金融與國際企業學系金融碩士在職專班",
+      "name_zh": "金融與國際企業學系金融碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0F6",
+      "label": "0F6-金融與國際企業學系金融碩士班",
+      "name_zh": "金融與國際企業學系金融碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0M5",
+      "label": "0M5-非營利組織管理碩士學位學程在職專班",
+      "name_zh": "非營利組織管理碩士學位學程在職專班",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0N6",
+      "label": "0N6-國際經營管理碩士學位學程",
+      "name_zh": "國際經營管理碩士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0Q6",
+      "label": "0Q6-台灣研究國際碩士學位學程",
+      "name_zh": "台灣研究國際碩士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0R6",
+      "label": "0R6-品牌與時尚經營管理碩士學位學程",
+      "name_zh": "品牌與時尚經營管理碩士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0S5",
+      "label": "0S5-跨專業長期照護碩士學位學程在職專班",
+      "name_zh": "跨專業長期照護碩士學位學程在職專班",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0U5",
+      "label": "0U5-社會企業碩士在職學位學程",
+      "name_zh": "社會企業碩士在職學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0U6",
+      "label": "0U6-社會企業碩士學位學程",
+      "name_zh": "社會企業碩士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0X6",
+      "label": "0X6-生物醫學暨藥學研究所碩士班",
+      "name_zh": "生物醫學暨藥學研究所碩士班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0Y8",
+      "label": "0Y8-生技醫藥博士學位學程",
+      "name_zh": "生技醫藥博士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "0Z6",
+      "label": "0Z6-生物醫學海量資料分析碩士學位學程",
+      "name_zh": "生物醫學海量資料分析碩士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "106",
+      "label": "106-圖書資訊學系碩士班",
+      "name_zh": "圖書資訊學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "145",
+      "label": "145-教育領導與發展研究所碩士在職專班",
+      "name_zh": "教育領導與發展研究所碩士在職專班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "146",
+      "label": "146-教育領導與發展研究所碩士班",
+      "name_zh": "教育領導與發展研究所碩士班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "156",
+      "label": "156-博物館學研究所碩士班",
+      "name_zh": "博物館學研究所碩士班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "1A8",
+      "label": "1A8-跨文化研究所比較文學與跨文化研究博士班",
+      "name_zh": "跨文化研究所比較文學與跨文化研究博士班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "1C5",
+      "label": "1C5-財經法律學系原住民碩士在職專班",
+      "name_zh": "財經法律學系原住民碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "1K5",
+      "label": "1K5-金融與國際企業現役軍人營區碩士在職專班",
+      "name_zh": "金融與國際企業現役軍人營區碩士在職專班",
+      "department_type": ""
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "1L6",
+      "label": "1L6-醫療暨健康產業大數據碩士學位學程",
+      "name_zh": "醫療暨健康產業大數據碩士學位學程",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "1M6",
+      "label": "1M6-跨文化研究所華語教學與語言科技碩士班",
+      "name_zh": "跨文化研究所華語教學與語言科技碩士班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "206",
+      "label": "206-英國語文學系碩士班",
+      "name_zh": "英國語文學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "226",
+      "label": "226-法國語文學系碩士班",
+      "name_zh": "法國語文學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "236",
+      "label": "236-西班牙語文學系碩士班",
+      "name_zh": "西班牙語文學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "246",
+      "label": "246-日本語文學系碩士班",
+      "name_zh": "日本語文學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "266",
+      "label": "266-德語語文學系碩士班",
+      "name_zh": "德語語文學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "326",
+      "label": "326-物理學系碩士班",
+      "name_zh": "物理學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "336",
+      "label": "336-化學系碩士班",
+      "name_zh": "化學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "338",
+      "label": "338-化學系博士班",
+      "name_zh": "化學系博士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "366",
+      "label": "366-數學系碩士班",
+      "name_zh": "數學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "395",
+      "label": "395-心理學系碩士在職專班",
+      "name_zh": "心理學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "396",
+      "label": "396-心理學系碩士班",
+      "name_zh": "心理學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "398",
+      "label": "398-心理學系博士班",
+      "name_zh": "心理學系博士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "435",
+      "label": "435-織品服裝學系碩士在職專班",
+      "name_zh": "織品服裝學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "436",
+      "label": "436-織品服裝學系碩士班",
+      "name_zh": "織品服裝學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "515",
+      "label": "515-資訊工程學系碩士在職專班",
+      "name_zh": "資訊工程學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "516",
+      "label": "516-資訊工程學系碩士班",
+      "name_zh": "資訊工程學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "546",
+      "label": "546-生命科學系碩士班",
+      "name_zh": "生命科學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "575",
+      "label": "575-餐旅管理學系碩士在職專班",
+      "name_zh": "餐旅管理學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "576",
+      "label": "576-餐旅管理學系碩士班",
+      "name_zh": "餐旅管理學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "585",
+      "label": "585-兒童與家庭學系碩士在職專班",
+      "name_zh": "兒童與家庭學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "586",
+      "label": "586-兒童與家庭學系碩士班",
+      "name_zh": "兒童與家庭學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "598",
+      "label": "598-應用科學與工程研究所博士班",
+      "name_zh": "應用科學與工程研究所博士班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "636",
+      "label": "636-社會學系碩士班",
+      "name_zh": "社會學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "646",
+      "label": "646-社會工作學系碩士班",
+      "name_zh": "社會工作學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "656",
+      "label": "656-經濟學系碩士班",
+      "name_zh": "經濟學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "665",
+      "label": "665-法律學系碩士在職專班",
+      "name_zh": "法律學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "666",
+      "label": "666-法律學系碩士班",
+      "name_zh": "法律學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "668",
+      "label": "668-法律學系博士班",
+      "name_zh": "法律學系博士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "676",
+      "label": "676-財經法律學系碩士班",
+      "name_zh": "財經法律學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "715",
+      "label": "715-會計學系碩士在職專班",
+      "name_zh": "會計學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "716",
+      "label": "716-會計學系碩士班",
+      "name_zh": "會計學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "745",
+      "label": "745-資訊管理學系碩士在職專班",
+      "name_zh": "資訊管理學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "746",
+      "label": "746-資訊管理學系碩士班",
+      "name_zh": "資訊管理學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "765",
+      "label": "765-統計資訊學系應用統計碩士在職專班",
+      "name_zh": "統計資訊學系應用統計碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "766",
+      "label": "766-統計資訊學系應用統計碩士班",
+      "name_zh": "統計資訊學系應用統計碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "778",
+      "label": "778-商學研究所博士班",
+      "name_zh": "商學研究所博士班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "785",
+      "label": "785-科技管理碩士學位學程在職專班",
+      "name_zh": "科技管理碩士學位學程在職專班",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "795",
+      "label": "795-國際創業與經營管理碩士學位學程在職專班",
+      "name_zh": "國際創業與經營管理碩士學位學程在職專班",
+      "department_type": "degree_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "805",
+      "label": "805-音樂學系碩士在職專班",
+      "name_zh": "音樂學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "806",
+      "label": "806-音樂學系碩士班",
+      "name_zh": "音樂學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "816",
+      "label": "816-應用美術學系碩士班",
+      "name_zh": "應用美術學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "826",
+      "label": "826-景觀設計學系碩士班",
+      "name_zh": "景觀設計學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "838",
+      "label": "838-音樂學系博士班音樂學組",
+      "name_zh": "音樂學系博士班音樂學組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "848",
+      "label": "848-音樂學系博士班演奏組",
+      "name_zh": "音樂學系博士班演奏組",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "855",
+      "label": "855-食品科學系碩士在職專班",
+      "name_zh": "食品科學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "856",
+      "label": "856-食品科學系碩士班",
+      "name_zh": "食品科學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "865",
+      "label": "865-營養科學系碩士在職專班",
+      "name_zh": "營養科學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "866",
+      "label": "866-營養科學系碩士班",
+      "name_zh": "營養科學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "895",
+      "label": "895-電機工程學系碩士在職專班",
+      "name_zh": "電機工程學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "896",
+      "label": "896-電機工程學系碩士班",
+      "name_zh": "電機工程學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "905",
+      "label": "905-宗教學系碩士在職專班",
+      "name_zh": "宗教學系碩士在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "906",
+      "label": "906-宗教學系碩士班",
+      "name_zh": "宗教學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "908",
+      "label": "908-宗教學系博士班",
+      "name_zh": "宗教學系博士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "916",
+      "label": "916-護理學系碩士班",
+      "name_zh": "護理學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "926",
+      "label": "926-公共衛生學系碩士班",
+      "name_zh": "公共衛生學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "956",
+      "label": "956-臨床心理學系碩士班",
+      "name_zh": "臨床心理學系碩士班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "976",
+      "label": "976-基礎醫學研究所碩士班",
+      "name_zh": "基礎醫學研究所碩士班",
+      "department_type": "graduate_institute"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "CG",
+      "label": "CG-文學院",
+      "name_zh": "文學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "DG",
+      "label": "DG-醫學院",
+      "name_zh": "醫學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "FG",
+      "label": "FG-外語學院",
+      "name_zh": "外語學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "K01",
+      "label": "K01-西洋古典暨中世紀文化學分學程",
+      "name_zh": "西洋古典暨中世紀文化學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "K16",
+      "label": "K16-老人長期照護學分學程",
+      "name_zh": "老人長期照護學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "K20",
+      "label": "K20-財經法律翻譯學分學程",
+      "name_zh": "財經法律翻譯學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "K35",
+      "label": "K35-國際醫療翻譯學分學程",
+      "name_zh": "國際醫療翻譯學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "K53",
+      "label": "K53-國際文創與商務溝通學分學程",
+      "name_zh": "國際文創與商務溝通學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "K68",
+      "label": "K68-外交事務學分學程",
+      "name_zh": "外交事務學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "K73",
+      "label": "K73-國際行銷與數位創新微學程",
+      "name_zh": "國際行銷與數位創新微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "K87",
+      "label": "K87-西洋古典暨中世紀語言與文化學分學程",
+      "name_zh": "西洋古典暨中世紀語言與文化學分學程",
+      "department_type": "credit_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "K90",
+      "label": "K90-生命科技與法律微學程",
+      "name_zh": "生命科技與法律微學程",
+      "department_type": "micro_program"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "MG",
+      "label": "MG-管理學院",
+      "name_zh": "管理學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "SG",
+      "label": "SG-理工學院",
+      "name_zh": "理工學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "TG",
+      "label": "TG-跨領域學院",
+      "name_zh": "跨領域學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "G",
+      "division_name_zh": "研究所",
+      "code": "WG",
+      "label": "WG-社會科學院",
+      "name_zh": "社會科學院",
+      "department_type": "college"
+    },
+    {
+      "division_code": "T",
+      "division_name_zh": "二年制",
+      "code": "915",
+      "label": "915-護理學系二年制在職專班",
+      "name_zh": "護理學系二年制在職專班",
+      "department_type": "department"
+    },
+    {
+      "division_code": "T",
+      "division_name_zh": "二年制",
+      "code": "CT",
+      "label": "CT-基本能力課程-國文",
+      "name_zh": "基本能力課程-國文",
+      "department_type": ""
+    },
+    {
+      "division_code": "T",
+      "division_name_zh": "二年制",
+      "code": "ET",
+      "label": "ET-全人教育核心課程-專業倫理",
+      "name_zh": "全人教育核心課程-專業倫理",
+      "department_type": ""
+    },
+    {
+      "division_code": "T",
+      "division_name_zh": "二年制",
+      "code": "FT",
+      "label": "FT-基本能力課程-外國語文",
+      "name_zh": "基本能力課程-外國語文",
+      "department_type": ""
+    },
+    {
+      "division_code": "T",
+      "division_name_zh": "二年制",
+      "code": "IT",
+      "label": "IT-全人教育核心課程-大學入門",
+      "name_zh": "全人教育核心課程-大學入門",
+      "department_type": ""
+    },
+    {
+      "division_code": "T",
+      "division_name_zh": "二年制",
+      "code": "LT",
+      "label": "LT-全人教育核心課程-人生哲學",
+      "name_zh": "全人教育核心課程-人生哲學",
+      "department_type": ""
+    },
+    {
+      "division_code": "T",
+      "division_name_zh": "二年制",
+      "code": "TG",
+      "label": "TG-跨領域學院",
+      "name_zh": "跨領域學院",
+      "department_type": "college"
+    }
+  ]
+}

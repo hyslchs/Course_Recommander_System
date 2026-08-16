@@ -11,6 +11,12 @@ The repository now also contains a local-first course recommendation MVP:
 - Conservative eligibility rules with source evidence.
 - Versioned catalog and float32 embedding artifacts.
 
+Eligibility is represented as evidence-backed `eligibility_rules`. Graduate
+course labels are normalized into `study_level`, `audience_grade`, and
+`audience_department`; `study_level_only` and `audience_grade_only` rules block
+confirmed mismatches before recommendation ranking, while unknown student
+attributes remain marked for confirmation.
+
 The first target dataset is:
 
 - Academic year: `115`
@@ -26,6 +32,7 @@ fallback is available for environments where Scrapling is not installed yet.
 
 ```bash
 python3 -m fju_outline.cli discover --hy 115 --ht 1
+python3 -m fju_outline.cli departments --hy 115 --lcid 1028
 python3 -m fju_outline.cli crawl --hy 115 --ht 1 --page-size 100 --concurrency 3
 python3 -m fju_outline.cli normalize --hy 115 --ht 1
 python3 -m fju_outline.cli export --hy 115 --ht 1
@@ -37,6 +44,12 @@ Outputs are written under `data/`:
 
 - `data/raw/`: complete API responses, one JSON object per line.
 - `data/canonical/`: normalized nested course-outline records.
+- `data/reference/departments_115.json`: official division and department
+  dropdown options, including the code-to-full-name mapping used during
+  normalization. Each official code is an independent identity: a department,
+  degree program, and credit program are never merged merely because their
+  names overlap. Run `departments` again when the university changes the
+  official list.
 - `data/derived/`: analysis-friendly Parquet tables.
 - `logs/`: fetch logs and validation summaries.
 
@@ -57,7 +70,8 @@ Run the API in another terminal after generating artifacts:
 fju-outline-web --artifacts-dir data/artifacts/1151 --port 8080
 ```
 
-Evaluate the fixed 30-query relevance set after changing the embedding model:
+Evaluate the relevance set after changing the embedding model or retrieval strategy.
+The report compares the dense baseline with the query-only hybrid RRF ranking:
 
 ```bash
 python -m fju_outline.evaluation --artifacts-dir data/artifacts/1151

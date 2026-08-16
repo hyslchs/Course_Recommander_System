@@ -3,6 +3,8 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from .departments import department_names_match
+
 
 EligibilityRule = dict[str, Any]
 
@@ -30,13 +32,49 @@ _DEPARTMENT_RE = re.compile(r"(?:僅限|限)([^，。、；\s]{2,20}(?:系|所))
 _CONSTRAINT_HINT_RE = re.compile(
     r"(?:限|不得|不可|不開放|擋修|先修|修畢|修過|加簽|同意|資格|年級|本系|外系|跨部)"
 )
+_AUDIENCE_GRADE_RE = re.compile(r"([一二三四五六七1-7])(?:年級|[甲乙丙丁戊己庚辛壬癸愛智仁勇忠孝信義和平]+)?$")
+
+
+def infer_study_level(organization: dict[str, Any]) -> str:
+    """Infer the teaching level from the official offering labels.
+
+    This is intentionally a conservative normalization step: a graduate
+    offering is not automatically treated as a hard restriction unless its
+    source label clearly identifies it as a master's or doctoral offering.
+    """
+
+    raw_department = _as_text(organization.get("department_name_zh"))
+    division = _as_text(organization.get("division_name_zh"))
+    if "博" in raw_department or "博士" in division:
+        return "doctoral"
+    if "碩" in raw_department or "碩士" in division or division == "研究所":
+        return "master"
+    if division:
+        return "undergraduate"
+    return "unknown"
+
+
+def normalize_audience_department(value: Any) -> str:
+    """Return the department family without grade or graduate-level suffixes."""
+
+    text = _as_text(value)
+    text = re.sub(r"[一二三四五六七1-7](?:年級|[甲乙丙丁戊己庚辛壬癸愛智仁勇忠孝信義和平]+)?$", "", text)
+    text = re.sub(r"(?:博士|碩士|碩職|碩|博)$", "", text)
+    return text or _as_text(value)
+
+
+def infer_audience_grade(organization: dict[str, Any]) -> int | None:
+    """Extract the target class year from an official department/grade label."""
+
+    match = _AUDIENCE_GRADE_RE.search(_as_text(organization.get("department_name_zh")))
+    return _GRADE_DIGITS[match.group(1)] if match else None
 
 
 def extract_eligibility_rules(record: dict[str, Any]) -> list[EligibilityRule]:
     """Extract only high-confidence rules and preserve uncertain evidence.
 
-    The offering department/grade is intentionally not interpreted as an
-    enrollment restriction.
+    Graduate-level offering labels are converted into explicit, evidence-
+    backed rules so the client can distinguish "unknown" from "eligible".
     """
 
     outline = record.get("outline", {})
@@ -44,6 +82,36 @@ def extract_eligibility_rules(record: dict[str, Any]) -> list[EligibilityRule]:
     objectives = outline.get("learning_objectives") or {}
     organization = record.get("organization") or {}
     rules: list[EligibilityRule] = []
+
+    study_level = infer_study_level(organization)
+    audience_grade = infer_audience_grade(organization)
+    if study_level in {"master", "doctoral"}:
+        raw_department = _as_text(organization.get("department_name_zh"))
+        division = _as_text(organization.get("division_name_zh"))
+        label = "博士班" if study_level == "doctoral" else "研究所／碩士班"
+        evidence = "、".join(value for value in (raw_department, division) if value)
+        rules.append(
+            _rule(
+                "study_level_only",
+                "study_level_restriction",
+                f"授課對象為{label}，請確認個人學制資格",
+                "organization.department_name_zh / organization.division_name_zh",
+                evidence or label,
+                {"study_level": study_level},
+            )
+        )
+    elif study_level == "undergraduate" and audience_grade is not None and audience_grade >= 3:
+        raw_department = _as_text(organization.get("department_name_zh"))
+        rules.append(
+            _rule(
+                "audience_grade_only",
+                "audience_grade_restriction",
+                f"課程標示為{audience_grade}年級，請確認個人年級資格",
+                "organization.department_name_zh",
+                raw_department or f"{audience_grade}年級",
+                {"grade": audience_grade},
+            )
+        )
 
     for prerequisite in basic.get("rejList") or []:
         evidence = _as_text(prerequisite)
@@ -80,6 +148,7 @@ def extract_eligibility_rules(record: dict[str, Any]) -> list[EligibilityRule]:
                 "課綱列有先備知識，請自行確認是否符合",
                 "outline.learning_objectives.prerequisite",
                 prerequisite_text,
+                {"prerequisite": prerequisite_text},
             )
         )
 
@@ -87,7 +156,7 @@ def extract_eligibility_rules(record: dict[str, Any]) -> list[EligibilityRule]:
 
 
 def base_eligibility_status(rules: list[EligibilityRule]) -> str:
-    if any(rule["kind"] in {"advisory_prerequisite", "manual_confirmation"} for rule in rules):
+    if any(rule["kind"] in {"advisory_prerequisite", "manual_confirmation", "study_level_only", "audience_grade_only"} for rule in rules):
         return "needs_confirmation"
     return "no_known_restriction"
 
@@ -98,6 +167,7 @@ def evaluate_eligibility(
     grade: int | None = None,
     department: str = "",
     division: str = "",
+    study_level: str = "unknown",
     completed_course_names: set[str] | None = None,
 ) -> dict[str, Any]:
     completed = {name.strip() for name in (completed_course_names or set()) if name.strip()}
@@ -130,7 +200,17 @@ def evaluate_eligibility(
                 pending.append(rule)
             else:
                 expected = str(value.get("department") or "")
-                (satisfied if expected in department or department in expected else blocked).append(rule)
+                (satisfied if department_names_match(expected, department) else blocked).append(rule)
+        elif kind == "study_level_only":
+            if not study_level or study_level == "unknown":
+                pending.append(rule)
+            else:
+                (satisfied if study_level == value.get("study_level") else blocked).append(rule)
+        elif kind == "audience_grade_only":
+            if grade is None:
+                pending.append(rule)
+            else:
+                (satisfied if grade >= int(value["grade"]) else blocked).append(rule)
         else:
             pending.append(rule)
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import unicodedata
 from typing import Any
 
 from .departments import department_names_match
@@ -8,7 +9,45 @@ from .departments import department_names_match
 
 EligibilityRule = dict[str, Any]
 
-_EMPTY_TEXT = {"", "無", "無。", "無.", "none", "none.", "n/a", "na"}
+_NO_PREREQUISITE_LABELS = {
+    "",
+    "無",
+    "none",
+    "no",
+    "n/a",
+    "na",
+    "無none",
+    "none無",
+    "no無",
+    "無no",
+    "無先修",
+    "無先修課程",
+    "無先修條件",
+    "無先修要求",
+    "無需先修",
+    "無需先修課程",
+    "無需先修條件",
+    "無須先修",
+    "無須先修課程",
+    "無須先修條件",
+    "不需要先修",
+    "不需要先修課程",
+    "不需要先修條件",
+    "免先修",
+    "免先修課程",
+    "無特殊要求",
+    "無特別要求",
+    "無特殊先修",
+    "無特殊先修課程",
+    "無特殊先修條件",
+    "無特定先修課程要求",
+    "無限制",
+    "無經驗可",
+}
+_NO_PREREQUISITE_EN_RE = re.compile(
+    r"^no(?:specific)?prerequisites?(?:arerequired|isrequired|required)?$",
+    re.IGNORECASE,
+)
 _GRADE_DIGITS = {
     "一": 1,
     "二": 2,
@@ -33,6 +72,8 @@ _CONSTRAINT_HINT_RE = re.compile(
     r"(?:限|不得|不可|不開放|擋修|先修|修畢|修過|加簽|同意|資格|年級|本系|外系|跨部)"
 )
 _AUDIENCE_GRADE_RE = re.compile(r"([一二三四五六七1-7])(?:年級|[甲乙丙丁戊己庚辛壬癸愛智仁勇忠孝信義和平]+)?$")
+_MASTER_DEPARTMENT_RE = re.compile(r"(?:碩士|碩職|碩)(?:班|[一二三四五六七1-7])?$")
+_DOCTORAL_DEPARTMENT_RE = re.compile(r"(?:博士|博)(?:班|[一二三四五六七1-7])?$")
 
 
 def infer_study_level(organization: dict[str, Any]) -> str:
@@ -43,15 +84,57 @@ def infer_study_level(organization: dict[str, Any]) -> str:
     source label clearly identifies it as a master's or doctoral offering.
     """
 
-    raw_department = _as_text(organization.get("department_name_zh"))
-    division = _as_text(organization.get("division_name_zh"))
-    if "博" in raw_department or "博士" in division:
+    raw_department = _as_text(
+        organization.get("department_name_zh") or organization.get("raw_department")
+    )
+    raw_department = re.sub(r"\s+", "", raw_department)
+    division = _as_text(
+        organization.get("division_name_zh") or organization.get("division")
+    )
+    # Check the more specific master's suffix first.  Labels such as
+    # 「博物碩一」 contain the character 「博」 as part of the department
+    # name, but are master's offerings rather than doctoral offerings.
+    if _MASTER_DEPARTMENT_RE.search(raw_department) or "碩士" in division:
+        return "master"
+    if (
+        _DOCTORAL_DEPARTMENT_RE.search(raw_department)
+        or "博士" in raw_department
+        or "博士" in division
+        or ("博" in raw_department and "博物" not in raw_department)
+    ):
         return "doctoral"
-    if "碩" in raw_department or "碩士" in division or division == "研究所":
+    if division == "研究所":
         return "master"
     if division:
         return "undergraduate"
     return "unknown"
+
+
+def study_levels_match(student_level: str, course_level: str) -> bool:
+    """Match the official undergraduate/graduate division grouping.
+
+    FJU's outline search places master's, in-service master's, and doctoral
+    programs under 「研究所」. Keep the detailed course label for display and
+    explicit query constraints, but treat both graduate levels as compatible
+    with a student whose official division is 研究所.
+    """
+
+    if student_level == "unknown" or course_level == "unknown":
+        return False
+    graduate_levels = {"master", "doctoral"}
+    if student_level in graduate_levels:
+        return course_level in graduate_levels
+    return course_level not in graduate_levels
+
+
+def is_no_prerequisite_text(value: Any) -> bool:
+    """Recognize explicit no-prerequisite labels without erasing caveats."""
+
+    text = unicodedata.normalize("NFKC", _as_text(value)).lower()
+    text = re.sub(r"\s+", "", text)
+    text = re.sub(r"[。．.!！,，、;；:：_＿]", "", text)
+    text = text.strip("()（）[]【】{}「」『』")
+    return text in _NO_PREREQUISITE_LABELS or bool(_NO_PREREQUISITE_EN_RE.fullmatch(text))
 
 
 def normalize_audience_department(value: Any) -> str:
@@ -140,7 +223,7 @@ def extract_eligibility_rules(record: dict[str, Any]) -> list[EligibilityRule]:
         )
 
     prerequisite_text = _as_text(objectives.get("prerequisite"))
-    if prerequisite_text and prerequisite_text.strip().lower() not in _EMPTY_TEXT:
+    if prerequisite_text and not is_no_prerequisite_text(prerequisite_text):
         rules.append(
             _rule(
                 "advisory_prerequisite",
@@ -205,7 +288,7 @@ def evaluate_eligibility(
             if not study_level or study_level == "unknown":
                 pending.append(rule)
             else:
-                (satisfied if study_level == value.get("study_level") else blocked).append(rule)
+                (satisfied if study_levels_match(study_level, str(value.get("study_level") or "unknown")) else blocked).append(rule)
         elif kind == "audience_grade_only":
             if grade is None:
                 pending.append(rule)

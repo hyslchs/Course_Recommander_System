@@ -10,6 +10,11 @@ The repository now also contains a local-first course recommendation MVP:
 - IndexedDB-only profiles, completed courses, favorites, and schedules.
 - Conservative eligibility rules with source evidence.
 - Versioned catalog and float32 embedding artifacts.
+- An optional deterministic compound-query layer (no Chat Completion or other
+  generative model) for coverage, intersection, negation, and catalog-backed
+  hard constraints. It is controlled by `FJU_COMPOUND_QUERY_ENABLED=0` and
+  falls back to the original whole-query dense + BM25/RRF ranking on every
+  analysis error or unsupported relation.
 
 Eligibility is represented as evidence-backed `eligibility_rules`. Graduate
 course labels are normalized into `study_level`, `audience_grade`, and
@@ -70,6 +75,22 @@ Run the API in another terminal after generating artifacts:
 fju-outline-web --artifacts-dir data/artifacts/1151 --port 8080
 ```
 
+The v3 artifact build also creates `query-route-index.json` and
+`query-route-embeddings.f32`. Routes describe only reviewed role/context
+phrases (for example, capstone or internship); they never replace the raw
+query vector or act as a subject-domain classifier. The batch endpoint accepts
+at most eight query texts and does one embedding-model call:
+
+```http
+POST /api/v1/query-embeddings
+{"texts":["資料庫＋後端","資料庫","後端"]}
+```
+
+The UI requests `/api/v1/features` before enabling the compound layer. With
+the flag off it uses the original `/api/v1/query-embedding` request exactly.
+Student profiles, completed courses, favorites, and schedules remain in the
+browser; request bodies are not logged.
+
 Evaluate the relevance set after changing the embedding model or retrieval strategy.
 The report compares the dense baseline with the query-only hybrid RRF ranking:
 
@@ -84,7 +105,34 @@ docker build -t fju-course-recommender .
 docker run --rm -p 8080:8080 fju-course-recommender
 ```
 
-The application never sends department, grade, completed courses, favorites,
-or timetable data to the API. Only text explicitly submitted for semantic
-recommendation is sent to `/api/v1/query-embedding`; request bodies must not be
-logged by the application or its reverse proxy.
+## AI course assistant
+
+The `/assistant` page is a separate, keyword/BM25 RAG flow. It does not call the
+existing query-embedding endpoints: the server retrieves at most five compact
+course contexts, then asks `gpt-5.6-luna` for a structured Traditional Chinese
+answer. The model can only recommend course IDs in those retrieved contexts;
+course details, warnings, and official links are filled from the local catalog.
+
+Copy `.env.example` to `.env`, add `OPENAI_API_KEY`, and start the API with that
+environment file (never commit `.env`):
+
+```bash
+copy .env.example .env
+docker run --rm --env-file .env -p 8080:8080 fju-course-recommender
+```
+
+The assistant limits questions to 500 characters, keeps only two recent turns
+in browser memory, rate-limits each IP, and enforces a monthly provider-call
+limit. Usage totals are stored without prompt or profile content under
+`data/runtime/ai-usage.sqlite3`. Set an OpenAI Project budget/alert separately
+as a second billing safeguard. With the default Luna price and the planned
+4,000 input / 800 output token profile, 10,000 calls are roughly US$17.60
+(about NT$616 at US$1 = NT$35); the 5,000 / 1,000-token ceiling is roughly
+NT$770 before exchange-rate and retry headroom.
+
+The existing vector recommendation flow remains local-first and only sends the
+submitted query text to `/api/v1/query-embedding`; the opt-in `/assistant` flow
+also sends the minimum profile, completed-course IDs, and schedule-course IDs
+listed in its consent panel so the server can filter candidates. Favorites and
+the full IndexedDB are never sent. Request bodies must not be logged by the
+application or its reverse proxy.

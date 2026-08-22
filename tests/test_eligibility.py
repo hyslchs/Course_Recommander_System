@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from fju_outline.eligibility import evaluate_eligibility, extract_eligibility_rules
+from fju_outline.eligibility import (
+    evaluate_eligibility,
+    extract_eligibility_rules,
+    infer_study_level,
+    is_no_prerequisite_text,
+)
 
 
 def _record(*, reject=None, note="", prerequisite="", department="資訊工程學系", division=""):
@@ -30,6 +35,17 @@ def test_unknown_prerequisite_is_never_marked_confirmed():
     assert result["pending"][0]["value"] == {"prerequisite": "需要 Python 基礎"}
 
 
+def test_normalizes_explicit_no_prerequisite_labels():
+    for value in ("無先修課程", "無需先修課程。", "None.", "（無，None）", "No specific prerequisites are required."):
+        assert is_no_prerequisite_text(value)
+        assert extract_eligibility_rules(_record(prerequisite=value)) == []
+
+
+def test_keeps_prerequisite_caveats_as_advisory_text():
+    rules = extract_eligibility_rules(_record(prerequisite="無先修課程，但具備統計基礎有助於學習"))
+    assert [rule["kind"] for rule in rules] == ["advisory_prerequisite"]
+
+
 def test_formal_prerequisite_blocks_until_completed():
     rules = extract_eligibility_rules(_record(reject=["資料結構(3.00)"]))
     assert evaluate_eligibility(rules, completed_course_names=set())["status"] == "blocked_confirmed"
@@ -55,6 +71,17 @@ def test_extracts_master_study_level_and_evaluates_student_level():
 def test_extracts_doctoral_study_level_from_department_label():
     rules = extract_eligibility_rules(_record(department="生科博一", division="研究所"))
     assert rules[0]["value"]["study_level"] == "doctoral"
+    assert evaluate_eligibility(rules, study_level="master")["status"] == "eligible_confirmed"
+    assert evaluate_eligibility(rules, study_level="undergraduate")["status"] == "blocked_confirmed"
+
+
+def test_museum_master_label_is_not_misclassified_as_doctoral():
+    organization = {"department_name_zh": "博物碩一", "division_name_zh": "研究所"}
+    assert infer_study_level(organization) == "master"
+    assert infer_study_level({"department_name_zh": "博物館學系", "division_name_zh": "日間部"}) == "undergraduate"
+    assert infer_study_level({"department_name_zh": "音博演奏組一", "division_name_zh": "研究所"}) == "doctoral"
+    rules = extract_eligibility_rules(_record(department="博物碩一", division="研究所"))
+    assert rules[0]["value"]["study_level"] == "master"
 
 
 def test_extracts_high_grade_audience_rule_from_department_label():

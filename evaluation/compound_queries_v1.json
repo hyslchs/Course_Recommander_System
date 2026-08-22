@@ -1,0 +1,2725 @@
+{
+  "schema_version": "compound-evaluation-v1",
+  "rows": [
+    {
+      "id": "compound-v1-001",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "Python",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-002",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "資料庫",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-003",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "人工智慧",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-004",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "公司法",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-005",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "初學日文",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-006",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "Python",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-007",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "資料庫",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-008",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "人工智慧",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-009",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "公司法",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-010",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "初學日文",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-011",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "Python",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-012",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "資料庫",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-013",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "人工智慧",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-014",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "公司法",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-015",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "初學日文",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-016",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "Python",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-017",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "資料庫",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-018",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "人工智慧",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-019",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "公司法",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-020",
+      "split": "development",
+      "category": "SINGLE",
+      "query": "初學日文",
+      "suggested_relation": "SINGLE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-021",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "資料庫＋後端",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-022",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "統計、機率與迴歸",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-023",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "行銷和財務",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-024",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "心理與行銷",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-025",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "永續＋金融＋英文",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-026",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "資料庫＋後端",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-027",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "統計、機率與迴歸",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-028",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "行銷和財務",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-029",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "心理與行銷",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-030",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "永續＋金融＋英文",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-031",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "資料庫＋後端",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-032",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "統計、機率與迴歸",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-033",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "行銷和財務",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-034",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "心理與行銷",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-035",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "永續＋金融＋英文",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-036",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "資料庫＋後端",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-037",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "統計、機率與迴歸",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-038",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "行銷和財務",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-039",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "心理與行銷",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-040",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "永續＋金融＋英文",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-041",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "資料庫＋後端",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-042",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "統計、機率與迴歸",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-043",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "行銷和財務",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-044",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "心理與行銷",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-045",
+      "split": "development",
+      "category": "COVERAGE",
+      "query": "永續＋金融＋英文",
+      "suggested_relation": "COVERAGE",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-046",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "企業法務實習",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-047",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "教育科技實作",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-048",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "醫療人工智慧",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-049",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "英文授課的國際貿易",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-050",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "商學院學生程式設計",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-051",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "企業法務實習",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-052",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "教育科技實作",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-053",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "醫療人工智慧",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-054",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "英文授課的國際貿易",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-055",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "商學院學生程式設計",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-056",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "企業法務實習",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-057",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "教育科技實作",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-058",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "醫療人工智慧",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-059",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "英文授課的國際貿易",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-060",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "商學院學生程式設計",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-061",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "企業法務實習",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-062",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "教育科技實作",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-063",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "醫療人工智慧",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-064",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "英文授課的國際貿易",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-065",
+      "split": "development",
+      "category": "INTERSECTION",
+      "query": "商學院學生程式設計",
+      "suggested_relation": "INTERSECTION",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-066",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "做畢業專題想學資料庫跟後端",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-067",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "想找實作型人工智慧",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-068",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "初學者想學資料分析",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-069",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "想研究行銷",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-070",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "轉職需要後端",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-071",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "做畢業專題想學資料庫跟後端",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-072",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "想找實作型人工智慧",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-073",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "初學者想學資料分析",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-074",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "想研究行銷",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-075",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "轉職需要後端",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-076",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "做畢業專題想學資料庫跟後端",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-077",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "想找實作型人工智慧",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-078",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "初學者想學資料分析",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-079",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "想研究行銷",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-080",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "轉職需要後端",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-081",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "做畢業專題想學資料庫跟後端",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-082",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "想找實作型人工智慧",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-083",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "初學者想學資料分析",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-084",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "想研究行銷",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-085",
+      "split": "development",
+      "category": "CONTEXT_GOAL",
+      "query": "轉職需要後端",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-086",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "想學AI但不要寫程式",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-087",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不要早八的通識",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-088",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "只要星期五且2學分的日文課",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-089",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "排除星期三的資料庫",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-090",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不要實習但想學法律",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-091",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "想學AI但不要寫程式",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-092",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不要早八的通識",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-093",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "只要星期五且2學分的日文課",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-094",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "排除星期三的資料庫",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-095",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不要實習但想學法律",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-096",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "想學AI但不要寫程式",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-097",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不要早八的通識",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-098",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "只要星期五且2學分的日文課",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-099",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "排除星期三的資料庫",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-100",
+      "split": "development",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不要實習但想學法律",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-101",
+      "split": "validation",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "想學AI但不要寫程式",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-102",
+      "split": "validation",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不要早八的通識",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-103",
+      "split": "validation",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "只要星期五且2學分的日文課",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-104",
+      "split": "validation",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "排除星期三的資料庫",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-105",
+      "split": "validation",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不要實習但想學法律",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-106",
+      "split": "validation",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "想學AI但不要寫程式",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-107",
+      "split": "validation",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不要早八的通識",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-108",
+      "split": "validation",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "只要星期五且2學分的日文課",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-109",
+      "split": "validation",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "排除星期三的資料庫",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-110",
+      "split": "validation",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不要實習但想學法律",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-111",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "Python 或 R",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-112",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "如果沒有後端就推薦資料庫",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-113",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "先學統計再學機器學習",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-114",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "後端最重要資料庫其次",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-115",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "只要最涼的課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-116",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "Python 或 R",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-117",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "如果沒有後端就推薦資料庫",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-118",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "先學統計再學機器學習",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-119",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "後端最重要資料庫其次",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-120",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "只要最涼的課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-121",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "Python 或 R",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-122",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "如果沒有後端就推薦資料庫",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-123",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "先學統計再學機器學習",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-124",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "後端最重要資料庫其次",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-125",
+      "split": "validation",
+      "category": "UNSUPPORTED_FALLBACK",
+      "query": "只要最涼的課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-126",
+      "split": "validation",
+      "category": "UNANSWERABLE",
+      "query": "甜課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-127",
+      "split": "validation",
+      "category": "UNANSWERABLE",
+      "query": "想找給分高的課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-128",
+      "split": "validation",
+      "category": "UNANSWERABLE",
+      "query": "下學期的熱門課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-129",
+      "split": "validation",
+      "category": "UNANSWERABLE",
+      "query": "報告少又不用考試",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-130",
+      "split": "validation",
+      "category": "UNANSWERABLE",
+      "query": "離校門近的課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-131",
+      "split": "hidden_test",
+      "category": "UNANSWERABLE",
+      "query": "甜課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-132",
+      "split": "hidden_test",
+      "category": "UNANSWERABLE",
+      "query": "想找給分高的課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-133",
+      "split": "hidden_test",
+      "category": "UNANSWERABLE",
+      "query": "下學期的熱門課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-134",
+      "split": "hidden_test",
+      "category": "UNANSWERABLE",
+      "query": "報告少又不用考試",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-135",
+      "split": "hidden_test",
+      "category": "UNANSWERABLE",
+      "query": "離校門近的課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-136",
+      "split": "hidden_test",
+      "category": "UNANSWERABLE",
+      "query": "甜課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-137",
+      "split": "hidden_test",
+      "category": "UNANSWERABLE",
+      "query": "想找給分高的課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-138",
+      "split": "hidden_test",
+      "category": "UNANSWERABLE",
+      "query": "下學期的熱門課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-139",
+      "split": "hidden_test",
+      "category": "UNANSWERABLE",
+      "query": "報告少又不用考試",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-140",
+      "split": "hidden_test",
+      "category": "UNANSWERABLE",
+      "query": "離校門近的課",
+      "suggested_relation": "FALLBACK",
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-141",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "pyhton",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-142",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "資料褲",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-143",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "後端api啦",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-144",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "🚀AI＋法律？！",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-145",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "我想學 db backend",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-146",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "pyhton",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-147",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "資料褲",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-148",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "後端api啦",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-149",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "🚀AI＋法律？！",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-150",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "我想學 db backend",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-151",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "pyhton",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-152",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "資料褲",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-153",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "後端api啦",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-154",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "🚀AI＋法律？！",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-155",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "我想學 db backend",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-156",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "pyhton",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-157",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "資料褲",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-158",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "後端api啦",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-159",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "🚀AI＋法律？！",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    },
+    {
+      "id": "compound-v1-160",
+      "split": "hidden_test",
+      "category": "TYPO_MIXED_GARBAGE_REWRITE",
+      "query": "我想學 db backend",
+      "suggested_relation": null,
+      "suggested_goals": [],
+      "suggested_contexts": [],
+      "suggested_exclusions": [],
+      "candidate_course_ids": [],
+      "review": {
+        "status": "draft",
+        "approved": false,
+        "reviewer": null,
+        "notes": "請人工依 115-1 catalog 補證據與標註。"
+      }
+    }
+  ]
+}

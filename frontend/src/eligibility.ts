@@ -8,19 +8,83 @@ export interface EligibilityResult {
   satisfied: EligibilityRule[];
 }
 
+const noPrerequisiteLabels = new Set([
+  "",
+  "無",
+  "none",
+  "no",
+  "n/a",
+  "na",
+  "無none",
+  "none無",
+  "no無",
+  "無no",
+  "無先修",
+  "無先修課程",
+  "無先修條件",
+  "無先修要求",
+  "無需先修",
+  "無需先修課程",
+  "無需先修條件",
+  "無須先修",
+  "無須先修課程",
+  "無須先修條件",
+  "不需要先修",
+  "不需要先修課程",
+  "不需要先修條件",
+  "免先修",
+  "免先修課程",
+  "無特殊要求",
+  "無特別要求",
+  "無特殊先修",
+  "無特殊先修課程",
+  "無特殊先修條件",
+  "無特定先修課程要求",
+  "無限制",
+  "無經驗可",
+]);
+
+export function isNoPrerequisiteText(value: string | null | undefined): boolean {
+  const normalized = (value ?? "")
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/\s/g, "")
+    .replace(/[。．.!！,，、;；:：_＿]/g, "")
+    .replace(/[\[\]()（）【】{}「」『』]/g, "");
+  return noPrerequisiteLabels.has(normalized)
+    || /^no(?:specific)?prerequisites?(?:arerequired|isrequired|required)?$/i.test(normalized);
+}
+
 export function inferCourseStudyLevel(course: Pick<Course, "study_level" | "raw_department" | "division">): StudyLevel {
   if (course.study_level) return course.study_level;
-  const rawDepartment = course.raw_department ?? "";
-  if (rawDepartment.includes("博") || rawDepartment.includes("博士")) return "doctoral";
-  if (rawDepartment.includes("碩") || rawDepartment.includes("碩士") || course.division === "研究所") return "master";
+  const rawDepartment = (course.raw_department ?? "").replace(/\s/g, "");
+  // 「博物碩一」的「博」是系所名稱的一部分，不能先以單一字元判成博士。
+  if (/(?:碩士|碩職|碩)(?:班|[一二三四五六七1-7])?$/.test(rawDepartment) || course.division?.includes("碩士")) return "master";
+  if (/(?:博士|博)(?:班|[一二三四五六七1-7])?$/.test(rawDepartment)
+    || rawDepartment.includes("博士")
+    || course.division?.includes("博士")
+    || (rawDepartment.includes("博") && !rawDepartment.includes("博物"))) return "doctoral";
+  if (course.division === "研究所") return "master";
   if (course.division) return "undergraduate";
   return "unknown";
 }
 
 export function inferProfileStudyLevel(profile?: Pick<Profile, "studyLevel" | "division">): StudyLevel {
-  if (profile?.studyLevel) return profile.studyLevel;
-  if (profile?.division === "研究所") return "master";
-  return profile ? "undergraduate" : "unknown";
+  if (!profile) return "unknown";
+  // The official FJU outline search groups master's, in-service master's,
+  // and doctoral programs under the single division 「研究所」. Treat the
+  // division as the source of truth so a stale stored studyLevel cannot
+  // contradict the official division selected by the user.
+  if (profile.division === "研究所") return "master";
+  if (["日間部", "進修部", "二年制"].includes(profile.division)) return "undergraduate";
+  return profile.studyLevel ?? "unknown";
+}
+
+export function studyLevelsMatch(studentLevel: StudyLevel, courseLevel: StudyLevel): boolean {
+  if (studentLevel === "unknown" || courseLevel === "unknown") return false;
+  const studentIsGraduate = studentLevel === "master" || studentLevel === "doctoral";
+  const courseIsGraduate = courseLevel === "master" || courseLevel === "doctoral";
+  return studentIsGraduate ? courseIsGraduate : !courseIsGraduate;
 }
 
 export function inferAudienceDepartment(course: Pick<Course, "audience_department" | "department" | "raw_department">): string {
@@ -97,7 +161,7 @@ export function evaluateEligibility(
     } else if (rule.kind === "study_level_only") {
       const studentStudyLevel = inferProfileStudyLevel(profile);
       if (studentStudyLevel === "unknown") pending.push(rule);
-      else (studentStudyLevel === value.study_level ? satisfied : blocked).push(rule);
+      else (studyLevelsMatch(studentStudyLevel, value.study_level as StudyLevel) ? satisfied : blocked).push(rule);
     } else if (rule.kind === "audience_grade_only") {
       if (!profile) pending.push(rule);
       else (profile.grade >= Number(value.grade) ? satisfied : blocked).push(rule);

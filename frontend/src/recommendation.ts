@@ -1,4 +1,4 @@
-import { evaluateEligibility, courseConflicts } from "./eligibility";
+import { evaluateEligibility, courseConflicts, inferCourseStudyLevel, isNoPrerequisiteText, meetingsConflict, studyLevelsMatch } from "./eligibility";
 import { sameDepartment } from "./department";
 import { buildSearchIndex, scoreLexically, type LexicalMatch, type SearchIndex } from "./search";
 import type {
@@ -8,6 +8,8 @@ import type {
   Recommendation,
   RecommendationCategory,
   RecommendationCategoryFilters,
+  HardConstraints,
+  QueryAnalysis,
 } from "./types";
 
 export const recommendationCategoryLabels: Record<RecommendationCategory, string> = {
@@ -19,6 +21,69 @@ export const recommendationCategoryLabels: Record<RecommendationCategory, string
 
 const RRF_K = 60;
 const RETRIEVAL_LIMIT = 200;
+const DEFAULT_MMR_LAMBDA = 0.78;
+const COURSE_FAMILY_SIMILARITY = 0.975;
+
+export type TimeOfDayFilter = "all" | "daytime" | "evening" | "weekday_evening_or_saturday";
+export type PrerequisiteFilter = "show_with_warning" | "exclude_unmet";
+export type CourseLevel = "introductory" | "intermediate" | "advanced" | "unknown";
+export type CourseLevelFilter = "all" | "exclude_introductory" | Exclude<CourseLevel, "unknown">;
+export type PrerequisiteDataStatus = "none_stated" | "structured" | "ambiguous";
+
+export function inferCourseLevel(course: Pick<Course, "name_zh" | "name_en">): CourseLevel {
+  const title = `${course.name_zh} ${course.name_en}`;
+  if (/(?:進階|高等|高階|博士專題|專題研究|研究專題|advanced)/i.test(title)) return "advanced";
+  if (/(?:中階|中級|intermediate)/i.test(title)) return "intermediate";
+  if (/(?:入門|導論|概論|基礎|初階|初級|introduct(?:ion|ory)|fundamental|basic)/i.test(title)) return "introductory";
+  return "unknown";
+}
+
+export function getPrerequisiteDataStatus(course: Pick<Course, "prerequisite" | "eligibility_rules">): PrerequisiteDataStatus {
+  if (course.eligibility_rules?.some((rule) => rule.kind === "course_prerequisite")) return "structured";
+  if (isNoPrerequisiteText(course.prerequisite)) return "none_stated";
+  return "ambiguous";
+}
+
+export interface SafetyFilterStats {
+  studyLevelMismatch: number;
+  studyLevelUnknown: number;
+  courseLevelMismatch: number;
+  courseLevelUnknown: number;
+  unmetPrerequisite: number;
+  ambiguousPrerequisite: number;
+}
+
+export function getSafetyFilterStats(input: {
+  catalog: Course[];
+  profile?: Profile;
+  completed: CompletedCourse[];
+  studyLevelFilter?: Profile["studyLevel"];
+  includeUnknownStudyLevel?: boolean;
+  courseLevelFilter?: CourseLevelFilter;
+  includeUnknownCourseLevel?: boolean;
+  prerequisiteFilter?: PrerequisiteFilter;
+  includeUnknownPrerequisite?: boolean;
+}): SafetyFilterStats {
+  const completedNames = new Set(input.completed.map((item) => item.courseName));
+  const stats: SafetyFilterStats = { studyLevelMismatch: 0, studyLevelUnknown: 0, courseLevelMismatch: 0, courseLevelUnknown: 0, unmetPrerequisite: 0, ambiguousPrerequisite: 0 };
+  for (const course of input.catalog) {
+    if (input.studyLevelFilter && input.studyLevelFilter !== "unknown") {
+      const level = inferCourseStudyLevel(course);
+      if (level === "unknown" && input.includeUnknownStudyLevel !== true) stats.studyLevelUnknown += 1;
+      else if (level !== "unknown" && !studyLevelsMatch(input.studyLevelFilter, level)) stats.studyLevelMismatch += 1;
+    }
+    const courseLevel = inferCourseLevel(course);
+    if (input.courseLevelFilter === "exclude_introductory" && courseLevel === "introductory") stats.courseLevelMismatch += 1;
+    else if (input.courseLevelFilter && input.courseLevelFilter !== "all" && input.courseLevelFilter !== "exclude_introductory" && courseLevel !== input.courseLevelFilter) stats.courseLevelMismatch += 1;
+    if (input.courseLevelFilter && input.courseLevelFilter !== "all" && courseLevel === "unknown" && input.includeUnknownCourseLevel !== true) stats.courseLevelUnknown += 1;
+    if (input.prerequisiteFilter === "exclude_unmet") {
+      const eligibility = evaluateEligibility(course, input.profile, completedNames);
+      if (eligibility.blocked.some((rule) => rule.kind === "course_prerequisite")) stats.unmetPrerequisite += 1;
+    }
+    if (input.includeUnknownPrerequisite === false && getPrerequisiteDataStatus(course) === "ambiguous") stats.ambiguousPrerequisite += 1;
+  }
+  return stats;
+}
 
 export function classifyRecommendationCategory(course: Course, profile?: Profile): RecommendationCategory {
   const isSameDepartment = sameDepartment(course, profile);
@@ -52,6 +117,140 @@ const dot = (a: Float32Array, b: Float32Array): number => {
 
 function vectorAt(vectors: Float32Array, row: number, dimension: number): Float32Array {
   return vectors.subarray(row * dimension, (row + 1) * dimension);
+}
+
+function cosine(left: Float32Array, right: Float32Array): number {
+  let numerator = 0;
+  let leftMagnitude = 0;
+  let rightMagnitude = 0;
+  const length = Math.min(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    numerator += left[index] * right[index];
+    leftMagnitude += left[index] ** 2;
+    rightMagnitude += right[index] ** 2;
+  }
+  return numerator / Math.max(Math.sqrt(leftMagnitude * rightMagnitude), 1e-12);
+}
+
+function normalizeFamilyText(value: string | null | undefined): string {
+  return (value ?? "")
+    .normalize("NFKC")
+    .toLocaleLowerCase("zh-Hant")
+    .replace(/[\s\p{P}\p{S}]+/gu, "")
+    .trim();
+}
+
+function courseContentSignature(course: Course): string {
+  return normalizeFamilyText([
+    course.sections.objective,
+    course.sections.weekly_progress,
+    course.prerequisite,
+  ].filter(Boolean).join("\n"));
+}
+
+function courseDepartmentSignature(course: Course): string {
+  const value = [
+    course.department_identity,
+    course.official_department_name_zh,
+    course.department_display,
+    course.department,
+  ].find((candidate) => Boolean(candidate?.trim()));
+  return normalizeFamilyText(value);
+}
+
+function isGenericIndependentCourseTitle(course: Course): boolean {
+  return /(專題|論文|獨立研究|個別研究|書報討論|實習)/.test(course.name_zh);
+}
+
+/**
+ * Treat offerings as the same family only when the normalized title and credits
+ * agree and there is additional evidence (same teacher, identical substantial
+ * syllabus content, or the same department for a non-generic course title).
+ * This avoids merging generic titles such as 「專題（一）」 across departments.
+ */
+export function sameCourseFamily(
+  left: Course,
+  right: Course,
+  leftVector?: Float32Array,
+  rightVector?: Float32Array,
+): boolean {
+  if (normalizeFamilyText(left.name_zh) !== normalizeFamilyText(right.name_zh)) return false;
+  if (left.credits !== null && right.credits !== null && left.credits !== right.credits) return false;
+
+  const leftTeacher = normalizeFamilyText(left.teacher);
+  const rightTeacher = normalizeFamilyText(right.teacher);
+  if (leftTeacher && leftTeacher === rightTeacher) return true;
+
+  const leftContent = courseContentSignature(left);
+  const rightContent = courseContentSignature(right);
+  if (leftContent.length >= 80 && leftContent === rightContent) return true;
+
+  const leftDepartment = courseDepartmentSignature(left);
+  const rightDepartment = courseDepartmentSignature(right);
+  const sameDepartmentIdentity = Boolean(leftDepartment && leftDepartment === rightDepartment);
+  if (sameDepartmentIdentity && !isGenericIndependentCourseTitle(left)) return true;
+
+  return Boolean(
+    sameDepartmentIdentity
+    && leftVector
+    && rightVector
+    && cosine(leftVector, rightVector) >= COURSE_FAMILY_SIMILARITY,
+  );
+}
+
+function groupCourseFamilies<T extends { course: Course; vector: Float32Array }>(items: T[]): T[][] {
+  const groups: T[][] = [];
+  for (const item of items) {
+    const group = groups.find((candidate) => sameCourseFamily(
+      candidate[0].course,
+      item.course,
+      candidate[0].vector,
+      item.vector,
+    ));
+    if (group) group.push(item);
+    else groups.push([item]);
+  }
+  return groups;
+}
+
+function eligibilityPriority(status: Recommendation["eligibility"]): number {
+  return {
+    eligible_confirmed: 0,
+    no_known_restriction: 1,
+    needs_confirmation: 2,
+    blocked_confirmed: 3,
+  }[status];
+}
+
+function selectWithMmr<T extends { relevance: number; vector: Float32Array; originalRank: number }>(
+  candidates: T[],
+  limit: number,
+  lambda = DEFAULT_MMR_LAMBDA,
+  seed: T[] = [],
+): T[] {
+  const remaining = [...candidates];
+  const selectedForSimilarity = [...seed];
+  const output: T[] = [];
+  while (remaining.length && output.length < limit) {
+    let bestIndex = 0;
+    let bestScore = Number.NEGATIVE_INFINITY;
+    for (let index = 0; index < remaining.length; index += 1) {
+      const candidate = remaining[index];
+      const redundancy = selectedForSimilarity.length
+        ? Math.max(...selectedForSimilarity.map((item) => Math.max(0, cosine(candidate.vector, item.vector))))
+        : 0;
+      const score = lambda * candidate.relevance - (1 - lambda) * redundancy;
+      const incumbent = remaining[bestIndex];
+      if (score > bestScore || (score === bestScore && candidate.originalRank < incumbent.originalRank)) {
+        bestScore = score;
+        bestIndex = index;
+      }
+    }
+    const next = remaining.splice(bestIndex, 1)[0];
+    output.push(next);
+    selectedForSimilarity.push(next);
+  }
+  return output;
 }
 
 function fieldLabel(field: string): string {
@@ -88,7 +287,7 @@ function queryReasons(
   return reasons;
 }
 
-export function rankCourses(input: {
+function rankSingleCourses(input: {
   catalog: Course[];
   courseIds: string[];
   vectors: Float32Array;
@@ -98,13 +297,28 @@ export function rankCourses(input: {
   searchIndex?: SearchIndex;
   profile?: Profile;
   categoryFilters?: RecommendationCategoryFilters;
+  courseTagFilters?: string[];
   creditFilters?: number[];
   completed: CompletedCourse[];
   dismissedIds: string[];
   scheduledCourses?: Course[];
+  scheduledMeetings?: Course["meetings"];
   lockedCourses?: Course[];
   preferredWeekdays?: number[];
   includeNonPreferredWeekdays?: boolean;
+  timeOfDayFilter?: TimeOfDayFilter;
+  includeUnknownSchedule?: boolean;
+  prerequisiteFilter?: PrerequisiteFilter;
+  studyLevelFilter?: Profile["studyLevel"];
+  includeUnknownStudyLevel?: boolean;
+  courseLevelFilter?: CourseLevelFilter;
+  includeUnknownCourseLevel?: boolean;
+  includeUnknownPrerequisite?: boolean;
+  hardConstraints?: HardConstraints;
+  queryAnalysis?: QueryAnalysis;
+  intentVectors?: Record<string, Float32Array>;
+  selectionLimit?: number;
+  diversityLambda?: number;
 }): Recommendation[] {
   if (!input.query) return [];
   const queryText = input.queryText?.trim() ?? "";
@@ -114,6 +328,7 @@ export function rankCourses(input: {
   const completedNames = new Set(input.completed.map((item) => item.courseName));
   const dismissed = new Set(input.dismissedIds);
   const categoryFilters = input.categoryFilters ?? [];
+  const courseTagFilters = new Set(input.courseTagFilters ?? []);
   const creditFilters = input.creditFilters ?? [];
   const preferredWeekdays = input.preferredWeekdays ?? input.profile?.preferredWeekdays ?? [];
   const scheduledCourses = input.scheduledCourses ?? input.lockedCourses ?? [];
@@ -122,15 +337,52 @@ export function rankCourses(input: {
     const row = rowById.get(course.course_id);
     if (row === undefined || completedIds.has(course.course_id) || dismissed.has(course.course_id)) return [];
     const eligibility = evaluateEligibility(course, input.profile, completedNames);
-    if (eligibility.status === "blocked_confirmed") return [];
+    const hasUnresolvedCoursePrerequisite = eligibility.blocked.some(
+      (rule) => rule.kind === "course_prerequisite",
+    );
+    if (eligibility.status === "blocked_confirmed" && !hasUnresolvedCoursePrerequisite) return [];
+    if (hasUnresolvedCoursePrerequisite && input.prerequisiteFilter === "exclude_unmet") return [];
+    if (input.includeUnknownPrerequisite === false && getPrerequisiteDataStatus(course) === "ambiguous") return [];
+    if (input.studyLevelFilter && input.studyLevelFilter !== "unknown") {
+      const courseStudyLevel = inferCourseStudyLevel(course);
+      if (courseStudyLevel === "unknown" && input.includeUnknownStudyLevel !== true) return [];
+      if (courseStudyLevel !== "unknown" && !studyLevelsMatch(input.studyLevelFilter, courseStudyLevel)) return [];
+    }
+    if (input.courseLevelFilter && input.courseLevelFilter !== "all") {
+      const courseLevel = inferCourseLevel(course);
+      if (input.courseLevelFilter === "exclude_introductory" && courseLevel === "introductory") return [];
+      if (input.courseLevelFilter !== "exclude_introductory" && courseLevel !== input.courseLevelFilter) {
+        if (courseLevel !== "unknown" || input.includeUnknownCourseLevel !== true) return [];
+      }
+      if (courseLevel === "unknown" && input.includeUnknownCourseLevel !== true) return [];
+    }
     if (courseConflicts(course, scheduledCourses).conflict) return [];
-    if (!input.includeNonPreferredWeekdays && preferredWeekdays.length > 0 && course.meetings.some(
-      (meeting) => meeting.weekday !== null && !preferredWeekdays.includes(meeting.weekday),
-    )) return [];
+    if (input.scheduledMeetings && meetingsConflict(course.meetings, input.scheduledMeetings).conflict) return [];
+    const hasUnknownSchedule = course.meetings.length === 0 || course.meetings.some(
+      (meeting) => meeting.weekday === null || meeting.sections.length === 0,
+    );
+    if (hasUnknownSchedule && input.includeUnknownSchedule === false) return [];
+    const knownMeetings = course.meetings.filter((meeting) => meeting.weekday !== null);
+    if (!input.includeNonPreferredWeekdays && preferredWeekdays.length > 0) {
+      if (!knownMeetings.length && input.includeUnknownSchedule !== true) return [];
+      if (knownMeetings.some((meeting) => !preferredWeekdays.includes(meeting.weekday!))) return [];
+    }
+    if (input.timeOfDayFilter && input.timeOfDayFilter !== "all") {
+      const sections = knownMeetings.flatMap((meeting) => meeting.sections);
+      if (!sections.length && input.includeUnknownSchedule !== true) return [];
+      if (input.timeOfDayFilter === "weekday_evening_or_saturday") {
+        if (knownMeetings.some((meeting) => meeting.weekday !== 6 && meeting.sections.some((section) => !section.toUpperCase().startsWith("E")))) return [];
+      } else {
+        const expectedPrefix = input.timeOfDayFilter === "evening" ? "E" : "D";
+        if (sections.length && sections.some((section) => !section.toUpperCase().startsWith(expectedPrefix))) return [];
+      }
+    }
     if (creditFilters.length > 0 && (course.credits === null || !creditFilters.includes(course.credits))) return [];
+    if (courseTagFilters.size > 0 && !(course.course_tags ?? []).some((tag) => courseTagFilters.has(tag.code))) return [];
+    if (input.hardConstraints && !matchesHardConstraints(course, input.hardConstraints)) return [];
     const category = classifyRecommendationCategory(course, input.profile);
     if (categoryFilters.length > 0 && !categoryFilters.includes(category)) return [];
-    if (input.profile && !input.profile.allowCrossDepartment && category === "external_department") return [];
+
     const lexical = queryText
       ? scoreLexically(searchIndex, course, queryText)
       : { score: 0, titleMatch: 0, exactTitle: false, matchedTerms: [], matchedFields: [] };
@@ -167,23 +419,257 @@ export function rankCourses(input: {
       || b.lexical.score - a.lexical.score
       || a.order - b.order);
 
-  const selected: typeof ranked = [];
-  const seenNames = new Set<string>();
-  for (const item of ranked) {
-    if (seenNames.has(item.course.name_zh)) continue;
-    seenNames.add(item.course.name_zh);
-    selected.push(item);
-    if (selected.length === 20) break;
-  }
+  const families = groupCourseFamilies(ranked).map((members) => {
+    const orderedMembers = [...members].sort((left, right) => (
+      eligibilityPriority(left.eligibility) - eligibilityPriority(right.eligibility)
+      || Number(!sameDepartment(left.course, input.profile)) - Number(!sameDepartment(right.course, input.profile))
+      || ranked.indexOf(left) - ranked.indexOf(right)
+    ));
+    const representative = orderedMembers[0];
+    const bestRankedMember = members[0];
+    const score = Math.max(...members.map((item) => rrfScores.get(item.course.course_id) ?? 0));
+    return {
+      representative,
+      alternatives: orderedMembers.slice(1).map((item) => item.course),
+      score,
+      relevance: normalizedRrf(score),
+      vector: bestRankedMember.vector,
+      originalRank: ranked.indexOf(bestRankedMember),
+    };
+  });
+  const selected = selectWithMmr(
+    families,
+    input.selectionLimit ?? 20,
+    input.diversityLambda,
+  );
 
-  return selected.map((item) => ({
-    course: item.course,
-    score: rrfScores.get(item.course.course_id) ?? 0,
-    eligibility: item.eligibility,
-    category: item.category,
-    reasons: [
-      ...queryReasons(queryText, item.lexical, denseRanks.get(item.course.course_id), sparseRanks.get(item.course.course_id)),
-      ...(item.eligibility === "needs_confirmation" ? ["存在待確認的選課條件，請展開查看原始依據"] : []),
-    ],
-  }));
+  return selected.map((family) => {
+    const item = family.representative;
+    return {
+      course: item.course,
+      alternatives: family.alternatives,
+      score: family.score,
+      eligibility: item.eligibility,
+      category: item.category,
+      reasons: [
+        ...queryReasons(queryText, item.lexical, denseRanks.get(item.course.course_id), sparseRanks.get(item.course.course_id)),
+        ...(family.alternatives.length
+          ? [`已合併 ${family.alternatives.length + 1} 個相同課程班別／共同開課項目`]
+          : []),
+        ...(item.eligibility === "blocked_confirmed"
+          ? ["有擋修條件，請展開查看原始依據"]
+          : item.eligibility === "needs_confirmation"
+            ? ["存在待確認的選課條件，請展開查看原始依據"]
+            : []),
+      ],
+    };
+  });
+}
+
+export function rankCourses(input: {
+  catalog: Course[];
+  courseIds: string[];
+  vectors: Float32Array;
+  dimension: number;
+  query?: Float32Array;
+  queryText?: string;
+  searchIndex?: SearchIndex;
+  profile?: Profile;
+  categoryFilters?: RecommendationCategoryFilters;
+  courseTagFilters?: string[];
+  creditFilters?: number[];
+  completed: CompletedCourse[];
+  dismissedIds: string[];
+  scheduledCourses?: Course[];
+  scheduledMeetings?: Course["meetings"];
+  lockedCourses?: Course[];
+  preferredWeekdays?: number[];
+  includeNonPreferredWeekdays?: boolean;
+  timeOfDayFilter?: TimeOfDayFilter;
+  includeUnknownSchedule?: boolean;
+  prerequisiteFilter?: PrerequisiteFilter;
+  studyLevelFilter?: Profile["studyLevel"];
+  includeUnknownStudyLevel?: boolean;
+  courseLevelFilter?: CourseLevelFilter;
+  includeUnknownCourseLevel?: boolean;
+  includeUnknownPrerequisite?: boolean;
+  queryAnalysis?: QueryAnalysis;
+  intentVectors?: Record<string, Float32Array>;
+  hardConstraints?: HardConstraints;
+  diversityLambda?: number;
+}): Recommendation[] {
+  const analysis = input.queryAnalysis;
+  if (!analysis || analysis.relation === "FALLBACK") {
+    return rankSingleCourses(input);
+  }
+  if (analysis.relation === "SINGLE") {
+    const hasSemanticExclusion = analysis.exclusions.some((part) => !part.metadataConstraint);
+    if (hasSemanticExclusion) return rankCompoundCourses({ ...input, queryAnalysis: analysis });
+    const hasExclusion = analysis.exclusions.length > 0;
+    const queryText = (analysis.unsupportedConditions.length || hasExclusion) && analysis.goals.length
+      ? analysis.goals.map((part) => part.text).join(" ")
+      : input.queryText;
+    return rankSingleCourses({ ...input, queryText });
+  }
+  return rankCompoundCourses({ ...input, queryAnalysis: analysis });
+}
+
+function matchesHardConstraints(course: Course, constraints: HardConstraints): boolean {
+  const meetings = course.meetings ?? [];
+  const inferredStudyLevel = inferCourseStudyLevel(course);
+  if (constraints.weekdays?.length && !meetings.some((meeting) => meeting.weekday !== null && constraints.weekdays!.includes(meeting.weekday))) return false;
+  if (constraints.excludedWeekdays?.length && meetings.some((meeting) => meeting.weekday !== null && constraints.excludedWeekdays!.includes(meeting.weekday))) return false;
+  if (constraints.credits?.length && (course.credits === null || !constraints.credits.includes(course.credits))) return false;
+  if (constraints.excludedCredits?.length && course.credits !== null && constraints.excludedCredits.includes(course.credits)) return false;
+  if (constraints.sections?.length && !meetings.some((meeting) => meeting.sections.some((section) => constraints.sections!.includes(section)))) return false;
+  if (constraints.excludedSections?.length && meetings.some((meeting) => meeting.sections.some((section) => constraints.excludedSections!.includes(section)))) return false;
+  if (constraints.requiredElective?.length && !constraints.requiredElective.includes(course.required_elective_name)) return false;
+  if (constraints.excludedRequiredElective?.length && constraints.excludedRequiredElective.includes(course.required_elective_name)) return false;
+  if (constraints.divisions?.length && !constraints.divisions.includes(course.division)) return false;
+  if (constraints.excludedDivisions?.length && constraints.excludedDivisions.includes(course.division)) return false;
+  if (constraints.studyLevels?.length && !constraints.studyLevels.includes(inferredStudyLevel)) return false;
+  if (constraints.excludedStudyLevels?.length && constraints.excludedStudyLevels.includes(inferredStudyLevel)) return false;
+  if (constraints.departmentIdentity && course.department_identity !== constraints.departmentIdentity) return false;
+  if (constraints.excludedDepartmentIdentity && course.department_identity === constraints.excludedDepartmentIdentity) return false;
+  if (constraints.teacher && course.teacher !== constraints.teacher) return false;
+  if (constraints.excludedTeacher && course.teacher === constraints.excludedTeacher) return false;
+  return true;
+}
+
+function normalizedRrf(score: number): number {
+  return score / (2 / (RRF_K + 1));
+}
+
+function rankCompoundCourses(input: Parameters<typeof rankSingleCourses>[0] & { queryAnalysis: QueryAnalysis; intentVectors?: Record<string, Float32Array> }): Recommendation[] {
+  const analysis = input.queryAnalysis;
+  const positiveQueryText = [...analysis.goals, ...analysis.contexts].map((part) => part.text).join(" ").trim() || analysis.rawQuery;
+  const base = rankSingleCourses({ ...input, queryText: positiveQueryText, queryAnalysis: undefined });
+  const index = input.searchIndex ?? buildSearchIndex(input.catalog);
+  const vectorsById = new Map(input.courseIds.map((id, row) => [id, vectorAt(input.vectors, row, input.dimension)]));
+  const baseById = new Map(base.map((item) => [item.course.course_id, item]));
+  const goalResults = analysis.goals.map((goal) => {
+    const query = input.intentVectors?.[goal.id] ?? input.query;
+    if (!query) return { goal, results: [] as Recommendation[] };
+    return {
+      goal,
+      results: rankSingleCourses({ ...input, query, queryText: goal.text, queryAnalysis: undefined, selectionLimit: 30 }),
+    };
+  });
+  const contextResults = analysis.contexts.map((context) => {
+    const query = input.intentVectors?.[context.id];
+    return query ? rankSingleCourses({ ...input, query, queryText: context.text, queryAnalysis: undefined, selectionLimit: 30 }) : [];
+  });
+  const goalMaps = goalResults.map(({ results }) => new Map(results.map((item, index) => [item.course.course_id, { item, rank: index + 1 }])));
+  const contextMaps = contextResults.map((results) => new Map(results.map((item, index) => [item.course.course_id, { item, rank: index + 1 }])));
+  const exclusionVectors = analysis.exclusions.filter((part) => !part.metadataConstraint).map((part) => input.intentVectors?.[part.id]).filter((value): value is Float32Array => Boolean(value));
+  const exclusionText = analysis.exclusions.filter((part) => !part.metadataConstraint).map((part) => part.text).join(" ");
+  const candidates = new Set<string>([
+    ...base.map((item) => item.course.course_id),
+    ...goalResults.flatMap(({ results }) => results.map((item) => item.course.course_id)),
+    ...contextResults.flatMap((results) => results.map((item) => item.course.course_id)),
+  ]);
+  const scored = [...candidates].map((courseId) => {
+    const course = input.catalog.find((item) => item.course_id === courseId)!;
+    const baseItem = baseById.get(courseId);
+    const goalScores = goalMaps.map((map) => {
+      const match = map.get(courseId);
+      return match ? normalizedRrf(match.item.score) : 0;
+    });
+    const contextScores = contextMaps.map((map) => {
+      const match = map.get(courseId);
+      return match ? normalizedRrf(match.item.score) : 0;
+    });
+    const baseScore = baseItem ? normalizedRrf(baseItem.score) : 0;
+    const exclusionMean = exclusionVectors.length && vectorsById.has(courseId)
+      ? exclusionVectors.reduce((sum, vector) => sum + Math.max(0, dot(vectorsById.get(courseId)!, vector)), 0) / exclusionVectors.length
+      : exclusionText && index ? Math.min(1, scoreLexically(index, course, exclusionText).score) : 0;
+    const softContextMean = contextScores.length ? contextScores.reduce((sum, value) => sum + value, 0) / contextScores.length : 0;
+    const goalMean = goalScores.length ? goalScores.reduce((sum, value) => sum + value, 0) / goalScores.length : 0;
+    const qualified = (map: Map<string, { item: Recommendation; rank: number }>, queryText: string): boolean => {
+      const match = map.get(courseId);
+      if (!match) return false;
+      const lexical = scoreLexically(index, course, queryText);
+      const lexicalQualified = lexical.exactTitle || lexical.titleMatch >= 0.30 || lexical.score >= 0.18;
+      const denseQualified = match.rank <= 30 && (vectorsById.has(courseId) && input.intentVectors?.[analysis.goals.find((goal) => goal.text === queryText)?.id ?? ""]
+        ? dot(vectorsById.get(courseId)!, input.intentVectors?.[analysis.goals.find((goal) => goal.text === queryText)?.id ?? ""]!) >= 0.45
+        : true);
+      return lexicalQualified || denseQualified;
+    };
+    const qualifiedGoals = goalMaps.map((map, index) => qualified(map, analysis.goals[index]?.text ?? ""));
+    const requiredContexts = analysis.contexts.filter((context) => context.required).map((context, index) => qualified(contextMaps[index] ?? new Map(), context.text));
+    const allAspects = [...qualifiedGoals, ...requiredContexts];
+    const intersectionScore = allAspects.length ? 0.60 * Math.min(...allAspects.map((value, index) => value ? 1 : (index < goalScores.length ? goalScores[index] : contextScores[index - goalScores.length] ?? 0))) + 0.40 * ([...goalScores, ...contextScores].reduce((sum, value) => sum + value, 0) / Math.max(1, goalScores.length + contextScores.length)) : 0;
+    const score = analysis.relation === "FILTER_ONLY"
+      ? baseScore - 0.25 * exclusionMean
+      : analysis.relation === "INTERSECTION"
+      ? 0.35 * baseScore + 0.65 * intersectionScore + 0.10 * softContextMean - 0.25 * exclusionMean
+      : 0.45 * baseScore + 0.45 * goalMean + 0.10 * softContextMean - 0.25 * exclusionMean;
+    return {
+      course,
+      score,
+      baseItem,
+      goalScores,
+      qualifiedGoals,
+      intersectionScore,
+      allAspects,
+      vector: vectorsById.get(courseId)!,
+    };
+  }).filter((item) => item.baseItem || item.goalScores.some((value) => value > 0));
+  scored.sort((left, right) => right.score - left.score || left.course.name_zh.localeCompare(right.course.name_zh, "zh-Hant"));
+
+  const families = groupCourseFamilies(scored).map((members, originalRank) => {
+    const representative = members[0];
+    const alternatives = [
+      ...members.slice(1).map((item) => item.course),
+      ...members.flatMap((item) => item.baseItem?.alternatives ?? []),
+    ].filter((course, index, values) => (
+      course.course_id !== representative.course.course_id
+      && values.findIndex((candidate) => candidate.course_id === course.course_id) === index
+    ));
+    return {
+      ...representative,
+      alternatives,
+      relevance: Math.max(0, Math.min(1, representative.score)),
+      originalRank,
+    };
+  });
+
+  const coverageSelected: typeof families = [];
+  if (analysis.relation === "COVERAGE") {
+    for (let goalIndex = 0; goalIndex < goalMaps.length; goalIndex += 1) {
+      const candidate = families.find((item) => (
+        item.qualifiedGoals[goalIndex]
+        && !coverageSelected.some((selected) => selected.course.course_id === item.course.course_id)
+      ));
+      if (candidate) coverageSelected.push(candidate);
+    }
+  }
+  const remaining = families.filter((item) => !coverageSelected.includes(item));
+  const selected = [
+    ...coverageSelected,
+    ...selectWithMmr(
+      remaining,
+      Math.max(0, 20 - coverageSelected.length),
+      input.diversityLambda,
+      coverageSelected,
+    ),
+  ];
+  const hasJointMatch = analysis.relation === "INTERSECTION" && selected.some((item) => item.allAspects.length > 0 && item.allAspects.every(Boolean));
+  return selected.slice(0, 20).map((item) => {
+    const reasons = [...(item.baseItem?.reasons ?? ["符合複合查詢中的部分目標"])];
+    if (item.alternatives.length && !reasons.some((reason) => reason.startsWith("已合併"))) {
+      reasons.push(`已合併 ${item.alternatives.length + 1} 個相同課程班別／共同開課項目`);
+    }
+    if (analysis.relation === "COVERAGE") reasons.push(`涵蓋 ${item.qualifiedGoals.filter(Boolean).length}/${analysis.goals.length} 個目標`);
+    if (analysis.relation === "INTERSECTION" && item.allAspects.every(Boolean)) reasons.push("同時符合必要面向");
+    if (analysis.relation === "INTERSECTION" && !hasJointMatch) reasons.unshift("目前沒有找到同時符合所有面向的課程；這是部分符合結果");
+    return {
+      course: item.course,
+      alternatives: item.alternatives,
+      score: item.score,
+      eligibility: item.baseItem?.eligibility ?? "no_known_restriction",
+      category: item.baseItem?.category ?? classifyRecommendationCategory(item.course, input.profile),
+      reasons,
+    };
+  });
 }

@@ -15,12 +15,16 @@ from .eligibility import (
     base_eligibility_status,
     extract_eligibility_rules,
     infer_audience_grade,
+    is_no_prerequisite_text,
     infer_study_level,
     normalize_audience_department,
 )
+from .query_routes import build_route_embeddings, route_data
 
 
-ARTIFACT_VERSION = "fju_recommender_v2"
+ARTIFACT_VERSION = "fju_recommender_v3"
+CATALOG_SCHEMA_VERSION = "fju_catalog_v3"
+CATALOG_SCHEMA_FIELDS = ("study_level", "audience_grade", "course_tags")
 DEFAULT_MODEL = "intfloat/multilingual-e5-small"
 SECTION_WEIGHTS = {
     "objective": 0.45,
@@ -39,6 +43,8 @@ class Encoder(Protocol):
     def encode_passages(self, texts: list[str]) -> np.ndarray: ...
 
     def encode_query(self, text: str) -> np.ndarray: ...
+
+    def encode_many(self, texts: list[str]) -> np.ndarray: ...
 
 
 class SentenceTransformerEncoder:
@@ -62,6 +68,16 @@ class SentenceTransformerEncoder:
     def encode_query(self, text: str) -> np.ndarray:
         return np.asarray(
             self._model.encode([f"query: {text}"], normalize_embeddings=True)[0],
+            dtype=np.float32,
+        )
+
+    def encode_many(self, texts: list[str]) -> np.ndarray:
+        return np.asarray(
+            self._model.encode(
+                [f"query: {text}" for text in texts],
+                normalize_embeddings=True,
+                show_progress_bar=False,
+            ),
             dtype=np.float32,
         )
 
@@ -98,8 +114,17 @@ def build_artifacts(
     index_path.write_bytes(orjson.dumps(index))
     vectors.tofile(vectors_path)
 
+    route_vectors = build_route_embeddings(encoder, batch_size=batch_size)
+    route_index_path = output_dir / "query-route-index.json"
+    route_vectors_path = output_dir / "query-route-embeddings.f32"
+    route_index_path.write_bytes(
+        orjson.dumps(route_data(route_vectors, model_name=encoder.model_name, model_revision=encoder.model_revision))
+    )
+    route_vectors.tofile(route_vectors_path)
+
     manifest = {
         "artifact_version": ARTIFACT_VERSION,
+        "catalog_schema_version": CATALOG_SCHEMA_VERSION,
         "academic_year": year,
         "semester": semester,
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -108,12 +133,109 @@ def build_artifacts(
         "dimension": int(vectors.shape[1]),
         "course_count": len(catalog),
         "section_weights": SECTION_WEIGHTS,
+        "analysis_version": "deterministic-v1",
+        "route_count": int(route_vectors.shape[0]),
         "files": {
             path.name: {"sha256": _sha256(path), "bytes": path.stat().st_size}
-            for path in (catalog_path, index_path, vectors_path)
+            for path in (catalog_path, index_path, vectors_path, route_index_path, route_vectors_path)
         },
     }
     manifest_path = output_dir / "artifact-manifest.json"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    return manifest
+
+
+def normalize_catalog_course_schema(
+    course: dict[str, Any], *, recompute_study_level: bool = False
+) -> dict[str, Any]:
+    """Backfill fields introduced after the first catalog artifact release.
+
+    The catalog is also consumed by clients that may still have a legacy
+    artifact on disk.  Keeping this migration deterministic makes the API,
+    RAG service, and generated artifacts expose the same schema.
+    """
+
+    normalized = dict(course)
+    raw_department = normalized.get("raw_department") or normalized.get("department")
+    division = normalized.get("division")
+    organization = {
+        "department_name_zh": raw_department,
+        "division_name_zh": division,
+    }
+    inferred_study_level = infer_study_level(organization)
+    if recompute_study_level or (
+        inferred_study_level != "unknown" and not normalized.get("study_level")
+    ):
+        normalized["study_level"] = inferred_study_level
+    if normalized.get("audience_grade") is None:
+        normalized["audience_grade"] = infer_audience_grade(organization)
+    normalized["course_tags"] = _normalize_catalog_course_tags(
+        normalized.get("course_tags") or []
+    )
+    if is_no_prerequisite_text(normalized.get("prerequisite")):
+        normalized["eligibility_rules"] = [
+            rule
+            for rule in normalized.get("eligibility_rules") or []
+            if not (
+                rule.get("kind") == "advisory_prerequisite"
+                and rule.get("source_field") == "outline.learning_objectives.prerequisite"
+            )
+        ]
+    return normalized
+
+
+def migrate_catalog_artifact(output_dir: Path) -> dict[str, Any]:
+    """Upgrade a catalog-only schema without recomputing embedding vectors."""
+
+    manifest = validate_artifacts(output_dir)
+    catalog_path = output_dir / "catalog.json"
+    catalog = orjson.loads(catalog_path.read_bytes())
+    migrated = [
+        normalize_catalog_course_schema(item, recompute_study_level=True)
+        for item in catalog
+    ]
+    if migrated != catalog:
+        catalog_path.write_bytes(orjson.dumps(migrated))
+    manifest["catalog_schema_version"] = CATALOG_SCHEMA_VERSION
+    files = manifest.setdefault("files", {})
+    files["catalog.json"] = {
+        "sha256": _sha256(catalog_path),
+        "bytes": catalog_path.stat().st_size,
+    }
+    (output_dir / "artifact-manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return manifest
+
+
+def add_route_artifacts(output_dir: Path, *, encoder: Encoder) -> dict[str, Any]:
+    """Upgrade an existing catalog without recomputing its course vectors."""
+    manifest_path = output_dir / "artifact-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    dimension = int(manifest["dimension"])
+    if manifest.get("model_revision") not in {None, encoder.model_revision}:
+        raise ValueError("Route encoder revision does not match course artifacts")
+    route_vectors = build_route_embeddings(encoder)
+    if route_vectors.shape[1] != dimension:
+        raise ValueError("Route model dimension does not match course artifacts")
+    route_index_path = output_dir / "query-route-index.json"
+    route_vectors_path = output_dir / "query-route-embeddings.f32"
+    route_index_path.write_bytes(
+        orjson.dumps(
+            route_data(
+                route_vectors,
+                model_name=manifest.get("model_name"),
+                model_revision=manifest.get("model_revision"),
+            )
+        )
+    )
+    route_vectors.tofile(route_vectors_path)
+    manifest["artifact_version"] = ARTIFACT_VERSION
+    manifest["analysis_version"] = "deterministic-v1"
+    manifest["route_count"] = int(route_vectors.shape[0])
+    files = manifest.setdefault("files", {})
+    for path in (route_index_path, route_vectors_path):
+        files[path.name] = {"sha256": _sha256(path), "bytes": path.stat().st_size}
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     return manifest
 
@@ -153,6 +275,7 @@ def build_catalog_course(record: dict[str, Any]) -> dict[str, Any]:
         "name_en": course.get("name_en"),
         "credits": course.get("credits"),
         "required_elective_name": course.get("required_elective_name"),
+        "course_tags": _catalog_course_tags(record),
         "academic_year": course.get("year"),
         "semester": course.get("semester"),
         "department": base_department,
@@ -189,6 +312,43 @@ def build_catalog_course(record: dict[str, Any]) -> dict[str, Any]:
         "eligibility_rules": rules,
         "source_url": (record.get("source") or {}).get("source_url"),
     }
+
+
+def _catalog_course_tags(record: dict[str, Any]) -> list[dict[str, Any]]:
+    """Read normalized tags, with a raw-list fallback for older canonical data."""
+
+    tags = record.get("course_tags")
+    if tags is None:
+        tags = ((record.get("raw") or {}).get("list_row") or {}).get("couClassifyList") or []
+    return _normalize_catalog_course_tags(tags)
+
+
+def _normalize_catalog_course_tags(tags: Any) -> list[dict[str, Any]]:
+    normalized: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for tag in tags if isinstance(tags, list) else []:
+        if not isinstance(tag, dict):
+            continue
+        code = tag.get("code", tag.get("couClassifyNo"))
+        label_zh = tag.get("label_zh", tag.get("couClassifyCna"))
+        if code is None or not label_zh:
+            continue
+        code = str(code)
+        if code in seen:
+            continue
+        seen.add(code)
+        normalized.append({
+            "code": code,
+            "label_zh": str(label_zh),
+            "label_en": str(tag.get("label_en", tag.get("couClassifyEna")) or ""),
+            "note_zh": str(tag.get("note_zh", tag.get("couClassifyNoteCna")) or ""),
+            "note_en": str(tag.get("note_en", tag.get("couClassifyNoteEna")) or ""),
+            "display_order": tag.get("display_order", tag.get("displayOrder")),
+        })
+    return sorted(
+        normalized,
+        key=lambda tag: (tag["display_order"] is None, tag["display_order"] or 0, tag["code"]),
+    )
 
 
 def split_department_grade(value: str) -> tuple[str, int | None, str]:
@@ -235,6 +395,31 @@ def validate_artifacts(output_dir: Path, *, verify_hashes: bool = True) -> dict[
     expected_bytes = manifest["course_count"] * manifest["dimension"] * 4
     if (output_dir / "course-embeddings.f32").stat().st_size != expected_bytes:
         raise ValueError("Embedding binary dimensions do not match manifest")
+    if manifest.get("catalog_schema_version") == CATALOG_SCHEMA_VERSION:
+        catalog = orjson.loads((output_dir / "catalog.json").read_bytes())
+        missing = [
+            field
+            for field in CATALOG_SCHEMA_FIELDS
+            if any(field not in item for item in catalog)
+        ]
+        if missing:
+            raise ValueError(f"Catalog schema is missing fields: {', '.join(missing)}")
+    route_index_path = output_dir / "query-route-index.json"
+    route_vectors_path = output_dir / "query-route-embeddings.f32"
+    if not route_index_path.exists() or not route_vectors_path.exists():
+        if manifest.get("artifact_version") != ARTIFACT_VERSION:
+            return manifest
+        raise FileNotFoundError(route_index_path)
+    route_index = json.loads(route_index_path.read_text(encoding="utf-8"))
+    route_count = int(manifest.get("route_count", route_index.get("route_count", 0)))
+    if route_count != int(route_index.get("route_count", 0)):
+        raise ValueError("Route count does not match manifest")
+    if route_index.get("dimension") != manifest["dimension"]:
+        raise ValueError("Route embedding dimension does not match manifest")
+    if route_index.get("model_revision") not in {None, manifest.get("model_revision")}:
+        raise ValueError("Route model revision does not match manifest")
+    if route_vectors_path.stat().st_size != route_count * manifest["dimension"] * 4:
+        raise ValueError("Route embedding dimensions do not match manifest")
     return manifest
 
 

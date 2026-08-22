@@ -19,14 +19,30 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from .artifacts import DEFAULT_MODEL, SentenceTransformerEncoder, validate_artifacts
+from .artifacts import (
+    CATALOG_SCHEMA_VERSION,
+    DEFAULT_MODEL,
+    SentenceTransformerEncoder,
+    normalize_catalog_course_schema,
+    validate_artifacts,
+)
+from .query_routes import ANALYSIS_VERSION
+from .rag import AIAskRequest, CourseRagService, RagError, UsageLedger
+
+try:
+    from dotenv import load_dotenv
+except ImportError:  # pragma: no cover - optional until the API dependency is installed
+    def load_dotenv(*args, **kwargs):
+        return False
+
+load_dotenv(override=False)
 
 
 APP_DIR = Path(__file__).resolve().parent
 LEGACY_STATIC_DIR = APP_DIR / "web_assets"
 FRONTEND_DIST = APP_DIR.parents[1] / "frontend" / "dist"
 DEFAULT_ARTIFACTS_DIR = Path("data/artifacts/1151")
-MAX_REQUEST_BYTES = 8 * 1024
+MAX_REQUEST_BYTES = 16 * 1024
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
 
@@ -45,15 +61,44 @@ class QueryEmbeddingRequest(BaseModel):
         return value
 
 
+class QueryEmbeddingsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    texts: list[str] = Field(min_length=1, max_length=8)
+
+    @field_validator("texts")
+    @classmethod
+    def texts_must_be_valid(cls, values: list[str]) -> list[str]:
+        cleaned: list[str] = []
+        for value in values:
+            if not isinstance(value, str):
+                raise ValueError("texts must contain strings")
+            value = value.strip()
+            if not value or len(value) > 500:
+                raise ValueError("each text must contain 1-500 non-whitespace characters")
+            cleaned.append(value)
+        return cleaned
+
+
 class ArtifactStore:
-    def __init__(self, artifacts_dir: Path, *, verify_hashes: bool = True) -> None:
+    def __init__(
+        self,
+        artifacts_dir: Path,
+        *,
+        verify_hashes: bool = True,
+        department_catalog: dict[str, Any] | None = None,
+    ) -> None:
         self.artifacts_dir = artifacts_dir
         self.manifest = validate_artifacts(artifacts_dir, verify_hashes=verify_hashes)
-        self.catalog: list[dict[str, Any]] = orjson.loads(
-            (artifacts_dir / "catalog.json").read_bytes()
-        )
+        raw_catalog = orjson.loads((artifacts_dir / "catalog.json").read_bytes())
+        self.catalog = [normalize_catalog_course_schema(item) for item in raw_catalog]
         self.by_id = {str(item["course_id"]): item for item in self.catalog}
         self.index = orjson.loads((artifacts_dir / "embedding-index.json").read_bytes())
+        self.department_catalog = (
+            department_catalog
+            or _load_department_catalog(artifacts_dir, int(self.manifest["academic_year"]))
+            or _department_catalog_from_courses(self.catalog, int(self.manifest["academic_year"]))
+        )
         if len(self.catalog) != self.manifest["course_count"]:
             raise ValueError("Catalog count does not match manifest")
 
@@ -69,6 +114,7 @@ class ArtifactStore:
             "required_elective": _options(
                 item.get("required_elective_name") for item in self.catalog
             ),
+            "course_tags": _course_tag_options(self.catalog),
             "eligibility_statuses": [
                 {"value": "no_known_restriction", "label": "尚未判定出明確限制"},
                 {"value": "needs_confirmation", "label": "需要確認"},
@@ -85,6 +131,7 @@ class ArtifactStore:
         grade: int | None = None,
         division: str = "",
         required_elective: str = "",
+        course_tag: list[str] | None = None,
         weekday: int | None = None,
         section: str = "",
         page: int = 1,
@@ -103,6 +150,8 @@ class ArtifactStore:
             if division and item.get("division") != division:
                 continue
             if required_elective and item.get("required_elective_name") != required_elective:
+                continue
+            if course_tag and not _course_tag_filter_matches(item, course_tag):
                 continue
             if weekday and not any(meeting.get("weekday") == weekday for meeting in item["meetings"]):
                 continue
@@ -147,6 +196,12 @@ class QueryEncoder:
         with self._lock:
             return self.encoder.encode_query(text)
 
+    def encode_many(self, texts: list[str]) -> np.ndarray:
+        with self._lock:
+            if hasattr(self.encoder, "encode_many"):
+                return np.asarray(self.encoder.encode_many(texts), dtype=np.float32)
+            return np.stack([self.encoder.encode_query(text) for text in texts]).astype(np.float32)
+
 
 class RateLimiter:
     def __init__(self, *, requests: int = 30, window_seconds: int = 60) -> None:
@@ -172,6 +227,7 @@ def create_app(
     *,
     store: ArtifactStore | None = None,
     query_encoder: QueryEncoder | Any | None = None,
+    rag_service: CourseRagService | Any | None = None,
     load_runtime: bool = True,
 ) -> FastAPI:
     @asynccontextmanager
@@ -195,6 +251,8 @@ def create_app(
                 app.state.runtime_error = None
             except Exception as exc:  # noqa: BLE001
                 app.state.runtime_error = str(exc)
+        if app.state.store is not None and app.state.rag_service is None:
+            app.state.rag_service = _build_rag_service(app.state.store.catalog)
         yield
 
     application = FastAPI(
@@ -204,15 +262,30 @@ def create_app(
     )
     application.state.store = store
     application.state.query_encoder = query_encoder
+    application.state.rag_service = rag_service
     application.state.runtime_error = None
     application.state.rate_limiter = RateLimiter()
+    application.state.ai_rate_limiter = RateLimiter(
+        requests=max(1, _env_int("FJU_AI_REQUESTS_PER_MINUTE", 10, minimum=1, maximum=1000))
+    )
+    application.state.ai_error = None
 
     @application.middleware("http")
     async def enforce_request_size(request: Request, call_next):
         if request.method in {"POST", "PUT", "PATCH"}:
             content_length = request.headers.get("content-length")
-            if content_length and int(content_length) > MAX_REQUEST_BYTES:
-                return JSONResponse({"detail": "Request body too large"}, status_code=413)
+            if content_length:
+                try:
+                    too_large = int(content_length) > MAX_REQUEST_BYTES
+                except ValueError:
+                    return JSONResponse({"detail": "Invalid Content-Length"}, status_code=400)
+                if too_large:
+                    return JSONResponse({"detail": "Request body too large"}, status_code=413)
+            # Also cap chunked requests that do not provide Content-Length.
+            if not content_length:
+                body = await request.body()
+                if len(body) > MAX_REQUEST_BYTES:
+                    return JSONResponse({"detail": "Request body too large"}, status_code=413)
         return await call_next(request)
 
     register_routes(application)
@@ -239,6 +312,9 @@ def register_routes(application: FastAPI) -> None:
             "status": "ready",
             "artifact_version": request.app.state.store.manifest["artifact_version"],
             "model_name": request.app.state.store.manifest["model_name"],
+            "query_planner_mode": "disabled",
+            "compound_query_enabled": _compound_enabled(),
+            "ai_assistant_enabled": request.app.state.rag_service is not None,
         }
 
     @application.get("/api/v1/catalog/manifest")
@@ -249,9 +325,17 @@ def register_routes(application: FastAPI) -> None:
     def facets_v1(request: Request) -> dict[str, Any]:
         return require_store(request).facets()
 
+    @application.get("/api/v1/departments")
+    def departments_v1(request: Request) -> dict[str, Any]:
+        return require_store(request).department_catalog
+
     @application.get("/api/v1/catalog/data")
     def catalog_data(request: Request) -> Response:
         store = require_store(request)
+        if store.manifest.get("catalog_schema_version") != CATALOG_SCHEMA_VERSION:
+            # Legacy artifacts are normalized in ArtifactStore; return that
+            # migrated view instead of serving the unnormalized JSON file.
+            return JSONResponse(store.catalog, headers={"Cache-Control": "public, max-age=86400"})
         return FileResponse(
             store.artifacts_dir / "catalog.json",
             media_type="application/json",
@@ -266,6 +350,7 @@ def register_routes(application: FastAPI) -> None:
         grade: int | None = Query(None, ge=1, le=7),
         division: str = "",
         required_elective: str = "",
+        course_tag: list[str] = Query(default=[]),
         weekday: int | None = Query(None, ge=1, le=7),
         section: str = "",
         page: int = Query(1, ge=1),
@@ -278,6 +363,7 @@ def register_routes(application: FastAPI) -> None:
             grade=grade,
             division=division,
             required_elective=required_elective,
+            course_tag=course_tag,
             weekday=weekday,
             section=section,
             page=page,
@@ -306,6 +392,50 @@ def register_routes(application: FastAPI) -> None:
             headers={"Cache-Control": "public, max-age=86400, immutable"},
         )
 
+    @application.get("/api/v1/features")
+    def features() -> dict[str, Any]:
+        return {
+            "compound_query_enabled": _compound_enabled(),
+            "query_analysis_version": ANALYSIS_VERSION,
+            "ai_assistant_enabled": application.state.rag_service is not None,
+            "ai_model": os.environ.get("FJU_AI_MODEL", "gpt-5.6-luna"),
+            "ai_max_question_chars": _ai_max_question_chars(),
+        }
+
+    @application.post("/api/v1/ai/ask")
+    def ai_ask(payload: AIAskRequest, request: Request) -> dict[str, Any]:
+        service = request.app.state.rag_service
+        if service is None:
+            raise HTTPException(status_code=503, detail="AI 小幫手尚未設定 API key")
+        client = request.client.host if request.client else "unknown"
+        if not request.app.state.ai_rate_limiter.allow(client):
+            raise HTTPException(status_code=429, detail="AI 詢問過於頻繁，請稍後再試。")
+        try:
+            return service.ask(payload)
+        except RagError as exc:
+            raise HTTPException(status_code=exc.status_code, detail=exc.message) from exc
+
+    @application.get("/api/v1/query-routes/index")
+    def query_routes_index(request: Request) -> dict[str, Any]:
+        store = require_store(request)
+        path = store.artifacts_dir / "query-route-index.json"
+        if not path.exists():
+            raise HTTPException(status_code=503, detail="Query route artifacts unavailable")
+        return orjson.loads(path.read_bytes())
+
+    @application.get("/api/v1/query-routes/data")
+    def query_routes_data(request: Request) -> FileResponse:
+        store = require_store(request)
+        path = store.artifacts_dir / "query-route-embeddings.f32"
+        if not path.exists():
+            raise HTTPException(status_code=503, detail="Query route artifacts unavailable")
+        return FileResponse(
+            path,
+            media_type="application/octet-stream",
+            filename="query-route-embeddings.f32",
+            headers={"Cache-Control": "public, max-age=86400, immutable"},
+        )
+
     @application.post("/api/v1/query-embedding")
     def query_embedding(payload: QueryEmbeddingRequest, request: Request) -> dict[str, Any]:
         store = require_store(request)
@@ -322,6 +452,24 @@ def register_routes(application: FastAPI) -> None:
             "vector": vector.tolist(),
             "model_version": store.manifest["model_revision"],
             "dimension": len(vector),
+        }
+
+    @application.post("/api/v1/query-embeddings")
+    def query_embeddings(payload: QueryEmbeddingsRequest, request: Request) -> dict[str, Any]:
+        store = require_store(request)
+        client = request.client.host if request.client else "unknown"
+        if not request.app.state.rate_limiter.allow(client):
+            raise HTTPException(status_code=429, detail="Too many embedding requests")
+        encoder = request.app.state.query_encoder
+        if encoder is None:
+            raise HTTPException(status_code=503, detail="Embedding model unavailable")
+        vectors = np.asarray(encoder.encode_many(payload.texts), dtype=np.float32)
+        if vectors.ndim != 2 or vectors.shape != (len(payload.texts), store.manifest["dimension"]):
+            raise HTTPException(status_code=503, detail="Embedding model version mismatch")
+        return {
+            "vectors": vectors.tolist(),
+            "model_version": store.manifest["model_revision"],
+            "dimension": int(vectors.shape[1]),
         }
 
     # Legacy compatibility layer.
@@ -410,9 +558,131 @@ def _mount_frontend(application: FastAPI) -> None:
         return FileResponse(static_dir / "index.html")
 
 
+def _build_rag_service(catalog: list[dict[str, Any]]) -> CourseRagService | None:
+    api_key = os.environ.get("OPENAI_API_KEY", "").strip()
+    if not api_key:
+        return None
+    try:
+        from openai import OpenAI
+
+        client = OpenAI(
+            api_key=api_key,
+            timeout=float(_env_int("FJU_AI_TIMEOUT_SECONDS", 25, minimum=1, maximum=120)),
+            max_retries=1,
+        )
+    except Exception:  # noqa: BLE001
+        return None
+
+    moderator = None
+    if os.environ.get("FJU_AI_MODERATION_ENABLED", "1").strip().lower() in {"1", "true", "yes", "on"}:
+        def moderate(text: str) -> bool:
+            try:
+                result = client.moderations.create(model="omni-moderation-latest", input=text)
+                results = getattr(result, "results", None) or []
+                return bool(results and getattr(results[0], "flagged", False))
+            except Exception:  # noqa: BLE001
+                # Course RAG has no tools or privileged actions; keep availability if moderation is unavailable.
+                return False
+
+        moderator = moderate
+
+    ledger = UsageLedger(
+        Path(os.environ.get("FJU_AI_USAGE_DB", "data/runtime/ai-usage.sqlite3")),
+        monthly_limit=_env_int("FJU_AI_MONTHLY_REQUEST_LIMIT", 10000, minimum=1, maximum=1_000_000),
+    )
+    return CourseRagService(
+        catalog,
+        client=client,
+        model=os.environ.get("FJU_AI_MODEL", "gpt-5.6-luna"),
+        reasoning_effort=os.environ.get("FJU_AI_REASONING_EFFORT", "none"),
+        max_output_tokens=_env_int("FJU_AI_MAX_OUTPUT_TOKENS", 1000, minimum=100, maximum=1000),
+        ledger=ledger,
+        moderator=moderator,
+    )
+
+
+def _env_int(name: str, default: int, *, minimum: int, maximum: int) -> int:
+    try:
+        value = int(os.environ.get(name, str(default)))
+    except (TypeError, ValueError):
+        value = default
+    return max(minimum, min(maximum, value))
+
+
+def _load_department_catalog(artifacts_dir: Path, academic_year: int) -> dict[str, Any] | None:
+    configured = os.environ.get("FJU_DEPARTMENT_CATALOG")
+    candidates = []
+    if configured:
+        candidates.append(Path(configured))
+    try:
+        data_dir = artifacts_dir.parents[1]
+    except IndexError:
+        data_dir = Path("data")
+    candidates.append(data_dir / "reference" / f"departments_{academic_year}.json")
+    for path in candidates:
+        if path.exists():
+            return orjson.loads(path.read_bytes())
+    return None
+
+
+def _department_catalog_from_courses(
+    catalog: list[dict[str, Any]], academic_year: int
+) -> dict[str, Any]:
+    """Compatibility fallback for test/legacy deployments without the official artifact."""
+
+    departments: dict[str, dict[str, Any]] = {}
+    division_names: dict[str, str] = {}
+    for item in catalog:
+        code = str(item.get("department_code") or "").strip()
+        division_code = str(item.get("division_code") or "").strip()
+        division_name = str(item.get("division") or "").strip()
+        name = str(item.get("official_department_name_zh") or item.get("department") or "").strip()
+        if not code or not division_code or not division_name or not name:
+            continue
+        division_names[division_code] = division_name
+        department_type = str(item.get("official_department_type") or "")
+        key = f"{division_code}:{code}:{department_type}"
+        departments.setdefault(key, {
+            "division_code": division_code,
+            "division_name_zh": division_name,
+            "code": code,
+            "label": str(item.get("official_department_label") or f"{code}-{name}"),
+            "name_zh": name,
+            "department_type": department_type,
+        })
+    flattened = list(departments.values())
+    divisions = []
+    for division_code, division_name in division_names.items():
+        rows = [
+            {key: value for key, value in row.items() if key not in {"division_code", "division_name_zh"}}
+            for row in flattened
+            if row["division_code"] == division_code
+        ]
+        divisions.append({
+            "code": division_code,
+            "label": f"{division_code}-{division_name}",
+            "name_zh": division_name,
+            "departments": rows,
+        })
+    return {
+        "schema_version": "fju_department_catalog_fallback_v1",
+        "hy": academic_year,
+        "divisions": divisions,
+        "departments": flattened,
+    }
+
+
+def _ai_max_question_chars() -> int:
+    return _env_int("FJU_AI_MAX_QUESTION_CHARS", 500, minimum=1, maximum=500)
+
+
 def _options(values) -> list[dict[str, str]]:
     unique = sorted({str(value) for value in values if value is not None and str(value).strip()})
     return [{"value": value, "label": value} for value in unique]
+
+
+def _compound_enabled() -> bool:
+    return os.environ.get("FJU_COMPOUND_QUERY_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _department_options(items: list[dict[str, Any]]) -> list[dict[str, str | None]]:
@@ -444,6 +714,37 @@ def _department_filter_matches(item: dict[str, Any], value: str) -> bool:
     if identity:
         return str(identity) == value
     return str(item.get("department") or "") == value
+
+
+def _course_tag_options(items: list[dict[str, Any]]) -> list[dict[str, str]]:
+    options: dict[str, dict[str, Any]] = {}
+    for item in items:
+        for tag in item.get("course_tags") or []:
+            code = str(tag.get("code") or "").strip()
+            label = str(tag.get("label_zh") or "").strip()
+            if not code or not label:
+                continue
+            options.setdefault(code, {
+                "value": code,
+                "label": label,
+                "display_order": tag.get("display_order"),
+            })
+    return [
+        {"value": item["value"], "label": item["label"]}
+        for item in sorted(
+            options.values(),
+            key=lambda item: (item["display_order"] is None, item["display_order"] or 0, item["label"]),
+        )
+    ]
+
+
+def _course_tag_filter_matches(item: dict[str, Any], selected_codes: list[str]) -> bool:
+    selected = {str(code) for code in selected_codes if str(code).strip()}
+    return bool(selected & {
+        str(tag.get("code"))
+        for tag in item.get("course_tags") or []
+        if tag.get("code") is not None
+    })
 
 
 def _search_text(item: dict[str, Any]) -> str:

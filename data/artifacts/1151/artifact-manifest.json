@@ -1,5 +1,5 @@
 {
-  "artifact_version": "fju_recommender_v2",
+  "artifact_version": "fju_recommender_v3",
   "academic_year": 115,
   "semester": 1,
   "generated_at": "2026-08-01T15:02:36+00:00",
@@ -15,8 +15,8 @@
   },
   "files": {
     "catalog.json": {
-      "sha256": "851740aab786683e64534944b54a071acfaea91526b27aad343347e9f12e6e76",
-      "bytes": 18946091
+      "sha256": "7736152faaa403e15a842a58205d3cf27052af099196c90bece9a1d6d67f151b",
+      "bytes": 19297017
     },
     "embedding-index.json": {
       "sha256": "bdc540001bf6cf50ae1fccb9b0701b1fb4d97e5cccafd72a6e1f67bfccf33c21",
@@ -25,6 +25,17 @@
     "course-embeddings.f32": {
       "sha256": "8d6c5ef5213db4fab2bbcecf860c370fa46e62fafdcb43181d85942d7328595b",
       "bytes": 6501888
+    },
+    "query-route-index.json": {
+      "sha256": "49807cd9149a4b8effe0bcdbdea12da35ec57f65e2db9821fc41b0c5c0e0025a",
+      "bytes": 696
+    },
+    "query-route-embeddings.f32": {
+      "sha256": "5791a6a9139ea7730a1f43a2d58c8e9101901038604d2047b27fa3e2f878cc16",
+      "bytes": 9216
     }
-  }
+  },
+  "analysis_version": "deterministic-v1",
+  "route_count": 6,
+  "catalog_schema_version": "fju_catalog_v3"
 }

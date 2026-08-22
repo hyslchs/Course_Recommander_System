@@ -68,6 +68,7 @@ def normalize_course_record(
             "pdf_params": {"jonCouSn": jon_cou_sn, "lcid": lcid},
         },
         "course": _normalize_course(list_row, detail),
+        "course_tags": _normalize_course_tags(list_row),
         "organization": organization,
         "teachers": _normalize_teachers(list_row, detail, info_book),
         "class_meetings": _normalize_class_meetings(list_row, detail),
@@ -99,6 +100,28 @@ def normalize_course_record(
             canonical["outline"][bucket].append(normalized)
 
     return canonical
+
+
+def _normalize_course_tags(list_row: dict[str, Any]) -> list[dict[str, Any]]:
+    """Preserve the official course classifications returned with each listing."""
+
+    tags: list[dict[str, Any]] = []
+    for raw_tag in list_row.get("couClassifyList") or []:
+        if not isinstance(raw_tag, dict):
+            continue
+        code = raw_tag.get("couClassifyNo")
+        label_zh = raw_tag.get("couClassifyCna")
+        if code is None or not label_zh:
+            continue
+        tags.append({
+            "code": str(code),
+            "label_zh": str(label_zh),
+            "label_en": raw_tag.get("couClassifyEna") or "",
+            "note_zh": raw_tag.get("couClassifyNoteCna") or "",
+            "note_en": raw_tag.get("couClassifyNoteEna") or "",
+            "display_order": raw_tag.get("displayOrder"),
+        })
+    return tags
 
 
 def build_document(record: dict[str, Any]) -> dict[str, Any]:

@@ -17,7 +17,7 @@ from .config import (
 )
 from .crawler import crawl_all, discover
 from .departments import fetch_official_department_catalog
-from .artifacts import DEFAULT_MODEL, SentenceTransformerEncoder, build_artifacts
+from .artifacts import DEFAULT_MODEL, SentenceTransformerEncoder, add_route_artifacts, build_artifacts
 from .io import iter_jsonl, write_json, write_jsonl
 from .normalize import normalize_course_record
 
@@ -39,6 +39,13 @@ def main(argv: list[str] | None = None) -> None:
         _run_validate(args)
     elif args.command == "artifacts":
         _run_artifacts(args)
+    elif args.command == "routes":
+        _run_routes(args)
+    elif args.command == "evaluation-draft":
+        from .compound_evaluation import write_draft
+
+        write_draft(Path(args.output))
+        print(_summary({"rows": 160, "output": args.output, "status": "draft"}))
     else:
         parser.print_help()
 
@@ -53,7 +60,7 @@ def build_parser() -> argparse.ArgumentParser:
         help="HTTP transport. auto prefers Scrapling, then httpx, then urllib.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
-    for name in ("discover", "departments", "crawl", "normalize", "export", "validate", "artifacts"):
+    for name in ("discover", "departments", "crawl", "normalize", "export", "validate", "artifacts", "routes"):
         sub = subparsers.add_parser(name)
         _add_dataset_args(sub)
     crawl = subparsers.choices["crawl"]
@@ -63,6 +70,8 @@ def build_parser() -> argparse.ArgumentParser:
     artifacts = subparsers.choices["artifacts"]
     artifacts.add_argument("--model", default=DEFAULT_MODEL)
     artifacts.add_argument("--batch-size", type=int, default=64)
+    draft = subparsers.add_parser("evaluation-draft")
+    draft.add_argument("--output", default="evaluation/compound_queries_v1.json")
     return parser
 
 
@@ -183,6 +192,17 @@ def _run_artifacts(args: argparse.Namespace) -> None:
         batch_size=args.batch_size,
     )
     print(_summary({"manifest": manifest, "output": str(paths.artifacts_dir)}))
+
+
+def _run_routes(args: argparse.Namespace) -> None:
+    paths = _paths(args)
+    manifest_path = paths.artifacts_dir / "artifact-manifest.json"
+    import json
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    encoder = SentenceTransformerEncoder(manifest.get("model_name") or DEFAULT_MODEL)
+    result = add_route_artifacts(paths.artifacts_dir, encoder=encoder)
+    print(_summary({"manifest": result, "output": str(paths.artifacts_dir)}))
 
 
 def _duplicates(values: list[Any]) -> list[Any]:

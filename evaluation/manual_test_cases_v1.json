@@ -1,0 +1,2136 @@
+{
+  "schema_version": "compound-manual-evaluation-v1",
+  "catalog_version": "fju_recommender_v3",
+  "purpose": "人工與 AI 黑箱測試。expected_analysis 是可自動比對的行為預期；expected_result_checks 是結果檢查規則，不等同人工核准的相關課程 ground truth。",
+  "total_cases": 68,
+  "instructions": {
+    "manual": "逐筆輸入 query，記錄 relation、目標/情境/排除/條件面板、前10名與警告；將 manual_observation 填回。",
+    "ai": "AI 只能依 expected_analysis 與 expected_result_checks 判定，不可自行把推薦課名當成 approved ground truth；課程相關性仍需人工覆核。",
+    "flag_off": "先用 FJU_COMPOUND_QUERY_ENABLED=0 測 SINGLE regression，再用 1 測複合功能。",
+    "pass_rule": "分析欄位必須符合預期；metadata hard constraint 不得違反；unsupported 必須安全 fallback；結果相關性另外由人工標註。"
+  },
+  "cases": [
+    {
+      "id": "s01",
+      "category": "SINGLE",
+      "query": "Python",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "Python"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "keep_current_single_query_ranking"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "s02",
+      "category": "SINGLE",
+      "query": "資料庫",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "keep_current_single_query_ranking"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "s03",
+      "category": "SINGLE",
+      "query": "人工智慧",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "人工智慧"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "keep_current_single_query_ranking"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "s04",
+      "category": "SINGLE",
+      "query": "我想學資料分析",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料分析"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "keep_current_single_query_ranking"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "s05",
+      "category": "SINGLE",
+      "query": "企業法務",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "企業法務"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "keep_current_single_query_ranking"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "s06",
+      "category": "SINGLE",
+      "query": "初學者想學日文",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "日文"
+        ],
+        "contexts": [
+          "初學"
+        ],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "keep_current_single_query_ranking"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "s07",
+      "category": "SINGLE",
+      "query": "只想學資料庫",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "keep_current_single_query_ranking"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "s08",
+      "category": "SINGLE",
+      "query": "資料結構",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料結構"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "keep_current_single_query_ranking"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "c01",
+      "category": "COVERAGE",
+      "query": "資料庫＋後端",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [
+          "資料庫",
+          "後端"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "top10_contains_goal:資料庫",
+        "top10_contains_goal:後端",
+        "one_qualified_candidate_per_goal_when_available"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "c02",
+      "category": "COVERAGE",
+      "query": "Python＋統計",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [
+          "Python",
+          "統計"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "top10_contains_goal:Python",
+        "top10_contains_goal:統計",
+        "one_qualified_candidate_per_goal_when_available"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "c03",
+      "category": "COVERAGE",
+      "query": "資料庫、後端",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [
+          "資料庫",
+          "後端"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "top10_contains_goal:資料庫",
+        "top10_contains_goal:後端",
+        "one_qualified_candidate_per_goal_when_available"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "c04",
+      "category": "COVERAGE",
+      "query": "資料庫和後端",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [
+          "資料庫",
+          "後端"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "top10_contains_goal:資料庫",
+        "top10_contains_goal:後端",
+        "one_qualified_candidate_per_goal_when_available"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "c05",
+      "category": "COVERAGE",
+      "query": "行銷與財務",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [
+          "行銷",
+          "財務"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "top10_contains_goal:行銷",
+        "top10_contains_goal:財務",
+        "one_qualified_candidate_per_goal_when_available"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "c06",
+      "category": "COVERAGE",
+      "query": "心理、行銷",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [
+          "心理",
+          "行銷"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "top10_contains_goal:心理",
+        "top10_contains_goal:行銷",
+        "one_qualified_candidate_per_goal_when_available"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "c07",
+      "category": "COVERAGE",
+      "query": "想學資料庫也想學後端",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [
+          "資料庫",
+          "後端"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "top10_contains_goal:資料庫",
+        "top10_contains_goal:後端",
+        "one_qualified_candidate_per_goal_when_available"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "c08",
+      "category": "COVERAGE",
+      "query": "資料庫＋後端＋API",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [
+          "資料庫",
+          "後端",
+          "API"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "top10_contains_goal:資料庫",
+        "top10_contains_goal:後端",
+        "top10_contains_goal:API",
+        "one_qualified_candidate_per_goal_when_available"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "i01",
+      "category": "INTERSECTION",
+      "query": "企業法務實習",
+      "expected_analysis": {
+        "relation": "INTERSECTION",
+        "goals": [
+          "企業法務"
+        ],
+        "contexts": [
+          "實習"
+        ],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_prefer_joint_match",
+        "show_partial_warning_if_no_joint_match"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "i02",
+      "category": "INTERSECTION",
+      "query": "同一門課同時包含資料庫與後端",
+      "expected_analysis": {
+        "relation": "INTERSECTION",
+        "goals": [
+          "資料庫",
+          "後端"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_prefer_joint_match",
+        "show_partial_warning_if_no_joint_match"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "i03",
+      "category": "INTERSECTION",
+      "query": "同一門課結合教育科技與實作",
+      "expected_analysis": {
+        "relation": "INTERSECTION",
+        "goals": [
+          "教育科技"
+        ],
+        "contexts": [
+          "實作"
+        ],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_prefer_joint_match"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "i04",
+      "category": "INTERSECTION",
+      "query": "畢業專題＋資料庫＋後端",
+      "expected_analysis": {
+        "relation": "INTERSECTION",
+        "goals": [
+          "資料庫",
+          "後端"
+        ],
+        "contexts": [
+          "畢業專題"
+        ],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "top10_contains_goal:資料庫",
+        "top10_contains_goal:後端",
+        "context_does_not_take_goal_quota"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "i05",
+      "category": "INTERSECTION",
+      "query": "實習＋法律",
+      "expected_analysis": {
+        "relation": "INTERSECTION",
+        "goals": [
+          "法律"
+        ],
+        "contexts": [
+          "實習"
+        ],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_prefer_joint_match"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "i06",
+      "category": "INTERSECTION",
+      "query": "醫療人工智慧",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "醫療人工智慧"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "keep_current_single_query_ranking"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "i07",
+      "category": "INTERSECTION",
+      "query": "同時符合統計與機器學習",
+      "expected_analysis": {
+        "relation": "INTERSECTION",
+        "goals": [
+          "統計",
+          "機器學習"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_prefer_joint_match"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "i08",
+      "category": "INTERSECTION",
+      "query": "研究導向的資料分析",
+      "expected_analysis": {
+        "relation": "INTERSECTION",
+        "goals": [
+          "資料分析"
+        ],
+        "contexts": [
+          "研究"
+        ],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "context_is_soft_hint"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "n01",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "想學AI但不要寫程式",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "AI"
+        ],
+        "contexts": [],
+        "exclusions": [
+          "寫程式"
+        ],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_condition:subjective"
+        ]
+      },
+      "expected_result_checks": [
+        "search_goal_AI",
+        "semantic_exclusion_only_downranks"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "n02",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不要星期三的通識",
+      "expected_analysis": {
+        "relation": "FILTER_ONLY",
+        "goals": [],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {
+          "excludedWeekdays": [
+            3
+          ],
+          "requiredElective": [
+            "通識"
+          ]
+        },
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "every_returned_course_has_no_weekday:3",
+        "every_returned_course_type:通識"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "n03",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "星期五且2學分的日文課",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "日文"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {
+          "weekdays": [
+            5
+          ],
+          "credits": [
+            2
+          ]
+        },
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "every_returned_course_has_weekday:5",
+        "every_returned_course_credits:2"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "n04",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "只要D1的資料庫",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {
+          "sections": [
+            "D1"
+          ]
+        },
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "every_returned_course_has_section:D1"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "n05",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不含星期三且不要2學分的Python",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "Python"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {
+          "excludedWeekdays": [
+            3
+          ],
+          "excludedCredits": [
+            2
+          ]
+        },
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "no_weekday:3",
+        "no_credits:2"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "n06",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "日間部資料庫",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {
+          "divisions": [
+            "日間部"
+          ]
+        },
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "every_returned_course_division:日間部"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "n07",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "研究所人工智慧",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "人工智慧"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {
+          "divisions": [
+            "研究所"
+          ],
+          "studyLevels": [
+            "master"
+          ]
+        },
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "every_returned_course_division:研究所",
+        "every_returned_course_study_level:master_or_inferred"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "n08",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "王大明老師的資料庫",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {
+          "teacher": "王大明"
+        },
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "teacher_filter_only_if_catalog_name_is_unique"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "若 catalog 沒有唯一王大明，應提示未套用，不可猜測",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "n09",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "資訊工程學系的資料庫",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {
+          "departmentIdentity": "catalog_unique_identity"
+        },
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "department_filter_only_if_official_identity_unique"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "以當前 catalog 的 official department identity 判斷",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "n10",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "不能有實習的法律",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "法律"
+        ],
+        "contexts": [],
+        "exclusions": [
+          "實習"
+        ],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "semantic_exclusion_only_downranks"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "n11",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "只要星期五且不要星期五",
+      "expected_analysis": {
+        "relation": "FALLBACK",
+        "goals": [],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "conflicting_constraints"
+        ]
+      },
+      "expected_result_checks": [
+        "block_search",
+        "explain_conflict"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "n12",
+      "category": "NEGATION_HARD_CONSTRAINT",
+      "query": "只要D1-D3的資料庫",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {
+          "sections": [
+            "D1",
+            "D2",
+            "D3"
+          ]
+        },
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "every_returned_course_has_section:D1_or_D2_or_D3"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "u01",
+      "category": "UNSUPPORTED_OR_UNANSWERABLE",
+      "query": "Python 或 R",
+      "expected_analysis": {
+        "relation": "FALLBACK",
+        "goals": [
+          "Python",
+          "R"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_relation:ALTERNATIVE"
+        ]
+      },
+      "expected_result_checks": [
+        "must_show_fallback_notice",
+        "must_not_claim_exact_unsupported_answer"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "u02",
+      "category": "UNSUPPORTED_OR_UNANSWERABLE",
+      "query": "如果沒有後端就推薦資料庫",
+      "expected_analysis": {
+        "relation": "FALLBACK",
+        "goals": [
+          "後端",
+          "資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_relation:CONDITIONAL"
+        ]
+      },
+      "expected_result_checks": [
+        "must_show_fallback_notice",
+        "must_not_claim_exact_unsupported_answer"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "u03",
+      "category": "UNSUPPORTED_OR_UNANSWERABLE",
+      "query": "先學統計再學機器學習",
+      "expected_analysis": {
+        "relation": "FALLBACK",
+        "goals": [
+          "統計",
+          "機器學習"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_relation:SEQUENCE"
+        ]
+      },
+      "expected_result_checks": [
+        "must_show_fallback_notice",
+        "must_not_claim_exact_unsupported_answer"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "u04",
+      "category": "UNSUPPORTED_OR_UNANSWERABLE",
+      "query": "後端最重要資料庫其次",
+      "expected_analysis": {
+        "relation": "FALLBACK",
+        "goals": [
+          "後端",
+          "資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_relation:WEIGHTED"
+        ]
+      },
+      "expected_result_checks": [
+        "must_show_fallback_notice",
+        "must_not_claim_exact_unsupported_answer"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "u05",
+      "category": "UNSUPPORTED_OR_UNANSWERABLE",
+      "query": "甜課",
+      "expected_analysis": {
+        "relation": "FALLBACK",
+        "goals": [],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_condition"
+        ]
+      },
+      "expected_result_checks": [
+        "must_show_fallback_notice",
+        "must_not_claim_exact_unsupported_answer"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "u06",
+      "category": "UNSUPPORTED_OR_UNANSWERABLE",
+      "query": "只要校區近校門的課",
+      "expected_analysis": {
+        "relation": "FALLBACK",
+        "goals": [],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_condition"
+        ]
+      },
+      "expected_result_checks": [
+        "must_show_fallback_notice",
+        "must_not_claim_exact_unsupported_answer"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "u07",
+      "category": "UNSUPPORTED_OR_UNANSWERABLE",
+      "query": "報告少又不用考試",
+      "expected_analysis": {
+        "relation": "FALLBACK",
+        "goals": [],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_condition"
+        ]
+      },
+      "expected_result_checks": [
+        "must_show_fallback_notice",
+        "must_not_claim_exact_unsupported_answer"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "u08",
+      "category": "UNSUPPORTED_OR_UNANSWERABLE",
+      "query": "想學AI但要甜涼",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "AI"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_condition"
+        ]
+      },
+      "expected_result_checks": [
+        "search_answerable_goal",
+        "show_unapplied_condition_notice"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "u09",
+      "category": "UNSUPPORTED_OR_UNANSWERABLE",
+      "query": "下學期的資料庫",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_condition"
+        ]
+      },
+      "expected_result_checks": [
+        "search_answerable_goal",
+        "show_unapplied_condition_notice"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "u10",
+      "category": "UNSUPPORTED_OR_UNANSWERABLE",
+      "query": "英文授課的國際貿易",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "國際貿易"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_condition"
+        ]
+      },
+      "expected_result_checks": [
+        "search_answerable_goal",
+        "show_unapplied_condition_notice"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "u11",
+      "category": "UNSUPPORTED_OR_UNANSWERABLE",
+      "query": "想找熱門Python",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "Python"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_condition"
+        ]
+      },
+      "expected_result_checks": [
+        "search_answerable_goal",
+        "show_unapplied_condition_notice"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "u12",
+      "category": "UNSUPPORTED_OR_UNANSWERABLE",
+      "query": "不要猜難度的人工智慧",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "人工智慧"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "unsupported_condition"
+        ]
+      },
+      "expected_result_checks": [
+        "search_answerable_goal",
+        "show_unapplied_condition_notice"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "x01",
+      "category": "TYPO_MIXED_EDGE",
+      "query": "pyhton",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "pyhton"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_not_crash",
+        "return_safe_result"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "x02",
+      "category": "TYPO_MIXED_EDGE",
+      "query": "資料褲",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料褲"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_not_crash",
+        "return_safe_result"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "x03",
+      "category": "TYPO_MIXED_EDGE",
+      "query": "後端api啦",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "後端api啦"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_not_crash",
+        "return_safe_result"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "x04",
+      "category": "TYPO_MIXED_EDGE",
+      "query": "🚀AI＋法律？！",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [
+          "🚀AI",
+          "法律"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_not_crash",
+        "return_safe_result"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "x05",
+      "category": "TYPO_MIXED_EDGE",
+      "query": "我想學 db backend",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "db backend"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_not_crash",
+        "return_safe_result"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "x06",
+      "category": "TYPO_MIXED_EDGE",
+      "query": "資料庫與機率",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [
+          "資料庫",
+          "機率"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_not_crash",
+        "return_safe_result"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "x07",
+      "category": "TYPO_MIXED_EDGE",
+      "query": "資料庫、資料庫系統",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料庫、資料庫系統"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_not_crash",
+        "return_safe_result"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "x08",
+      "category": "TYPO_MIXED_EDGE",
+      "query": "只想學星期五的課",
+      "expected_analysis": {
+        "relation": "FILTER_ONLY",
+        "goals": [],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_not_crash",
+        "return_safe_result"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "x09",
+      "category": "TYPO_MIXED_EDGE",
+      "query": "沒有也可以學資料庫",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "沒有也可以學資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_not_crash",
+        "return_safe_result"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "x10",
+      "category": "TYPO_MIXED_EDGE",
+      "query": "資料庫＋",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_not_crash",
+        "return_safe_result"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "x11",
+      "category": "TYPO_MIXED_EDGE",
+      "query": "資料庫、",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "資料庫"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "must_not_crash",
+        "return_safe_result"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "x12",
+      "category": "TYPO_MIXED_EDGE",
+      "query": "",
+      "expected_analysis": {
+        "relation": "INVALID",
+        "goals": [],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "reject_empty_input"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "l01",
+      "category": "LIMIT_AND_BOUNDARY",
+      "query": "資料庫＋後端＋Python＋統計＋機率＋迴歸＋AI＋法律＋行銷",
+      "expected_analysis": {
+        "relation": "FALLBACK",
+        "goals": [],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "too_many_parts"
+        ]
+      },
+      "expected_result_checks": [
+        "no_silent_truncation",
+        "preserve_original_query_on_fallback"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "l02",
+      "category": "LIMIT_AND_BOUNDARY",
+      "query": "不要資料庫、不要後端、不要Python",
+      "expected_analysis": {
+        "relation": "FALLBACK",
+        "goals": [],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "too_many_semantic_exclusions"
+        ]
+      },
+      "expected_result_checks": [
+        "no_silent_truncation",
+        "preserve_original_query_on_fallback"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "l03",
+      "category": "LIMIT_AND_BOUNDARY",
+      "query": "星期一且星期二且星期三且星期四且星期五的資料庫",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [
+          "weekday_include_all_explicit"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "資料庫"
+        ]
+      },
+      "expected_result_checks": [
+        "no_silent_truncation",
+        "preserve_original_query_on_fallback"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "l04",
+      "category": "LIMIT_AND_BOUNDARY",
+      "query": "資料庫和後端並且人工智慧與法律",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": [
+          "資料庫",
+          "後端",
+          "人工智慧",
+          "法律"
+        ]
+      },
+      "expected_result_checks": [
+        "no_silent_truncation",
+        "preserve_original_query_on_fallback"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "m01",
+      "category": "FEATURE_FLAG_REGRESSION",
+      "query": "資料庫＋後端",
+      "feature_flag": "off",
+      "expected_analysis": null,
+      "expected_result_checks": [
+        "feature_flag_off_uses_original_whole_query_ranking"
+      ],
+      "ai_assertions": [
+        "no_understanding_panel_when_flag_off",
+        "results_use_original_whole_query_ranking"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "m02",
+      "category": "FEATURE_FLAG_REGRESSION",
+      "query": "資料庫＋後端",
+      "feature_flag": "on",
+      "expected_analysis": {
+        "relation": "COVERAGE",
+        "goals": [
+          "資料庫",
+          "後端"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "feature_flag_on_shows_understanding_panel"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "m03",
+      "category": "FEATURE_FLAG_REGRESSION",
+      "query": "Python",
+      "feature_flag": "both",
+      "expected_analysis": {
+        "relation": "SINGLE",
+        "goals": [
+          "Python"
+        ],
+        "contexts": [],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "feature_on_and_off_single_results_should_not_regress"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    },
+    {
+      "id": "m04",
+      "category": "FEATURE_FLAG_REGRESSION",
+      "query": "企業法務實習",
+      "feature_flag": "on",
+      "expected_analysis": {
+        "relation": "INTERSECTION",
+        "goals": [
+          "企業法務"
+        ],
+        "contexts": [
+          "實習"
+        ],
+        "exclusions": [],
+        "hard_constraints": {},
+        "unsupported": []
+      },
+      "expected_result_checks": [
+        "feature_on_route_context_is_visible"
+      ],
+      "ai_assertions": [
+        "analysis.relation matches expected_analysis.relation",
+        "analysis preserves original query text",
+        "no result violates metadata hard constraints"
+      ],
+      "reviewer_notes": "",
+      "manual_observation": {
+        "analysis_passed": null,
+        "result_passed": null,
+        "notes": ""
+      }
+    }
+  ]
+}

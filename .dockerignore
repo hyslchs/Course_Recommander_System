@@ -8,3 +8,5 @@ data/raw
 data/canonical
 data/derived
 logs
+**/.env
+**/.env.*

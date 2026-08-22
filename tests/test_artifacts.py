@@ -4,7 +4,12 @@ import json
 
 import numpy as np
 
-from fju_outline.artifacts import build_artifacts, validate_artifacts
+from fju_outline.artifacts import (
+    CATALOG_SCHEMA_VERSION,
+    build_artifacts,
+    normalize_catalog_course_schema,
+    validate_artifacts,
+)
 
 
 class FakeEncoder:
@@ -64,13 +69,18 @@ def test_build_and_validate_versioned_artifacts(tmp_path):
     )
     assert manifest["course_count"] == 2
     assert manifest["dimension"] == 3
+    assert manifest["artifact_version"] == "fju_recommender_v3"
+    assert manifest["catalog_schema_version"] == CATALOG_SCHEMA_VERSION
+    assert manifest["route_count"] == 6
     assert (output / "course-embeddings.f32").stat().st_size == 2 * 3 * 4
+    assert (output / "query-route-embeddings.f32").stat().st_size == 6 * 3 * 4
     assert validate_artifacts(output)["model_revision"] == "test-revision"
     catalog = json.loads((output / "catalog.json").read_text(encoding="utf-8"))
     assert catalog[0]["meetings"][0]["sections"] == ["D1"]
     assert catalog[0]["audience_department"] == "資工"
     assert catalog[0]["study_level"] == "undergraduate"
     assert catalog[0]["audience_grade"] == 3
+    assert catalog[0]["course_tags"] == []
 
 
 def test_catalog_preserves_official_department_identity():
@@ -89,3 +99,34 @@ def test_catalog_preserves_official_department_identity():
     catalog = build_catalog_course(record)
     assert catalog["department_identity"] == "D:K36:credit_program"
     assert catalog["department_display"] == "K36-企業財稅管理學分學程"
+
+
+def test_legacy_catalog_migration_removes_stale_no_prerequisite_advisory_rule():
+    catalog = normalize_catalog_course_schema({
+        "raw_department": "資工二",
+        "division": "日間部",
+        "prerequisite": "無先修課程。",
+        "eligibility_rules": [{
+            "kind": "advisory_prerequisite",
+            "source_field": "outline.learning_objectives.prerequisite",
+        }],
+    })
+    assert catalog["study_level"] == "undergraduate"
+    assert catalog["eligibility_rules"] == []
+
+
+def test_catalog_preserves_official_course_tags():
+    record = _record("1", "跨文化溝通")
+    record["course_tags"] = [{
+        "code": "302",
+        "label_zh": "全英-專業學科類",
+        "label_en": "English:Disciplinary Subject (EMI)",
+        "note_zh": "英-專業",
+        "note_en": "EMI",
+        "display_order": 2,
+    }]
+
+    from fju_outline.artifacts import build_catalog_course
+
+    catalog = build_catalog_course(record)
+    assert catalog["course_tags"] == record["course_tags"]

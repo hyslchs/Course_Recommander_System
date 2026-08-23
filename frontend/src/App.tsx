@@ -1,5 +1,5 @@
 import { FormEvent, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from "react-router";
 import { CaretDown, Heart, Info, List } from "@phosphor-icons/react";
 import { askCourseAssistant, embedQuery, getCatalog, getClassGroups, getCourses, getCoursesByIds, getDepartmentCatalog, getEmbeddingBundle, getFacets, getFeatures, lookupCourses } from "./api";
 import {

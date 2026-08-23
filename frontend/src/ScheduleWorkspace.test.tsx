@@ -54,7 +54,9 @@ describe("schedule workspace", () => {
     render(<ScheduleWorkspace catalog={catalog} plans={[plan]} active={plan} profile={profile} selectPlan={async () => undefined} />);
   });
 
-  // Vitest runs without `globals: true`, so testing-library's auto-cleanup hook is not registered.
+  // `globals: true` lets testing-library register its own auto-cleanup, so this is redundant —
+  // kept deliberately (cleanup is idempotent) so the suite does not silently leak DOM between
+  // tests if that vitest.config.ts flag is ever dropped.
   afterEach(() => cleanup());
 
   const openSlotRecommendations = async (user: ReturnType<typeof userEvent.setup>, name: string, dialogName: string) => {

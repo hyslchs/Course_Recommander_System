@@ -18,7 +18,8 @@ import { sanitizeSubjectQuery, type DetectedFilterPhrase } from "@/domain/subjec
 import { useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { CourseCard } from "@/components/CourseCard";
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyState, LoadingSkeleton, StateAlert } from "@/components/ui";
+import { Button } from "@heroui/react";
 import type {
   CompletedCourse,
   Course,
@@ -198,12 +199,12 @@ export function RecommendPage() {
       return next;
     });
   };
-  if (!profile) return <EmptyState title="先完成個人設定" body="設定系所與年級後，才能判斷課程限制並產生推薦。" action="開始設定" href="/onboarding" />;
+  if (!profile) return <EmptyState action="開始設定" body="設定系所與年級後，才能判斷課程限制並產生推薦。" href="/onboarding" title="先完成個人設定" variant="missing-prerequisite" />;
   return (
     <section className="page">
       <div className="hero"><div><div className="eyebrow">115-1 個人化推薦</div><h1>找到真正適合你的下一門課</h1><p>推薦在你的裝置上完成；已修課、收藏和課表不會送到後端。</p></div><div className="privacy-pill">● Local-first</div></div>
       <div className="recommend-box"><div className="subject-query-field"><label htmlFor="subject-query">想學的主題或技能</label><textarea id="subject-query" aria-label="想學的主題或技能" aria-invalid={Boolean(validationError && !sanitizedPreview.subjectQuery)} aria-describedby={validationError && !sanitizedPreview.subjectQuery ? "recommend-subject-error" : undefined} maxLength={500} value={interest} onChange={(e) => setInterest(e.target.value)} placeholder="例如：電子商務、社群行銷、零售數據分析與業界案例" /><small>搜尋文字只決定課程內容的相關性；上課星期、學分與先修條件請使用下方篩選器。課程學制會標示在結果卡片上。</small>{validationError && !sanitizedPreview.subjectQuery && <small id="recommend-subject-error" className="field-error">{validationError}</small>}</div><button className="primary" onClick={recommend} disabled={loading}>{loading ? "正在分析…" : "產生推薦"}</button></div>
-      {validationError && <div className="notice danger error-summary" role="alert" tabIndex={-1}><strong>請修正後再產生推薦</strong><p>{validationError}</p></div>}
+      {validationError && <StateAlert className="error-summary" title="請修正後再產生推薦" tone="danger">{validationError}</StateAlert>}
       {lastEmbedding && <section className="search-execution-summary" aria-label="本次搜尋內容"><span><strong>本次學科主題</strong>{lastEmbedding.queryText}</span><span><strong>硬條件來源</strong>下方明確篩選器</span><span><strong>目前結果</strong>{results.length ? `顯示前 ${results.length} 門` : "尚未找到符合條件的課程"}</span></section>}
       <section className="filter-workspace" aria-labelledby="recommendation-filter-heading">
         <div className="filter-section-heading"><div><span>硬條件篩選</span><h2 id="recommendation-filter-heading">選出真正可修的課</h2></div><p>先設定重要條件，再依學科主題排序；不常用的選項會收在進階設定。</p></div>
@@ -242,11 +243,11 @@ export function RecommendPage() {
           </div>
         </details>
       </section>
-      {validationError && <div className="notice danger">{validationError}</div>}
-      {error && <div className="notice danger" role="alert">推薦失敗：{error}<button type="button" onClick={() => void recommend()}>重試</button></div>}
-      {loading && <div className="empty-panel" role="status"><h2>正在產生推薦…</h2><p>正在比對課程內容與你設定的修課條件。</p></div>}
-      {!lastEmbedding && !loading && !error && <div className="empty-panel"><h2>輸入主題，開始找適合的課</h2><div className="feature-grid"><span>明確篩選</span><span>語意檢索</span><span>關鍵字檢索</span><span>RRF 融合排名</span></div></div>}
-      {lastEmbedding && !results.length && !loading && !error && <div className="empty-panel"><h2>沒有符合全部條件的課程</h2><p>可以放寬條件，或換一個更廣泛的主題。</p><div className="empty-actions"><button type="button" onClick={clearFilters}>清除全部條件</button><button type="button" onClick={() => document.getElementById("subject-query")?.focus()}>修改主題</button></div></div>}
+      {validationError && <StateAlert live="off" tone="danger">{validationError}</StateAlert>}
+      {error && <StateAlert action={<Button className="mt-2 min-h-11" variant="secondary" onPress={() => void recommend()}>重試</Button>} title="推薦失敗" tone="danger">{error}</StateAlert>}
+      {loading && <LoadingSkeleton count={4} label="正在產生推薦，正在比對課程內容與你設定的修課條件。" variant="card-grid" />}
+      {!lastEmbedding && !loading && !error && <EmptyState headingLevel={2} title="輸入主題，開始找適合的課" variant="first-run"><div className="feature-grid"><span>明確篩選</span><span>語意檢索</span><span>關鍵字檢索</span><span>RRF 融合排名</span></div></EmptyState>}
+      {lastEmbedding && !results.length && !loading && !error && <EmptyState action="清除全部條件" body="可以放寬條件，或換一個更廣泛的主題。" headingLevel={2} live title="沒有符合全部條件的課程" variant="over-filtered" onAction={clearFilters}><div className="empty-actions"><button type="button" onClick={() => document.getElementById("subject-query")?.focus()}>修改主題</button></div></EmptyState>}
       <div className="course-grid">{results.map((item, index) => <CourseCard key={item.course.course_id} course={item.course} alternatives={item.alternatives} rank={index + 1} reasons={item.reasons} recommendationCategory={item.category} />)}</div>
     </section>
   );

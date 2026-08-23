@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Lock, MapPin, Sparkle, Warning } from "@phosphor-icons/react";
+import { Button } from "@heroui/react";
 import { getCatalog, getEmbeddingBundle } from "@/data/api";
 import { getAllRecords, putRecord } from "@/data/db";
 import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
@@ -21,7 +22,7 @@ import { rankScheduleSlotCourses } from "@/domain/scheduleRecommendation";
 import type { ScheduleSlotRecommendationResult } from "@/domain/scheduleRecommendation";
 import { useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
-import { Modal, useFeedback } from "@/components/ui";
+import { Modal, StateAlert, useFeedback } from "@/components/ui";
 import type { CompletedCourse, Course, FixedScheduleEntry, RecommendationCategory, ScheduleEntry, SchedulePlan } from "@/domain/types";
 import { CourseDetails } from "./CourseDetails";
 import { ManualCoursePanel } from "./ManualCoursePanel";
@@ -47,6 +48,11 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
   // a prop: it is the schedule route's own fetch, not shared app state.
   const { plans, activePlan: active, selectPlan } = useSchedulePlans();
   const profile = useProfile();
+  // The undo action now outlives the render that queued it (it lives in the
+  // toast queue, not in component state), so it has to read the current plans
+  // rather than the ones captured when the course was removed.
+  const plansRef = useRef(plans);
+  plansRef.current = plans;
   const [viewMode, setViewMode] = useState<"auto" | "core" | "full">("auto");
   const [selectedBlock, setSelectedBlock] = useState<ScheduleBlock>();
   const [selectedSlot, setSelectedSlot] = useState<SelectedScheduleSlot>();
@@ -65,7 +71,6 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
   const slotButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const [activeSlotKey, setActiveSlotKey] = useState("");
   const [mobileDay, setMobileDay] = useState(1);
-  const [lastRemoved, setLastRemoved] = useState<{ planId: string; entry: ScheduleEntry }>();
   const [planDialog, setPlanDialog] = useState<"create" | "rename" | "">("");
   const [planName, setPlanName] = useState("");
   const planNameRef = useRef<HTMLInputElement>(null);
@@ -287,17 +292,18 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
     const entry = active.entries.find((item) => item.courseId === courseId);
     if (!entry) return;
     await putRecord("schedulePlans", { ...active, entries: active.entries.filter((item) => item.courseId !== courseId), updatedAt: new Date().toISOString() });
-    setLastRemoved({ planId: active.id, entry });
+    // Was a bespoke `.undo-toast` rendered next to the timetable. It is now the
+    // one shared queue (plan §6.3-3), which also gets it the 6s timeout and the
+    // politeness mapping for free.
+    notify("已從課表移除課程。", "success", { label: "復原", onAction: () => undoRemove({ planId: active.id, entry }) });
     if (selectedBlock?.sourceId === courseId) {
       detailTriggerRef.current = null;
       setSelectedBlock(undefined);
     }
   };
-  const undoRemove = async () => {
-    if (!lastRemoved) return;
-    const plan = plans.find((item) => item.id === lastRemoved.planId);
-    if (plan && !plan.entries.some((item) => item.courseId === lastRemoved.entry.courseId)) await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, lastRemoved.entry], updatedAt: new Date().toISOString() });
-    setLastRemoved(undefined);
+  const undoRemove = async (removed: { planId: string; entry: ScheduleEntry }) => {
+    const plan = plansRef.current.find((item) => item.id === removed.planId);
+    if (plan && !plan.entries.some((item) => item.courseId === removed.entry.courseId)) await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, removed.entry], updatedAt: new Date().toISOString() });
   };
 
   const slotRecommendationValue: SlotRecommendationContextValue = {
@@ -322,7 +328,7 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
       <ManualCoursePanel catalog={catalog} plan={active} />
       <div className="schedule-summary"><strong>{courses.length} 門課</strong><span>{credits} 學分</span>{fixedEntries.length > 0 && <span>{fixedEntries.length} 個固定時段</span>}{conflictCount > 0 && <span className="schedule-conflict-summary"><Warning aria-hidden="true" />{conflictCount} 門課衝堂</span>}{unplacedCourses.length > 0 && <span>待安排 {unplacedCourses.length} 門</span>}</div>
       <div className="schedule-view-toolbar"><div><strong>點空白時段找適合的課</strong><span>系統會依目前課表推測興趣，並檢查課程的所有上課節次。</span></div><div className="segmented-control" role="group" aria-label="課表顯示範圍"><button className={viewMode === "auto" ? "active" : ""} aria-pressed={viewMode === "auto"} onClick={() => setViewMode("auto")}>智慧</button><button className={viewMode === "core" ? "active" : ""} aria-pressed={viewMode === "core"} onClick={() => setViewMode("core")}>核心時段{viewMode === "core" && hiddenSourceIds.size > 0 ? `（隱藏 ${hiddenSourceIds.size} 門）` : ""}</button><button className={viewMode === "full" ? "active" : ""} aria-pressed={viewMode === "full"} onClick={() => setViewMode("full")}>完整課表</button></div></div>
-      {viewMode === "core" && hiddenSourceIds.size > 0 && <div className="notice schedule-hidden-notice">目前折疊範圍內有 {hiddenSourceIds.size} 門課。<button onClick={() => setViewMode("auto")}>顯示有課時段</button></div>}
+      {viewMode === "core" && hiddenSourceIds.size > 0 && <StateAlert action={<Button className="mt-2 min-h-11" variant="secondary" onPress={() => setViewMode("auto")}>顯示有課時段</Button>} className="schedule-hidden-notice" tone="info">目前折疊範圍內有 {hiddenSourceIds.size} 門課。</StateAlert>}
       <div className="mobile-day-picker"><label>查看星期<select value={mobileDay} onChange={(event) => setMobileDay(Number(event.target.value))}>{visibleDays.map((day) => <option value={day} key={day}>星期{weekdayLabels[day - 1]}</option>)}</select></label></div>
       <div className="timetable" aria-label={`${active.name}課表`}><div className="schedule-grid" style={gridStyle} role="grid"><div className="schedule-corner" role="columnheader">節次</div>{visibleDays.map((day, dayIndex) => <div className="schedule-day-header" role="columnheader" key={day} style={{ gridColumn: dayIndex + 2, gridRow: 1 }}>星期{weekdayLabels[day - 1]}</div>)}{visibleSections.map((section, sectionIndex) => <div className={`schedule-section-label ${EXTENDED_SCHEDULE_SECTIONS.includes(section as typeof EXTENDED_SCHEDULE_SECTIONS[number]) ? "extended" : ""}`} role="rowheader" key={section} style={{ gridColumn: 1, gridRow: sectionIndex + 2 }}>{section}</div>)}{visibleSections.flatMap((section, sectionIndex) => visibleDays.map((day, dayIndex) => {
         const key = `${day}-${section}`;
@@ -334,7 +340,6 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
         return <button type="button" className={`class-block ${block.source === "fixed" ? "fixed" : ""} ${block.conflict ? "conflict" : ""}`} style={blockStyle} data-course-name={block.name} key={block.id} onClick={(event) => openDetails(block, event.currentTarget)} aria-label={`${block.name}，星期${weekdayLabels[block.weekday - 1]} ${block.sections.join("到")}${block.conflict ? "，有衝堂" : ""}`}><strong>{block.name}</strong><small>{block.teacher}</small>{block.room && <small><MapPin aria-hidden="true" />{block.room}</small>}<span className="class-block-tags">{weekPatternLabel(block.weekPattern) && <em>{weekPatternLabel(block.weekPattern)}</em>}{block.conflict && <em className="conflict-tag"><Warning aria-hidden="true" />衝堂</em>}</span></button>;
       })}</div><div className="mobile-schedule-list">{!mobileBlocks.length && <p className="muted">星期{weekdayLabels[mobileDay - 1]}目前沒有課程。</p>}{mobileBlocks.map((block) => <button key={block.id} className={`mobile-schedule-block ${block.source === "fixed" ? "fixed" : ""} ${block.conflict ? "conflict" : ""}`} onClick={(event) => openDetails(block, event.currentTarget)}><span><strong>{block.sections.join("–")}　{block.name}</strong><small>{block.teacher}{block.room ? ` · ${block.room}` : ""}</small></span><span>{weekPatternLabel(block.weekPattern)}{block.conflict ? <Warning aria-label="有衝堂" /> : null}</span></button>)}<div className="mobile-open-slots"><strong>點空堂找課</strong><div>{mobileOpenSections.map((section) => <button type="button" key={section} onClick={() => void loadSlotRecommendations({ weekday: mobileDay, section })}><Sparkle aria-hidden="true" />{section}</button>)}</div></div></div></div>
       {unplacedCourses.length > 0 && <section className="unplaced-courses"><div><h2>時間未定／待安排</h2><p>這些課程不會被誤放進星期一；指定時間後才會出現在格狀課表。</p></div>{unplacedCourses.map((course) => <button key={course.course_id} onClick={(event) => openDetails(unplacedBlock(course), event.currentTarget)}><strong>{course.name_zh}</strong><span>{formatMeetings(course)}</span></button>)}</section>}
-      {lastRemoved && <div className="undo-toast" role="status"><span>已從課表移除課程。</span><button onClick={() => void undoRemove()}>復原</button><button aria-label="關閉" onClick={() => setLastRemoved(undefined)}>×</button></div>}
       <div className="schedule-list">{fixedEntries.map((entry) => <div key={entry.id} className="fixed-schedule-entry"><span><strong>{entry.name}</strong><small>{formatMeetings(entry)} · {entry.teacher ?? "固定時段"}</small></span><span>固定時段</span></div>)}{courses.map((course) => { const entry = active.entries.find((item) => item.courseId === course.course_id)!; return <div key={course.course_id}><span><strong>{course.name_zh}{entry.meetingsOverride && <em className="manual-time-tag">手動時間</em>}</strong><small>{formatMeetings(course)}</small></span><button onClick={() => void toggleLock(course.course_id)}>{entry.locked ? <><Lock aria-hidden="true" />已鎖定</> : "鎖定"}</button><button onClick={() => void removeEntry(course.course_id)}>移除</button></div>; })}</div>
       {selectedBlock && <CourseDetails block={selectedBlock} catalog={catalog} scheduledCourses={courses} plan={active} onClose={closeDetails} />}
       <SlotRecommendationContext.Provider value={slotRecommendationValue}><SlotRecommendationDialog /></SlotRecommendationContext.Provider>

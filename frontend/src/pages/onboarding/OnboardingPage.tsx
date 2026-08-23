@@ -20,7 +20,7 @@ import { selectRequiredCourses } from "@/domain/requiredCourses";
 import { coursesInPlan } from "@/domain/scheduleUtils";
 import { useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
-import { useFeedback } from "@/components/ui";
+import { StateAlert, useFeedback } from "@/components/ui";
 import type { CompletedCourse, Course, Profile } from "@/domain/types";
 
 export function OnboardingPage() {
@@ -228,8 +228,8 @@ export function OnboardingPage() {
       <div className="eyebrow">只存在這台裝置</div>
       <h1>先設定你的基本資料</h1>
       <p className="lead">一般推薦所需的系級與修課紀錄只保存在這個瀏覽器，不會建立帳號。</p>
-      {departmentCatalogError && <div className="notice danger" role="alert">無法載入系所選項：{departmentCatalogError}</div>}
-      {!departmentCatalog && !departmentCatalogError && <div className="notice" role="status">正在載入系所選項…</div>}
+      {departmentCatalogError && <StateAlert title="無法載入系所選項" tone="danger">{departmentCatalogError}</StateAlert>}
+      {!departmentCatalog && !departmentCatalogError && <StateAlert tone="info">正在載入系所選項…</StateAlert>}
       <form className="card form-grid profile-form" onSubmit={save} aria-busy={saving}><fieldset className="contents-fieldset" disabled={saving}>
         <label>部別<select value={form.division} onChange={(e) => { const division = e.target.value; setDepartmentInput(""); setDepartmentMenuOpen(false); setDepartmentError(""); setForm({ ...form, division, studyLevel: inferProfileStudyLevel({ division }), department: "", classGroup: "", department_identity: null, division_code: null, department_code: null, official_department_name_zh: null, official_department_type: null }); }}>{divisions.map((value) => <option key={value}>{value}</option>)}</select><small>部別與系所選項依輔大官方課程大綱查詢系統。</small></label>
         <div className="department-field wide">
@@ -310,7 +310,7 @@ export function OnboardingPage() {
 
         <label className="check wide"><input type="checkbox" checked={autoAddRequiredCourses} onChange={(e) => setAutoAddRequiredCourses(e.target.checked)} />儲存後自動將本系／共同必修加入「{activePlan?.name ?? "我的課表"}」</label>
         <small className="wide">只會加入目前 115-1 課程資料中符合部別、年級與班別的課程；英文、國文等共同課程仍須依學校分發或免修結果確認。</small>
-        {saveError && <div className="notice danger wide" role="alert">儲存失敗：{saveError}</div>}
+        {saveError && <StateAlert className="wide" title="儲存失敗" tone="danger">{saveError}</StateAlert>}
         <button className="primary wide" type="submit" aria-busy={saving}>{saving ? "儲存中…" : "儲存並前往推薦"}</button>
       </fieldset></form>
     </section>

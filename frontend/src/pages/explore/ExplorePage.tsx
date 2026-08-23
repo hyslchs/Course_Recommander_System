@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import { useCourses, useFacets } from "@/data/queries";
 import { weekdayLabels } from "@/domain/schedule";
 import { CourseCard } from "@/components/CourseCard";
+import { EmptyState, LoadingSkeleton, StateAlert } from "@/components/ui";
+import { Button } from "@heroui/react";
 
 export function ExplorePage() {
   const facetsQuery = useFacets();
@@ -34,9 +36,9 @@ export function ExplorePage() {
         <label><span>開課系所</span><select value={department} onChange={(event) => { setDepartment(event.target.value); setPage(1); }}><option value="">所有系所</option>{departments.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
         <label><span>上課星期</span><select value={weekday} onChange={(event) => { setWeekday(event.target.value); setPage(1); }}><option value="">所有星期</option>{weekdayLabels.map((label, index) => <option key={label} value={index + 1}>星期{label}</option>)}</select></label>
       </div>
-      {coursesQuery.isPending && <div className="course-grid skeleton-grid" role="status" aria-label="正在載入課程">{[1, 2, 3, 4].map((item) => <div className="course-skeleton" key={item}><span></span><span></span><span></span></div>)}</div>}
-      {error && <div className="notice danger" role="alert">無法載入課程：{error}<button type="button" onClick={() => void coursesQuery.refetch()}>重試</button></div>}
-      {!coursesQuery.isPending && !error && !courses.length && !coursesQuery.isFetching && <div className="empty-panel"><h2>找不到符合條件的課程</h2><p>請嘗試較短的關鍵字，或清除目前篩選。</p><button type="button" onClick={clearExploreFilters}>清除篩選</button></div>}
+      {coursesQuery.isPending && <LoadingSkeleton count={4} label="正在載入課程" variant="card-grid" />}
+      {error && <StateAlert action={<Button className="mt-2 min-h-11" variant="secondary" onPress={() => void coursesQuery.refetch()}>重試</Button>} title="無法載入課程" tone="danger">{error}</StateAlert>}
+      {!coursesQuery.isPending && !error && !courses.length && !coursesQuery.isFetching && <EmptyState action="清除篩選" body="請嘗試較短的關鍵字，或清除目前篩選。" headingLevel={2} live title="找不到符合條件的課程" variant="over-filtered" onAction={clearExploreFilters} />}
       {!coursesQuery.isPending && !error && <div className="results-region" aria-busy={coursesQuery.isFetching}>{coursesQuery.isFetching && <div className="updating-indicator" role="status">正在更新結果…</div>}<div className="course-grid">{courses.map((item) => <CourseCard key={item.course_id} course={item} />)}</div></div>}
       {!coursesQuery.isPending && !error && courses.length > 0 && <div className="pager"><button disabled={coursesQuery.isFetching || page === 1} onClick={() => setPage((value) => value - 1)}>上一頁</button><span>第 {page} 頁</span><button disabled={coursesQuery.isFetching || page * 25 >= total} onClick={() => setPage((value) => value + 1)}>下一頁</button></div>}
     </section>

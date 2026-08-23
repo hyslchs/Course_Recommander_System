@@ -3,14 +3,17 @@ import { NavLink } from "react-router";
 import { List } from "@phosphor-icons/react";
 import { RouteFocusManager } from "./RouteFocusManager";
 import { navigationItems } from "./navigation";
-import { Modal } from "@/components/ui";
+import { SideDrawer } from "@/components/ui";
 import { useProfile } from "@/hooks/localData";
 
 /**
  * Header, primary navigation, main landmark and footer.
  *
- * The skip link stays outside `.app-shell` on purpose: `Modal` marks
- * `.app-shell` as `inert` while a dialog is open.
+ * The skip link is hand-written and stays first in the document: HeroUI has no
+ * equivalent primitive. It sits outside `.app-shell` because the old `Modal`
+ * marked that element `inert`; React Aria marks the whole of `#root` inert
+ * instead, so the link is covered too — correct either way, since a skip link
+ * has nothing to skip to while a dialog owns the screen.
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const profile = useProfile();
@@ -40,12 +43,14 @@ export function AppShell({ children }: { children: ReactNode }) {
         </main>
         <footer>MVP 1.0 · 推薦結果僅供規劃參考，實際資格、名額與開課資訊以校方選課系統為準。</footer>
       </div>
-      <Modal open={menuOpen} title="前往功能" onClose={() => setMenuOpen(false)} initialFocusRef={menuFirstRef} className="navigation-drawer">
+      {/* An edge panel that was being faked with a centred Modal; it is now a
+          real Drawer, which also gives it drag-to-dismiss on touch. */}
+      <SideDrawer className="navigation-drawer" initialFocusRef={menuFirstRef} open={menuOpen} placement="right" title="前往功能" onClose={() => setMenuOpen(false)}>
         <nav aria-label="行動版主要導覽" onClick={() => setMenuOpen(false)}>
           {navigationItems.map((item, index) => <NavLink ref={index === 0 ? menuFirstRef : undefined} key={item.to} to={item.to}>{item.label}</NavLink>)}
           <NavLink to="/onboarding">個人設定<span>{profileLabel}</span></NavLink>
         </nav>
-      </Modal>
+      </SideDrawer>
     </>
   );
 }

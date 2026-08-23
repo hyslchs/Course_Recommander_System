@@ -2,7 +2,8 @@ import { Check, Plus, Sparkle, Warning } from "@phosphor-icons/react";
 import { eligibilityStatusShortLabels } from "@/domain/eligibility";
 import { recommendationCategoryLabels } from "@/domain/recommendation";
 import { formatMeetings, weekdayLabels } from "@/domain/schedule";
-import { Modal } from "@/components/ui";
+import { Modal, StateAlert } from "@/components/ui";
+import { Button } from "@heroui/react";
 import { scheduleRecommendationCategories, useSlotRecommendation } from "./SlotRecommendationContext";
 
 export function SlotRecommendationDialog() {
@@ -34,7 +35,7 @@ export function SlotRecommendationDialog() {
       })}</div>
     </fieldset>
     {loading && <div className="slot-recommendation-state" role="status"><strong>正在比對課表興趣…</strong><span>同時檢查完整時段、修課資格與重複課程。</span></div>}
-    {!loading && error && <div className="notice danger" role="alert"><strong>無法產生推薦</strong><span>{error}</span><button type="button" onClick={retry}>重試</button></div>}
+    {!loading && error && <StateAlert action={<Button className="mt-2 min-h-11" variant="secondary" onPress={retry}>重試</Button>} title="無法產生推薦" tone="danger">{error}</StateAlert>}
     {!loading && !error && categoryFilters.length === 0 && <div className="slot-recommendation-state"><strong>尚未選擇課程分類</strong><span>請至少選擇一種分類，或使用「全選」恢復全部結果。</span><button type="button" onClick={selectAllCategories}>顯示全部分類</button></div>}
     {!loading && !error && categoryFilters.length > 0 && result?.basisCourseCount === 0 && <div className="slot-recommendation-state"><strong>目前沒有足夠的課程推測興趣</strong><span>先在這個方案加入至少一門有課程向量的課，再點選空白時段。</span></div>}
     {!loading && !error && categoryFilters.length > 0 && result && result.basisCourseCount > 0 && <>

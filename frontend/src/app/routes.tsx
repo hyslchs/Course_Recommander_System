@@ -2,7 +2,7 @@ import { Suspense, lazy } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { AI_ASSISTANT_VISIBLE } from "./navigation";
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyState, LoadingSkeleton } from "@/components/ui";
 import { useProfile } from "@/hooks/localData";
 
 // Route-level code splitting: every page is its own chunk.
@@ -18,11 +18,11 @@ const DataPage = lazy(async () => ({ default: (await import("@/pages/data/DataPa
  * heading instead of focusing a placeholder that is about to unmount.
  */
 function RouteFallback() {
-  return <section className="page"><div className="empty-panel" role="status"><p>正在載入頁面…</p></div></section>;
+  return <section className="page"><LoadingSkeleton count={3} label="正在載入頁面…" variant="text" /></section>;
 }
 
 function NotFoundPage() {
-  return <EmptyState title="找不到這個頁面" body="網址可能已經變更或輸入錯誤。" action="回到推薦" href="/recommend" />;
+  return <EmptyState action="回到推薦" body="網址可能已經變更或輸入錯誤。" href="/recommend" title="找不到這個頁面" variant="first-run" />;
 }
 
 export function AppRoutes() {

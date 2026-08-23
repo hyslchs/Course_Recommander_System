@@ -5,24 +5,26 @@
    preflight and HeroUI base — that is deliberate for T11. */
 @layer theme, base, components, utilities;
 
-/* This is `@import "tailwindcss"` minus its `preflight.css layer(base)` line.
-   Preflight is deferred, not dropped, and the reason was measured rather than
-   guessed: everything below this block is unlayered legacy CSS, so it beats
-   preflight for every property it sets — but preflight still fills the gaps
-   it leaves. Comparing computed styles for all 163 elements of /recommend
-   before and after showed real regressions: every unstyled heading collapsed
-   (h2 24px/700 -> 16px/400), global line-height went normal -> 1.5 (+2-3px on
-   most boxes), `p` lost its UA margin, and `svg` went inline -> block.
-   T11 is explicitly forbidden from changing the rendered output, and no
-   Tailwind utility or HeroUI component is in use yet, so preflight buys
-   nothing here.
-   RE-ENABLE (swap these two lines back to `@import "tailwindcss";`) in the
-   first task that uses a Tailwind utility or a HeroUI component — `border-*`
-   width utilities in particular need preflight's `border-style: solid`
-   default. Expect the four regressions above and fix them there, where the
-   legacy stylesheet is being rewritten anyway. */
-@import "tailwindcss/theme.css" layer(theme);
-@import "tailwindcss/utilities.css" layer(utilities);
+/* T30 re-enabled preflight. T11 had deliberately imported theme + utilities
+   without it, because with no Tailwind utility and no HeroUI component in use
+   preflight only cost four measured regressions (unstyled `h2` 24px/700 ->
+   16px/400, global line-height normal -> 1.5, `p` losing its UA margin, `svg`
+   inline -> block). T30 adopts real HeroUI components whose stylesheets assume
+   preflight — `border-*` width utilities need its `border-style: solid`
+   default, and `.button`/`.alert`/`.toast` all set `border-width` without a
+   style — so the full entry point is back. The four regressions are undone by
+   the `:where()` block at the very bottom of this file: see the comment there
+   for what is reverted, what is kept, and why. */
+@import "tailwindcss";
+
+/* HeroUI's own entry point imports this right after `tailwindcss`, and its
+   overlay stylesheets `@apply` the utilities it defines (`animate-in`,
+   `fade-in-0`, `zoom-in-95`, `slide-in-from-*`). Without it the build fails
+   outright with "Cannot apply unknown utility class `fade-in-0`", so it is not
+   optional once modal/drawer/toast/alert-dialog are imported below. It is a
+   transitive dependency of @heroui/styles, declared directly in package.json
+   because pnpm will not resolve a bare specifier this package does not own. */
+@import "tw-animate-css";
 
 /* HeroUI is pulled in selectively rather than as the `@import "@heroui/styles"`
    barrel. The barrel also imports all 84 component stylesheets (2.8 MB of
@@ -39,6 +41,19 @@
 @import "@heroui/styles/themes/default/variables.css" layer(theme);
 @import "@heroui/styles/utilities";
 @import "@heroui/styles/variants";
+
+/* Per-component stylesheets, one line per component actually adopted (T30).
+   Keep this list in sync with `src/components/ui/**` — an unimported component
+   renders completely unstyled, and an unused import is dead weight the barrel
+   experiment already proved expensive. */
+@import "@heroui/styles/components/button.css" layer(components);
+@import "@heroui/styles/components/close-button.css" layer(components);
+@import "@heroui/styles/components/modal.css" layer(components);
+@import "@heroui/styles/components/alert-dialog.css" layer(components);
+@import "@heroui/styles/components/drawer.css" layer(components);
+@import "@heroui/styles/components/toast.css" layer(components);
+@import "@heroui/styles/components/alert.css" layer(components);
+@import "@heroui/styles/components/skeleton.css" layer(components);
 
 @import "./theme/fju.css" layer(theme);
 @import "./theme/typography.css" layer(theme);
@@ -314,3 +329,77 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .recommendation-reasons strong{display:block;margin-bottom:.25rem;color:var(--green)}
 /* T20: headings demoted from h1 to h2 so each route keeps exactly one h1 (plan R9). Renders identically to the global h1 rule. */
 .page-title{font-size:clamp(2rem,4vw,3.4rem);line-height:1.08;margin:.5rem 0 1rem;letter-spacing:-.04em}
+
+/* ---------------------------------------------------------------------------
+   T30: preflight compatibility shim.
+
+   Preflight (re-enabled above) is what makes `border-*` utilities and the
+   HeroUI component stylesheets work, but it also strips UA defaults the legacy
+   sheet below was silently relying on. T11 measured exactly four regressions;
+   three of them are pure loss and are reverted here, the fourth is kept on
+   purpose:
+
+     1. unstyled headings collapsed to 16px/400   -> reverted
+     2. `p`/list/`dl`/`fieldset` lost UA margins  -> reverted
+     3. `svg` went inline -> block                -> reverted
+     4. global line-height normal -> 1.5          -> KEPT
+
+   (4) is kept because plan §4.4 asks for CJK-tuned leading and 1.5 is inside
+   the 1.5–1.75 band the type scale already uses; reverting it to `normal`
+   would be undoing an improvement to restore an accident. It is declared
+   explicitly below rather than inherited from preflight so the value is
+   visible where the rest of the typography lives.
+
+   Every selector is wrapped in `:where()` (specificity 0) and left UNLAYERED:
+   unlayered beats any cascade layer, so this wins over preflight's
+   `layer(base)`, while zero specificity means every legacy rule below still
+   wins over this. `revert` rolls back to the user-agent origin, which is
+   precisely the pre-preflight rendering.
+
+   Deliberately NOT reverted: `border-width: 0`, `border-style: solid`,
+   `box-sizing`, and the form-control `font: inherit` reset — those are the
+   parts of preflight the HeroUI components need. */
+:where(html){line-height:1.5}
+:where(h1,h2,h3,h4,h5,h6){font-size:revert;font-weight:revert;margin-block:revert}
+:where(p,blockquote,figure,dl,dd,fieldset,pre,hr){margin:revert}
+:where(ul,ol){margin-block:revert;padding-inline-start:revert;list-style:revert}
+:where(fieldset){padding:revert;border:revert}
+:where(legend){padding:revert}
+:where(svg,img,video,canvas,audio,iframe,embed,object){display:revert;vertical-align:revert}
+/* Three more preflight effects the T11 note did not list, found by diffing the
+   computed styles of every element on /onboarding again: `small{font-size:80%}`
+   shrank every hint line 13.33px -> 12.8px, `*{padding:0}` flattened `<option>`
+   rows, and `*{margin:0}` removed the UA gap beside checkboxes and radios. */
+:where(small){font-size:revert}
+:where(option,optgroup){padding:revert}
+:where(input[type="checkbox"],input[type="radio"]){margin:revert}
+
+/* ---------------------------------------------------------------------------
+   T30 additions to the legacy sheet. Appended rather than edited in place: the
+   block above is minified source that must not be reformatted (plan R4), and
+   all of this dies with it in T41. */
+
+/* `.schedule-dialog` and `.navigation-drawer` were written as modifiers of
+   `.modal-card`, which no longer exists — the box is now HeroUI's
+   `.modal__dialog` / `.drawer__dialog`. Their *content* rules (nested `section`,
+   `nav a`, ...) are still wanted, so only the box half is neutralised, at a
+   specificity that beats the unlayered legacy declarations.
+   `revert-layer` rather than fixed values: it rolls each property back to what
+   the `components` layer (i.e. HeroUI's own `.modal__dialog` / `.drawer__dialog`)
+   would have given it. Hard-coding `background:none` here made the drawer panel
+   transparent, which is exactly the trap this avoids. */
+.modal__dialog.schedule-dialog,.drawer__dialog.navigation-drawer{width:revert-layer;height:revert-layer;max-height:revert-layer;margin:revert-layer;padding:revert-layer;background:revert-layer;box-shadow:revert-layer;border-radius:revert-layer;overflow:revert-layer}
+
+/* Print hide-list follow-up (plan R10). `.undo-toast` and `.modal-backdrop` are
+   gone; React Aria portals every overlay to `document.body` with `data-rac`, so
+   the whole family is matched structurally instead of by class name. */
+@media print{[data-rac][role="dialog"],[data-rac][role="alertdialog"],.modal__backdrop,.drawer__backdrop,.toast__region,[data-slot="toast-region"]{display:none!important}}
+
+/* Class-name collision: the legacy toast was also called `.toast`, and it is
+   unlayered, so it was winning over HeroUI's own `.toast` / `.toast--success`
+   and quietly repainting every HeroUI toast in the old dark-green box while
+   also overriding its placement. Measured in devtools, not guessed. Reverted by
+   layer (not to fixed values) so HeroUI's `components` layer takes over; the
+   legacy rules themselves stay untouched until T41 deletes them. */
+.toast[role="alertdialog"]{position:revert-layer;inset:revert-layer;z-index:revert-layer;display:revert-layer;align-items:revert-layer;gap:revert-layer;max-width:revert-layer;padding:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;box-shadow:revert-layer}
+.toast[role="alertdialog"] button{color:revert-layer;background:revert-layer;border-color:revert-layer}

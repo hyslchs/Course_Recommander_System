@@ -4,7 +4,7 @@ import { putRecord } from "@/data/db";
 import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
 import { formatMeetings, parseManualSections, weekdayLabels } from "@/domain/schedule";
 import { coursesInPlan } from "@/domain/scheduleUtils";
-import { ConfirmDialog } from "@/components/ui";
+import { ConfirmDialog, useFeedback } from "@/components/ui";
 import type { Course, ScheduleEntry, SchedulePlan } from "@/domain/types";
 
 export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: SchedulePlan }) {
@@ -13,11 +13,15 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
   const [useCustomTime, setUseCustomTime] = useState(false);
   const [customWeekday, setCustomWeekday] = useState(3);
   const [customSections, setCustomSections] = useState("D5,D6");
-  const [message, setMessage] = useState("");
-  const [messageKind, setMessageKind] = useState<"success" | "error">("success");
   const [adding, setAdding] = useState(false);
   const [pendingConflict, setPendingConflict] = useState<{ entry: ScheduleEntry; courseName: string; reason: string }>();
-  const showMessage = (text: string, kind: "success" | "error") => { setMessage(text); setMessageKind(kind); };
+  // This panel used to own a third feedback channel — an inline `.notice`
+  // paragraph whose role flipped between `alert` and `status`. It now goes
+  // through the same queue as everything else (plan §6.3-3), which is also what
+  // fixes the old failure mode: the message sat in the card, below the fold on
+  // a phone, while the button that triggered it was on screen.
+  const { notify } = useFeedback();
+  const showMessage = (text: string, kind: "success" | "error") => notify(text, kind);
   const normalizedQuery = query.trim();
   const [debouncedQuery, setDebouncedQuery] = useState("");
   useEffect(() => {
@@ -49,7 +53,6 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
     }
   };
   const addCourse = async () => {
-    setMessage("");
     if (!selectedCourse) return showMessage("請先搜尋並選擇要加入的課程。", "error");
     if (plan.entries.some((entry) => entry.courseId === selectedCourse.course_id)) return showMessage("這門課已經在目前課表中。", "error");
     let meetings = selectedCourse.meetings;
@@ -82,7 +85,6 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
       <label className="check"><input type="checkbox" checked={customTimeActive} disabled={customTimeRequired} onChange={(event) => setUseCustomTime(event.target.checked)} />使用指定時間加入{customTimeRequired ? "（此課程沒有完整時間）" : ""}</label>
       {customTimeActive && <div className="schedule-add-grid"><label>星期<select value={customWeekday} onChange={(event) => setCustomWeekday(Number(event.target.value))}>{weekdayLabels.map((day, index) => <option key={index + 1} value={index + 1}>星期{day}</option>)}</select></label><label>節次<input value={customSections} onChange={(event) => setCustomSections(event.target.value)} placeholder="例如 D5,D6 或 DN" /></label></div>}
     </>}
-    {message && <p className={"notice " + (messageKind === "error" ? "danger" : "")} role={messageKind === "error" ? "alert" : "status"}>{message}</p>}
     <button className="primary" type="button" onClick={() => void addCourse()} disabled={!selectedCourse || adding} aria-busy={adding}>{adding ? "加入中…" : "加入「" + plan.name + "」"}</button>
     <ConfirmDialog open={Boolean(pendingConflict)} title="確認加入衝堂課程" description={<p>{pendingConflict?.reason}仍要加入課表嗎？</p>} confirmLabel="仍要加入" busy={adding} onCancel={() => setPendingConflict(undefined)} onConfirm={() => pendingConflict && saveEntry(pendingConflict.entry, pendingConflict.courseName, pendingConflict.reason)} />
   </section>;

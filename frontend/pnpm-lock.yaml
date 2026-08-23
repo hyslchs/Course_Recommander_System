@@ -63,6 +63,9 @@ importers:
       jsdom:
         specifier: ^30.0.1
         version: 30.0.1
+      tw-animate-css:
+        specifier: 1.4.0
+        version: 1.4.0
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

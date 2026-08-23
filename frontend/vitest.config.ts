@@ -13,5 +13,7 @@ export default defineConfig({
     dir: "src",
     // Required for @testing-library/react to register its automatic `afterEach(cleanup)` hook.
     globals: true,
+    // jsdom has no ResizeObserver; HeroUI's Toast needs one. See the file.
+    setupFiles: ["./src/test/setup.ts"],
   },
 });

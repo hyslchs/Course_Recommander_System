@@ -1,9 +1,9 @@
 import "@testing-library/jest-dom/vitest";
 import { useState } from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { FeedbackProvider, Modal, useFeedback } from "./ui";
+import { FeedbackProvider, Modal, useFeedback } from ".";
 
 function ModalHarness() {
   const [open, setOpen] = useState(false);
@@ -33,7 +33,28 @@ describe("shared accessible UI", () => {
     expect(screen.getByRole("button", { name: "最後一個動作" })).toHaveFocus();
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(trigger).toHaveFocus();
+    // React Aria's FocusScope restores on the next animation frame rather than
+    // synchronously in its cleanup, which is the one observable difference from
+    // the hand-rolled trap this replaced. Same node, one frame later.
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("locks page scroll and takes the rest of the app out of the a11y tree", async () => {
+    const user = userEvent.setup();
+    render(<ModalHarness />, { baseElement: document.body });
+    const outside = screen.getByRole("button", { name: "開啟詳細資料" });
+    const container = outside.parentElement as HTMLElement;
+    await user.click(outside);
+    await screen.findByRole("dialog");
+    // React Aria locks the root element rather than `body`. It neutralises the
+    // rest of the page one level higher than the old Modal did (`#root` in the
+    // browser instead of `.app-shell`) and uses `inert` where the engine
+    // supports it — jsdom does not, so it falls back to `aria-hidden` here.
+    expect(document.documentElement).toHaveStyle({ overflow: "hidden" });
+    expect(container.hasAttribute("inert") || container.getAttribute("aria-hidden") === "true").toBe(true);
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(container.hasAttribute("inert") || container.hasAttribute("aria-hidden")).toBe(false));
+    expect(document.documentElement).not.toHaveStyle({ overflow: "hidden" });
   });
 
   it("offers a single non-blocking undo action", async () => {

@@ -7,7 +7,8 @@ import { inferProfileStudyLevel } from "@/domain/eligibility";
 import { useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { CourseCard } from "@/components/CourseCard";
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyState, StateAlert } from "@/components/ui";
+import { Button } from "@heroui/react";
 import type { AIAnswer, AIHistoryTurn, CompletedCourse } from "@/domain/types";
 
 type AssistantTurn = { question: string; answer: AIAnswer };
@@ -109,12 +110,12 @@ export function AssistantPage() {
     void ask(undefined, retryQuestion);
   };
 
-  if (!profile) return <EmptyState title="先完成個人設定" body="設定系所與年級後，AI 才能避開不適合你的課程。" action="開始設定" href="/onboarding" />;
+  if (!profile) return <EmptyState action="開始設定" body="設定系所與年級後，AI 才能避開不適合你的課程。" href="/onboarding" title="先完成個人設定" variant="missing-prerequisite" />;
   return (
     <section className="page assistant-page">
       <div className="hero assistant-hero"><div><div className="eyebrow">RAG 課程問答</div><h1>跟課程資料聊聊</h1><p>我會從目前課程目錄與課綱找資料，再說明推薦理由與選課注意事項。</p></div><div className="privacy-pill">● 不使用向量查詢</div></div>
       {!consent ? <section className="card assistant-consent"><h2>使用前先確認資料範圍</h2><p>這個功能會把你的問題、學制／系級、偏好星期，以及已修與課表中的課程 ID 傳到伺服器和 OpenAI 產生回答；資料會離開本機，並受 OpenAI API 資料控制政策約束。</p><p>不會傳送姓名、帳號、收藏、完整 IndexedDB 或 API key；資料只用於這次課程問答。</p><button className="primary" onClick={() => void agree()}>同意並開始使用</button></section> : <>
-        {enabled === false && <div className="notice danger">AI 小幫手尚未設定 API key；其他課程功能仍可正常使用。</div>}
+        {enabled === false && <StateAlert live="off" tone="warning">AI 小幫手尚未設定 API key；其他課程功能仍可正常使用。</StateAlert>}
         <form className="assistant-composer card" onSubmit={(event) => void ask(event)}>
           <label htmlFor="assistant-question"><strong>想問什麼課程問題？</strong></label>
           <textarea ref={questionRef} id="assistant-question" aria-label="AI 課程問題" maxLength={maxChars} value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask(); } }} placeholder="例如：我想學資料分析，也希望不要和星期一的課衝堂…" />
@@ -123,8 +124,8 @@ export function AssistantPage() {
         </form>
         {loading && <div className="assistant-thinking"><span className="sr-only" role="status">正在整理回答</span><span className="thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span><strong aria-hidden="true">{phases[loadingPhase]}</strong><span aria-hidden="true">請稍候，正在依課程資料整理答案</span></div>}
         <div className="sr-only" role="status" aria-live="polite">{completionAnnouncement}</div>
-        {copyError && <div className="notice danger" role="alert">{copyError}</div>}
-        {error && <div className="notice danger assistant-error" role="alert">{error}<button type="button" onClick={retry}>重試上一題</button></div>}
+        {copyError && <StateAlert tone="danger">{copyError}</StateAlert>}
+        {error && <StateAlert action={<Button className="mt-2 min-h-11" variant="secondary" onPress={retry}>重試上一題</Button>} className="assistant-error" tone="danger">{error}</StateAlert>}
         {turns.length > 0 && <div className="assistant-toolbar"><span>本次對話保留最近兩輪上下文</span><div><button type="button" onClick={() => void copyLatest()}>{copied ? "已複製" : "複製最新答案"}</button><button type="button" onClick={() => setTurns([])}>清除對話</button></div></div>}
         <div className="assistant-thread">
           {turns.map((turn, turnIndex) => <article className="assistant-turn" key={`${turn.answer.request_id}-${turnIndex}`}>

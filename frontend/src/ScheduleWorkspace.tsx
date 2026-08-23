@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { Check, Lock, MapPin, Plus, Sparkle, Warning } from "@phosphor-icons/react";
 import { getAllRecords, putRecord } from "./db";
-import { getEmbeddingBundle } from "./api";
+import { getCatalog, getCourses, getEmbeddingBundle } from "./api";
 import { courseConflicts, meetingsConflict } from "./eligibility";
 import {
   buildScheduleBlocks,
@@ -59,16 +59,23 @@ function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: Schedul
   const [adding, setAdding] = useState(false);
   const [pendingConflict, setPendingConflict] = useState<{ entry: ScheduleEntry; courseName: string; reason: string }>();
   const showMessage = (text: string, kind: "success" | "error") => { setMessage(text); setMessageKind(kind); };
-  const normalizedQuery = query.trim().toLocaleLowerCase();
-  const courseOptions = useMemo(() => {
-    if (!normalizedQuery) return [];
-    return catalog
-      .filter((course) => [course.name_zh, course.name_en, course.ava_no, course.course_id, course.teacher, course.department]
-        .some((value) => value?.toLocaleLowerCase().includes(normalizedQuery)))
-      .sort((left, right) => left.name_zh.localeCompare(right.name_zh, "zh-Hant") || left.course_id.localeCompare(right.course_id))
-      .slice(0, 50);
-  }, [catalog, normalizedQuery]);
-  const selectedCourse = catalog.find((course) => course.course_id === selectedCourseId);
+  const normalizedQuery = query.trim();
+  const [courseOptions, setCourseOptions] = useState<Course[]>([]);
+  useEffect(() => {
+    if (!normalizedQuery) {
+      setCourseOptions([]);
+      return;
+    }
+    const controller = new AbortController();
+    const timer = window.setTimeout(() => {
+      const params = new URLSearchParams({ q: normalizedQuery, page: "1", page_size: "50" });
+      void getCourses(params, controller.signal)
+        .then((result) => setCourseOptions(result.items))
+        .catch((error) => { if ((error as Error).name !== "AbortError") showMessage("搜尋課程失敗：" + (error as Error).message, "error"); });
+    }, 250);
+    return () => { window.clearTimeout(timer); controller.abort(); };
+  }, [normalizedQuery]);
+  const selectedCourse = courseOptions.find((course) => course.course_id === selectedCourseId);
   const customTimeRequired = Boolean(selectedCourse && !selectedCourse.meetings.some((meeting) => meeting.weekday && meeting.sections.length));
   const customTimeActive = useCustomTime || customTimeRequired;
 
@@ -151,6 +158,7 @@ interface SelectedScheduleSlot {
 }
 
 interface LoadedSlotRecommendationData {
+  catalog: Course[];
   courseIds: string[];
   vectors: Float32Array;
   dimension: number;
@@ -294,7 +302,7 @@ export function ScheduleWorkspace({ catalog, plans, active, profile, selectPlan 
     data: LoadedSlotRecommendationData,
     categoryFilters: RecommendationCategory[],
   ) => rankScheduleSlotCourses({
-    catalog,
+    catalog: data.catalog,
     courseIds: data.courseIds,
     vectors: data.vectors,
     dimension: data.dimension,
@@ -320,13 +328,15 @@ export function ScheduleWorkspace({ catalog, plans, active, profile, selectPlan 
     setSlotRecommendationLoading(true);
     const requestId = ++slotRequestRef.current;
     try {
-      const [bundle, completed, dismissed] = await Promise.all([
+      const [fullCatalog, bundle, completed, dismissed] = await Promise.all([
+        getCatalog(),
         getEmbeddingBundle(),
         getAllRecords<CompletedCourse & { id: string }>("completedCourses"),
         getAllRecords<{ id: string }>("dismissedCourses"),
       ]);
       if (requestId !== slotRequestRef.current) return;
       const loadedData: LoadedSlotRecommendationData = {
+        catalog: fullCatalog,
         courseIds: bundle.index.course_ids,
         vectors: bundle.vectors,
         dimension: bundle.index.dimension,
@@ -364,7 +374,7 @@ export function ScheduleWorkspace({ catalog, plans, active, profile, selectPlan 
   };
   const addRecommendedCourse = async (courseId: string) => {
     if (!active || addingRecommendedCourseId) return;
-    const course = catalog.find((item) => item.course_id === courseId);
+    const course = loadedSlotRecommendationData?.catalog.find((item) => item.course_id === courseId) ?? catalog.find((item) => item.course_id === courseId);
     if (!course) return;
     if (active.entries.some((entry) => entry.courseId === courseId)) {
       notify("這門課已經在目前課表中", "error");

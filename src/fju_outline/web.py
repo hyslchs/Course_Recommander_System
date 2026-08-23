@@ -15,6 +15,7 @@ import numpy as np
 import orjson
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -80,6 +81,34 @@ class QueryEmbeddingsRequest(BaseModel):
         return cleaned
 
 
+class CourseIdsRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    course_ids: list[str] = Field(min_length=1, max_length=100)
+
+    @field_validator("course_ids")
+    @classmethod
+    def course_ids_must_be_valid(cls, values: list[str]) -> list[str]:
+        cleaned = [value.strip() for value in values]
+        if any(not value or len(value) > 100 for value in cleaned):
+            raise ValueError("course_ids must contain 1-100 non-whitespace characters")
+        return list(dict.fromkeys(cleaned))
+
+
+class CourseLookupRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    values: list[str] = Field(min_length=1, max_length=100)
+
+    @field_validator("values")
+    @classmethod
+    def values_must_be_valid(cls, values: list[str]) -> list[str]:
+        cleaned = [value.strip() for value in values]
+        if any(not value or len(value) > 200 for value in cleaned):
+            raise ValueError("values must contain 1-200 non-whitespace characters")
+        return list(dict.fromkeys(cleaned))
+
+
 class ArtifactStore:
     def __init__(
         self,
@@ -108,6 +137,10 @@ class ArtifactStore:
             "grades": [
                 {"value": str(value), "label": f"{value} 年級"}
                 for value in sorted({item.get("grade") for item in self.catalog if item.get("grade")})
+            ],
+            "credits": [
+                {"value": str(value), "label": f"{value:g} 學分"}
+                for value in sorted({item.get("credits") for item in self.catalog if item.get("credits") is not None})
             ],
             "classes": _options(item.get("class_group") for item in self.catalog),
             "divisions": _options(item.get("division") for item in self.catalog),
@@ -269,6 +302,7 @@ def create_app(
         requests=max(1, _env_int("FJU_AI_REQUESTS_PER_MINUTE", 10, minimum=1, maximum=1000))
     )
     application.state.ai_error = None
+    application.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
 
     @application.middleware("http")
     async def enforce_request_size(request: Request, call_next):
@@ -371,12 +405,62 @@ def register_routes(application: FastAPI) -> None:
             sort=sort,
         )
 
+    @application.get("/api/v1/class-groups")
+    def class_groups_v1(
+        request: Request,
+        department: str = "",
+        division: str = "",
+        grade: int | None = Query(None, ge=1, le=7),
+    ) -> dict[str, list[str]]:
+        items = require_store(request).catalog
+        values = sorted({
+            str(item.get("class_group"))
+            for item in items
+            if item.get("class_group")
+            and (not department or _department_filter_matches(item, department))
+            and (not division or item.get("division") == division)
+            and (grade is None or item.get("grade") == grade)
+        })
+        return {"items": values}
+
     @application.get("/api/v1/courses/{course_id}")
     def course_v1(course_id: str, request: Request) -> dict[str, Any]:
         item = require_store(request).by_id.get(str(course_id))
         if item is None:
             raise HTTPException(status_code=404, detail="Course not found")
         return item
+
+    @application.post("/api/v1/courses/batch")
+    def courses_batch_v1(payload: CourseIdsRequest, request: Request) -> dict[str, Any]:
+        store = require_store(request)
+        items = [store.by_id[course_id] for course_id in payload.course_ids if course_id in store.by_id]
+        found_ids = {str(item["course_id"]) for item in items}
+        return {
+            "items": items,
+            "missing_course_ids": [course_id for course_id in payload.course_ids if course_id not in found_ids],
+        }
+
+    @application.post("/api/v1/courses/lookup")
+    def courses_lookup_v1(payload: CourseLookupRequest, request: Request) -> dict[str, Any]:
+        catalog = require_store(request).catalog
+        normalized = {value.casefold(): value for value in payload.values}
+        matched_values: set[str] = set()
+        items: list[dict[str, Any]] = []
+        for item in catalog:
+            candidates = {
+                str(item.get("ava_no") or "").strip().casefold(),
+                str(item.get("name_zh") or "").strip().casefold(),
+            }
+            matches = candidates.intersection(normalized)
+            if not matches:
+                continue
+            items.append(item)
+            matched_values.update(normalized[value] for value in matches)
+        return {
+            "items": items,
+            "matched_values": [value for value in payload.values if value in matched_values],
+            "unmatched_values": [value for value in payload.values if value not in matched_values],
+        }
 
     @application.get("/api/v1/embeddings/index")
     def embeddings_index(request: Request) -> dict[str, Any]:

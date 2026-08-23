@@ -1,7 +1,7 @@
 import { FormEvent, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { CaretDown, Heart, Info, List, Warning } from "@phosphor-icons/react";
-import { askCourseAssistant, embedQuery, getCatalog, getCourses, getDepartmentCatalog, getEmbeddingBundle, getFeatures } from "./api";
+import { askCourseAssistant, embedQuery, getCatalog, getClassGroups, getCourses, getCoursesByIds, getDepartmentCatalog, getEmbeddingBundle, getFacets, getFeatures, lookupCourses } from "./api";
 import {
   clearPersonalData,
   createBackup,
@@ -13,7 +13,7 @@ import {
   validateBackup,
   type StoreName,
 } from "./db";
-import { courseConflicts, evaluateEligibility, getEligibilityRules, inferAudienceDepartment, inferProfileStudyLevel, meetingsConflict } from "./eligibility";
+import { courseConflicts, evaluateEligibility, formatCourseStudyLevelLabel, getEligibilityRules, inferAudienceDepartment, inferProfileStudyLevel, meetingsConflict } from "./eligibility";
 import { getFixedScheduleEntries, MENTOR_TIME_ENTRY_ID } from "./fixedSchedule";
 import {
   buildDepartmentOptions,
@@ -32,9 +32,9 @@ import {
   type PrerequisiteFilter,
   type TimeOfDayFilter,
 } from "./recommendation";
-import { getClassGroupOptions, selectRequiredCourses } from "./requiredCourses";
+import { selectRequiredCourses } from "./requiredCourses";
 import { coursesInPlan, meetingsInPlan, resolveActiveSchedulePlan } from "./scheduleUtils";
-import { buildSearchIndex, type SearchIndex } from "./search";
+import { buildSearchIndex } from "./search";
 import { formatMeetings, ScheduleWorkspace } from "./ScheduleWorkspace";
 import { analyzeQuery } from "./queryAnalysis";
 import { ConfirmDialog, Modal, useFeedback } from "./ui";
@@ -56,6 +56,34 @@ import type {
 
 const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
 const ACTIVE_SCHEDULE_PREFERENCE_ID = "active-schedule-plan-v1";
+const HIGH_CREDIT_THRESHOLD = 4;
+
+function getHighCreditOptions(creditOptions: number[]): number[] {
+  return creditOptions.filter((credits) => credits >= HIGH_CREDIT_THRESHOLD);
+}
+
+function isHighCreditFilterSelected(selectedCredits: number[], highCreditOptions: number[]): boolean {
+  return highCreditOptions.length > 0 && highCreditOptions.every((credits) => selectedCredits.includes(credits));
+}
+
+function toggleHighCreditFilter(selectedCredits: number[], highCreditOptions: number[]): number[] {
+  if (isHighCreditFilterSelected(selectedCredits, highCreditOptions)) {
+    return selectedCredits.filter((credits) => !highCreditOptions.includes(credits));
+  }
+  return [...new Set([...selectedCredits, ...highCreditOptions])];
+}
+
+function formatCreditFilterSummary(selectedCredits: number[], highCreditOptions: number[]): string {
+  const highCreditSelected = isHighCreditFilterSelected(selectedCredits, highCreditOptions);
+  const highCreditSet = new Set(highCreditOptions);
+  const individualCredits = selectedCredits
+    .filter((credits) => !highCreditSelected || !highCreditSet.has(credits))
+    .sort((left, right) => left - right);
+  const labels = individualCredits.map((credits) => `${credits} 學分`);
+  if (highCreditSelected) labels.push(`${HIGH_CREDIT_THRESHOLD} 學分以上`);
+  return labels.join("、");
+}
+
 const assistantFieldLabels: Record<string, string> = {
   title: "課名／課號",
   skills: "技能與學習成果",
@@ -67,12 +95,6 @@ const assistantFieldLabels: Record<string, string> = {
 };
 
 const defaultPreferredWeekdays = [1, 2, 3, 4, 5];
-function profileStudyLevelLabel(profile?: Pick<Profile, "division" | "studyLevel">): string {
-  const level = inferProfileStudyLevel(profile);
-  if (level === "master" || level === "doctoral") return "研究所";
-  if (level === "undergraduate") return "大學部";
-  return "尚未確認";
-}
 const statusLabels: Record<EligibilityStatus, string> = {
   no_known_restriction: "尚未判定出明確限制",
   eligible_confirmed: "條件已符合",
@@ -149,28 +171,8 @@ function RouteFocusManager() {
 }
 
 function App() {
-  const [catalog, setCatalog] = useState<Course[]>([]);
-  const [departmentCatalog, setDepartmentCatalog] = useState<DepartmentCatalog>();
-  const [catalogError, setCatalogError] = useState("");
-  const [catalogLoading, setCatalogLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuFirstRef = useRef<HTMLAnchorElement>(null);
-  const loadCatalog = useCallback(async () => {
-    setCatalogLoading(true);
-    setCatalogError("");
-    try {
-      const [courseCatalog, officialDepartments] = await Promise.all([getCatalog(), getDepartmentCatalog()]);
-      setCatalog(courseCatalog);
-      setDepartmentCatalog(officialDepartments);
-    } catch (error) {
-      setCatalogError((error as Error).message);
-    } finally {
-      setCatalogLoading(false);
-    }
-  }, []);
-  useEffect(() => { void loadCatalog(); }, [loadCatalog]);
-
-  const searchIndex = useMemo(() => buildSearchIndex(catalog), [catalog]);
   const [profiles] = useStore<Profile>("profile");
   const profile = profiles.find((item) => item.id === "current");
   const [plans] = useStore<SchedulePlan>("schedulePlans");
@@ -206,18 +208,16 @@ function App() {
             <List aria-hidden="true" />
           </button>
         </header>
-        {catalogLoading && <div className="status-banner" role="status">正在載入課程資料…</div>}
-        {catalogError && <div className="error-banner" role="alert">課程資料載入失敗：{catalogError}<button type="button" onClick={() => void loadCatalog()}>重試</button></div>}
-        <main id="main-content" aria-busy={catalogLoading}>
+        <main id="main-content">
           <RouteFocusManager />
           <Routes>
             <Route path="/" element={<Navigate to={profile ? "/recommend" : "/onboarding"} replace />} />
-            <Route path="/onboarding" element={<Onboarding catalog={catalog} departmentCatalog={departmentCatalog} profile={profile} />} />
-            <Route path="/recommend" element={<RecommendPage catalog={catalog} profile={profile} searchIndex={searchIndex} />} />
-            <Route path="/assistant" element={<AssistantPage catalog={catalog} profile={profile} />} />
-            <Route path="/explore" element={<ExplorePage catalog={catalog} profile={profile} />} />
-            <Route path="/schedule" element={<ScheduleWorkspace catalog={catalog} plans={plans} active={activePlan} profile={profile} selectPlan={selectPlan} />} />
-            <Route path="/data" element={<DataPage catalog={catalog} />} />
+            <Route path="/onboarding" element={<Onboarding profile={profile} />} />
+            <Route path="/recommend" element={<RecommendPage profile={profile} />} />
+            <Route path="/assistant" element={<AssistantPage profile={profile} />} />
+            <Route path="/explore" element={<ExplorePage profile={profile} />} />
+            <Route path="/schedule" element={<SchedulePage plans={plans} active={activePlan} profile={profile} selectPlan={selectPlan} />} />
+            <Route path="/data" element={<DataPage />} />
           </Routes>
         </main>
         <footer>MVP 1.0 · 推薦結果僅供規劃參考，實際資格、名額與開課資訊以校方選課系統為準。</footer>
@@ -232,12 +232,41 @@ function App() {
   );
 }
 
-function Onboarding({ catalog, departmentCatalog, profile }: { catalog: Course[]; departmentCatalog?: DepartmentCatalog; profile?: Profile }) {
+function SchedulePage({ plans, active, profile, selectPlan }: { plans: SchedulePlan[]; active?: SchedulePlan; profile?: Profile; selectPlan: (planId: string) => Promise<void> }) {
+  const courseIds = useMemo(() => active?.entries.map((entry) => entry.courseId) ?? [], [active?.entries]);
+  const courseIdsKey = courseIds.join("\u0000");
+  const [catalog, setCatalog] = useState<Course[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(Boolean(courseIds.length));
+    setError("");
+    void getCoursesByIds(courseIds).then((courses) => {
+      if (!cancelled) setCatalog(courses);
+    }).catch((caught) => {
+      if (!cancelled) setError((caught as Error).message);
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [courseIdsKey]);
+  if (loading) return <section className="page"><div className="empty-panel" role="status"><h1>正在載入課表</h1><p>只讀取目前方案中的課程。</p></div></section>;
+  if (error) return <section className="page"><div className="notice danger" role="alert"><h1>無法載入課表</h1><p>{error}</p></div></section>;
+  return <ScheduleWorkspace catalog={catalog} plans={plans} active={active} profile={profile} selectPlan={selectPlan} />;
+}
+
+function Onboarding({ profile }: { profile?: Profile }) {
+  const [departmentCatalog, setDepartmentCatalog] = useState<DepartmentCatalog>();
+  const [departmentCatalogError, setDepartmentCatalogError] = useState("");
+  useEffect(() => {
+    void getDepartmentCatalog().then(setDepartmentCatalog).catch((error) => setDepartmentCatalogError((error as Error).message));
+  }, []);
   const navigate = useNavigate();
   const { notify } = useFeedback();
   const { plans, activePlan, selectPlan } = useSchedulePlans();
-  const divisions = useMemo(() => buildDivisionOptions(catalog, departmentCatalog), [catalog, departmentCatalog]);
-  const departmentOptions = useMemo(() => buildDepartmentOptions(catalog, departmentCatalog), [catalog, departmentCatalog]);
+  const divisions = useMemo(() => buildDivisionOptions([], departmentCatalog), [departmentCatalog]);
+  const departmentOptions = useMemo(() => buildDepartmentOptions([], departmentCatalog), [departmentCatalog]);
   const profileDepartmentOption = (value: Profile) => departmentOptions.find((item) => {
     const sameDivision = item.division === value.division
       && (!value.division_code || item.divisionCode === value.division_code);
@@ -286,7 +315,23 @@ function Onboarding({ catalog, departmentCatalog, profile }: { catalog: Course[]
     label: getDepartmentTypeLabel(type),
     options: visibleDepartmentOptions.filter((option) => (option.departmentType ?? "unknown") === type),
   })).filter((group) => group.options.length), [visibleDepartmentOptions]);
-  const classGroupOptions = useMemo(() => form.department ? getClassGroupOptions(catalog, form) : [], [catalog, form]);
+  const [classGroupOptions, setClassGroupOptions] = useState<string[]>([]);
+  useEffect(() => {
+    if (!selectedDepartmentOption) {
+      setClassGroupOptions([]);
+      return;
+    }
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      department: selectedDepartmentOption.identity ?? selectedDepartmentOption.value,
+      division: form.division,
+      grade: String(form.grade),
+    });
+    void getClassGroups(params, controller.signal).then(setClassGroupOptions).catch((error) => {
+      if ((error as Error).name !== "AbortError") setSaveError((error as Error).message);
+    });
+    return () => controller.abort();
+  }, [form.division, form.grade, selectedDepartmentOption?.identity]);
   useEffect(() => {
     if (!departmentMenuOpen) {
       setDepartmentInput(selectedDepartmentOption ? formatDepartmentOption(selectedDepartmentOption) : form.department);
@@ -358,7 +403,8 @@ function Onboarding({ catalog, departmentCatalog, profile }: { catalog: Course[]
       updatedAt: new Date().toISOString(),
     };
     await putRecord("profile", savedProfile);
-    if (autoAddRequiredCourses && catalog.length) {
+    if (autoAddRequiredCourses) {
+      const catalog = await getCatalog();
       const requiredCourses = selectRequiredCourses(catalog, savedProfile);
       const completed = await getAllRecords<CompletedCourse & { id: string }>("completedCourses");
       const completedIds = new Set(completed.map((item) => item.courseId));
@@ -422,6 +468,8 @@ function Onboarding({ catalog, departmentCatalog, profile }: { catalog: Course[]
       <div className="eyebrow">只存在這台裝置</div>
       <h1>先設定你的基本資料</h1>
       <p className="lead">一般推薦所需的系級與修課紀錄只保存在這個瀏覽器，不會建立帳號。AI 小幫手只有在你另行同意後，才會傳送畫面上說明的必要資料。</p>
+      {departmentCatalogError && <div className="notice danger" role="alert">無法載入系所選項：{departmentCatalogError}</div>}
+      {!departmentCatalog && !departmentCatalogError && <div className="notice" role="status">正在載入系所選項…</div>}
       <form className="card form-grid profile-form" onSubmit={save} aria-busy={saving}><fieldset className="contents-fieldset" disabled={saving}>
         <label>部別<select value={form.division} onChange={(e) => { const division = e.target.value; setDepartmentInput(""); setDepartmentMenuOpen(false); setDepartmentError(""); setForm({ ...form, division, studyLevel: inferProfileStudyLevel({ division }), department: "", classGroup: "", department_identity: null, division_code: null, department_code: null, official_department_name_zh: null, official_department_type: null }); }}>{divisions.map((value) => <option key={value}>{value}</option>)}</select><small>部別與系所選項依輔大官方課程大綱查詢系統。</small></label>
         <div className="department-field wide">
@@ -509,7 +557,11 @@ function Onboarding({ catalog, departmentCatalog, profile }: { catalog: Course[]
   );
 }
 
-function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; profile?: Profile; searchIndex: SearchIndex }) {
+function RecommendPage({ profile }: { profile?: Profile }) {
+  const [catalog, setCatalog] = useState<Course[]>([]);
+  const searchIndex = useMemo(() => buildSearchIndex(catalog), [catalog]);
+  const [facets, setFacets] = useState<Record<string, { value: string; label: string }[]>>({});
+  useEffect(() => { void getFacets().then(setFacets).catch(() => undefined); }, []);
   const [completed] = useStore<CompletedCourse & { id: string }>("completedCourses");
   const [dismissed] = useStore<{ id: string }>("dismissedCourses");
   const { activePlan } = useSchedulePlans();
@@ -523,8 +575,6 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
   const [includeUnknownSchedule, setIncludeUnknownSchedule] = useState(true);
   const [prerequisiteFilter, setPrerequisiteFilter] = useState<PrerequisiteFilter>("exclude_unmet");
   const [includeUnknownPrerequisite, setIncludeUnknownPrerequisite] = useState(false);
-  const [studyLevelOnly, setStudyLevelOnly] = useState(true);
-  const [includeUnknownStudyLevel, setIncludeUnknownStudyLevel] = useState(false);
   const [courseLevelFilter, setCourseLevelFilter] = useState<CourseLevelFilter>("all");
   const [includeUnknownCourseLevel, setIncludeUnknownCourseLevel] = useState(false);
   const [includeScheduleInfo, setIncludeScheduleInfo] = useState(true);
@@ -540,19 +590,15 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
   useEffect(() => {
     setPreferredWeekdays(profile?.preferredWeekdays?.length ? profile.preferredWeekdays : defaultPreferredWeekdays);
   }, [profile?.preferredWeekdays]);
-  const creditOptions = useMemo(() => [...new Set(
-    catalog
-      .map((course) => course.credits)
-      .filter((credits): credits is number => typeof credits === "number"),
-  )].sort((left, right) => left - right), [catalog]);
-  const courseTagOptions = useMemo(() => {
-    const tags = new Map<string, NonNullable<Course["course_tags"]>[number]>();
-    for (const course of catalog) for (const tag of course.course_tags ?? []) tags.set(tag.code, tag);
-    return [...tags.values()].sort((left, right) => (
-      (left.display_order ?? Number.MAX_SAFE_INTEGER) - (right.display_order ?? Number.MAX_SAFE_INTEGER)
-      || left.label_zh.localeCompare(right.label_zh, "zh-Hant")
-    ));
-  }, [catalog]);
+  const creditOptions = useMemo(() => (facets.credits ?? [])
+    .map((item) => Number(item.value))
+    .filter((value) => Number.isFinite(value)), [facets]);
+  const highCreditOptions = useMemo(() => getHighCreditOptions(creditOptions), [creditOptions]);
+  const individualCreditOptions = useMemo(() => creditOptions.filter((credits) => !highCreditOptions.includes(credits)), [creditOptions, highCreditOptions]);
+  const highCreditFilterSelected = isHighCreditFilterSelected(creditFilters, highCreditOptions);
+  const creditFilterSummary = formatCreditFilterSummary(creditFilters, highCreditOptions);
+  const courseTagOptions = useMemo(() => (facets.course_tags ?? [])
+    .map((item) => ({ code: item.value, label_zh: item.label })), [facets]);
   const sanitizedPreview = useMemo(() => sanitizeSubjectQuery(interest), [interest]);
   const rerank = useCallback((embedding: RecommendationEmbedding, filters: RecommendationCategoryFilters) => {
     const scheduledCourses = coursesInPlan(catalog, activePlan);
@@ -577,14 +623,12 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
       includeUnknownSchedule,
       prerequisiteFilter,
       includeUnknownPrerequisite,
-      studyLevelFilter: studyLevelOnly ? inferProfileStudyLevel(profile) : undefined,
-      includeUnknownStudyLevel,
       courseLevelFilter,
       includeUnknownCourseLevel,
       scheduledCourses: includeScheduleInfo ? scheduledCourses : [],
       scheduledMeetings: includeScheduleInfo ? scheduledMeetings : [],
     }));
-  }, [activePlan, catalog, completed, courseLevelFilter, courseTagFilters, creditFilters, dismissed, includeScheduleInfo, includeUnknownCourseLevel, includeUnknownPrerequisite, includeUnknownSchedule, includeUnknownStudyLevel, prerequisiteFilter, preferredWeekdays, profile, searchIndex, showOtherWeekdays, studyLevelOnly, timeOfDayFilter]);
+  }, [activePlan, catalog, completed, courseLevelFilter, courseTagFilters, creditFilters, dismissed, includeScheduleInfo, includeUnknownCourseLevel, includeUnknownPrerequisite, includeUnknownSchedule, prerequisiteFilter, preferredWeekdays, profile, searchIndex, showOtherWeekdays, timeOfDayFilter]);
   useEffect(() => {
     if (lastEmbedding) rerank(lastEmbedding, categoryFilters);
   }, [categoryFilters, courseTagFilters, lastEmbedding, rerank]);
@@ -602,8 +646,6 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
     !showOtherWeekdays,
     timeOfDayFilter !== "all",
     creditFilters.length > 0,
-    studyLevelOnly,
-    includeUnknownStudyLevel,
     prerequisiteFilter === "exclude_unmet",
     includeUnknownPrerequisite,
     courseLevelFilter !== "all",
@@ -619,8 +661,6 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
     setIncludeUnknownSchedule(true);
     setPrerequisiteFilter("show_with_warning");
     setIncludeUnknownPrerequisite(false);
-    setStudyLevelOnly(false);
-    setIncludeUnknownStudyLevel(false);
     setCourseLevelFilter("all");
     setIncludeUnknownCourseLevel(false);
     setIncludeScheduleInfo(false);
@@ -633,7 +673,7 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
       return;
     }
     if (!sanitizedPreview.subjectQuery) {
-      setValidationError("請只輸入想學的主題或技能；星期、學分、學制與先修條件請使用下方篩選器。");
+      setValidationError("請只輸入想學的主題或技能；星期、學分與先修條件請使用下方篩選器。");
       return;
     }
     if (!preferredWeekdays.length) {
@@ -652,10 +692,12 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
           updatedAt: new Date().toISOString(),
         });
       }
-      const [bundle, query] = await Promise.all([
+      const [courseCatalog, bundle, query] = await Promise.all([
+        getCatalog(),
         getEmbeddingBundle(),
         embedQuery(sanitizedPreview.subjectQuery),
       ]);
+      setCatalog(courseCatalog);
       setLastEmbedding({
         query,
         queryText: sanitizedPreview.subjectQuery,
@@ -679,7 +721,7 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
   return (
     <section className="page">
       <div className="hero"><div><div className="eyebrow">115-1 個人化推薦</div><h1>找到真正適合你的下一門課</h1><p>推薦在你的裝置上完成；已修課、收藏和課表不會送到後端。</p></div><div className="privacy-pill">● Local-first</div></div>
-      <div className="recommend-box"><div className="subject-query-field"><label htmlFor="subject-query">想學的主題或技能</label><textarea id="subject-query" aria-label="想學的主題或技能" aria-invalid={Boolean(validationError && !sanitizedPreview.subjectQuery)} aria-describedby={validationError && !sanitizedPreview.subjectQuery ? "recommend-subject-error" : undefined} maxLength={500} value={interest} onChange={(e) => setInterest(e.target.value)} placeholder="例如：電子商務、社群行銷、零售數據分析與業界案例" /><small>搜尋文字只決定課程內容的相關性；上課星期、學分、學制與先修條件請使用下方篩選器。</small>{validationError && !sanitizedPreview.subjectQuery && <small id="recommend-subject-error" className="field-error">{validationError}</small>}</div><button className="primary" onClick={recommend} disabled={loading || !catalog.length}>{loading ? "正在分析…" : "產生推薦"}</button></div>
+      <div className="recommend-box"><div className="subject-query-field"><label htmlFor="subject-query">想學的主題或技能</label><textarea id="subject-query" aria-label="想學的主題或技能" aria-invalid={Boolean(validationError && !sanitizedPreview.subjectQuery)} aria-describedby={validationError && !sanitizedPreview.subjectQuery ? "recommend-subject-error" : undefined} maxLength={500} value={interest} onChange={(e) => setInterest(e.target.value)} placeholder="例如：電子商務、社群行銷、零售數據分析與業界案例" /><small>搜尋文字只決定課程內容的相關性；上課星期、學分與先修條件請使用下方篩選器。課程學制會標示在結果卡片上。</small>{validationError && !sanitizedPreview.subjectQuery && <small id="recommend-subject-error" className="field-error">{validationError}</small>}</div><button className="primary" onClick={recommend} disabled={loading}>{loading ? "正在分析…" : "產生推薦"}</button></div>
       {validationError && <div ref={validationSummaryRef} className="notice danger error-summary" role="alert" tabIndex={-1}><strong>請修正後再產生推薦</strong><p>{validationError}</p></div>}
       {lastEmbedding && <section className="search-execution-summary" aria-label="本次搜尋內容"><span><strong>本次學科主題</strong>{lastEmbedding.queryText}</span><span><strong>硬條件來源</strong>下方明確篩選器</span><span><strong>目前結果</strong>{results.length ? `顯示前 ${results.length} 門` : "尚未找到符合條件的課程"}</span></section>}
       <section className="filter-workspace" aria-labelledby="recommendation-filter-heading">
@@ -687,28 +729,27 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
         <div className="applied-filters" aria-live="polite"><div><strong>已套用 {activeFilterCount} 項條件</strong><div className="applied-filter-list">
           {!showOtherWeekdays && <button type="button" onClick={() => setShowOtherWeekdays(true)}>星期{preferredWeekdays.map((day) => weekdays[day - 1]).join("、")}<span aria-hidden="true">×</span></button>}
           {timeOfDayFilter !== "all" && <button type="button" onClick={() => { setTimeOfDayFilter("all"); setIncludeUnknownSchedule(true); }}>{timeOfDayFilter === "daytime" ? "日間 D 節" : timeOfDayFilter === "evening" ? "晚間 E 節" : "平日晚間＋週六"}<span aria-hidden="true">×</span></button>}
-          {creditFilters.length > 0 && <button type="button" onClick={() => setCreditFilters([])}>{creditFilters.join("、")} 學分<span aria-hidden="true">×</span></button>}
-          {studyLevelOnly && <button type="button" onClick={() => setStudyLevelOnly(false)}>符合我的學制<span aria-hidden="true">×</span></button>}
+          {creditFilters.length > 0 && <button type="button" onClick={() => setCreditFilters([])}>{creditFilterSummary}<span aria-hidden="true">×</span></button>}
           {prerequisiteFilter === "exclude_unmet" && <button type="button" onClick={() => setPrerequisiteFilter("show_with_warning")}>排除未滿足先修<span aria-hidden="true">×</span></button>}
           {courseLevelFilter !== "all" && <button type="button" onClick={() => setCourseLevelFilter("all")}>{courseLevelFilter === "exclude_introductory" ? "排除入門" : `只要${courseLevelFilter === "introductory" ? "入門" : courseLevelFilter === "intermediate" ? "中階" : "進階"}`}<span aria-hidden="true">×</span></button>}
           {includeScheduleInfo && <button type="button" onClick={() => setIncludeScheduleInfo(false)}>檢查衝堂<span aria-hidden="true">×</span></button>}
           {categoryFilters.length > 0 && <button type="button" onClick={() => setCategoryFilters([])}>課程類別 {categoryFilters.length}<span aria-hidden="true">×</span></button>}
           {courseTagFilters.length > 0 && <button type="button" onClick={() => setCourseTagFilters([])}>官方標籤 {courseTagFilters.length}<span aria-hidden="true">×</span></button>}
-          {(includeUnknownStudyLevel || includeUnknownPrerequisite || includeUnknownCourseLevel) && <span className="applied-filter-note">已包含部分資料不明課程</span>}
+          {(includeUnknownPrerequisite || includeUnknownCourseLevel) && <span className="applied-filter-note">已包含部分資料不明課程</span>}
         </div></div><button type="button" className="clear-filters" onClick={clearFilters} disabled={activeFilterCount === 0}>清除全部</button></div>
         <details className="filter-group" open>
-          <summary><span><b>上課安排</b><small>{showOtherWeekdays ? "不限星期" : `星期${preferredWeekdays.map((day) => weekdays[day - 1]).join("、")}`}{timeOfDayFilter !== "all" && " · 已限制時段"}{creditFilters.length > 0 && ` · ${creditFilters.join("、")} 學分`}</small></span><span className="filter-group-count">常用</span></summary>
+          <summary><span><b>上課安排</b><small>{showOtherWeekdays ? "不限星期" : `星期${preferredWeekdays.map((day) => weekdays[day - 1]).join("、")}`}{timeOfDayFilter !== "all" && " · 已限制時段"}{creditFilters.length > 0 && ` · ${creditFilterSummary}`}</small></span><span className="filter-group-count">常用</span></summary>
           <div className="filter-group-content">
             <div className="filter-control"><div className="filter-control-heading"><strong>上課星期</strong><span>{showOtherWeekdays ? "目前不依星期排除" : "只顯示可上的星期"}</span></div><div className="choice-row" aria-label="偏好的上課星期" aria-describedby={!preferredWeekdays.length ? "weekday-error" : undefined}>{weekdays.map((label, index) => { const day = index + 1; return <button type="button" className={`choice-chip ${preferredWeekdays.includes(day) ? "selected" : ""}`} aria-pressed={preferredWeekdays.includes(day)} key={day} onClick={() => togglePreferredWeekday(day)}>星期{label}</button>; })}</div>{!preferredWeekdays.length && <small id="weekday-error" className="field-error">請至少選擇一個星期</small>}<button type="button" className={`filter-toggle ${showOtherWeekdays ? "active" : ""}`} aria-pressed={showOtherWeekdays} onClick={() => setShowOtherWeekdays((current) => !current)}>暫時忽略星期限制</button></div>
             
-            <div className="filter-control"><div className="filter-control-heading"><strong>學分數</strong><span>{creditFilters.length ? `只顯示 ${creditFilters.join("、")} 學分` : "不限學分"}</span></div><div className="filter-chip-grid"><button type="button" className={`filter-choice ${creditFilters.length === 0 ? "selected" : ""}`} aria-pressed={creditFilters.length === 0} onClick={() => setCreditFilters([])}>不限學分</button>{creditOptions.map((credits) => <button type="button" className={`filter-choice ${creditFilters.includes(credits) ? "selected" : ""}`} aria-pressed={creditFilters.includes(credits)} key={credits} onClick={() => setCreditFilters((current) => current.includes(credits) ? current.filter((item) => item !== credits) : [...current, credits])}>{credits} 學分</button>)}</div></div>
+            <div className="filter-control"><div className="filter-control-heading"><strong>學分數</strong><span>{creditFilters.length ? `只顯示 ${creditFilterSummary}` : "不限學分"}</span></div><div className="filter-chip-grid"><button type="button" className={`filter-choice ${creditFilters.length === 0 ? "selected" : ""}`} aria-pressed={creditFilters.length === 0} onClick={() => setCreditFilters([])}>不限學分</button>{individualCreditOptions.map((credits) => <button type="button" className={`filter-choice ${creditFilters.includes(credits) ? "selected" : ""}`} aria-pressed={creditFilters.includes(credits)} key={credits} onClick={() => setCreditFilters((current) => current.includes(credits) ? current.filter((item) => item !== credits) : [...current, credits])}>{credits} 學分</button>)}{highCreditOptions.length > 0 && <button type="button" className={`filter-choice ${highCreditFilterSelected ? "selected" : ""}`} aria-pressed={highCreditFilterSelected} onClick={() => setCreditFilters((current) => toggleHighCreditFilter(current, highCreditOptions))}>4 學分以上</button>}</div></div>
             <div className="filter-control filter-schedule-toggle"><div><strong>課表衝堂</strong><span>{includeScheduleInfo ? `已納入「${activePlan?.name ?? "目前課表"}」` : "不檢查目前課表"}</span></div><button type="button" className={`filter-toggle ${includeScheduleInfo ? "active" : ""}`} aria-pressed={includeScheduleInfo} onClick={() => setIncludeScheduleInfo((current) => !current)}>納入完整課表檢查衝堂</button></div>
           </div>
         </details>
         <details className="filter-group">
-          <summary><span><b>修課資格</b><small>{studyLevelOnly ? `符合${profileStudyLevelLabel(profile)}` : "不限學制"} · {prerequisiteFilter === "exclude_unmet" ? "排除未滿足先修" : "保留先修警告"}</small></span><span className="filter-group-count">{[studyLevelOnly, prerequisiteFilter === "exclude_unmet", courseLevelFilter !== "all"].filter(Boolean).length} 項</span></summary>
+          <summary><span><b>修課資格</b><small>{prerequisiteFilter === "exclude_unmet" ? "排除未滿足先修" : "保留先修提醒"}</small></span><span className="filter-group-count">{[prerequisiteFilter === "exclude_unmet", courseLevelFilter !== "all"].filter(Boolean).length} 項</span></summary>
           <div className="filter-group-content">
-            <div className="filter-control"><div className="filter-control-heading"><strong>學制與先修</strong><span>根據你的個人設定與已修課程判斷</span></div><button type="button" className={`filter-toggle ${studyLevelOnly ? "active" : ""}`} aria-pressed={studyLevelOnly} onClick={() => setStudyLevelOnly((current) => !current)}>只顯示符合「{profileStudyLevelLabel(profile)}」層級的課程</button><div className="filter-chip-grid" role="radiogroup" aria-label="先修條件"><label className={`filter-choice radio-choice ${prerequisiteFilter === "exclude_unmet" ? "selected" : ""}`}><input type="radio" name="prerequisite" checked={prerequisiteFilter === "exclude_unmet"} onChange={() => setPrerequisiteFilter("exclude_unmet")} /><span>排除確定未滿足先修</span></label><label className={`filter-choice radio-choice ${prerequisiteFilter === "show_with_warning" ? "selected" : ""}`}><input type="radio" name="prerequisite" checked={prerequisiteFilter === "show_with_warning"} onChange={() => setPrerequisiteFilter("show_with_warning")} /><span>保留未滿足先修並警告</span></label></div><details className="filter-advanced"><summary>進階設定 <small>{includeUnknownStudyLevel || includeUnknownPrerequisite ? "已包含資料不明課程" : "不含資料不明課程"}</small></summary>{studyLevelOnly && <button type="button" className={`filter-toggle ${includeUnknownStudyLevel ? "active" : ""}`} aria-pressed={includeUnknownStudyLevel} onClick={() => setIncludeUnknownStudyLevel((current) => !current)}>另外顯示學制資料不明的課程</button>}<button type="button" className={`filter-toggle ${includeUnknownPrerequisite ? "active" : ""}`} aria-pressed={includeUnknownPrerequisite} onClick={() => setIncludeUnknownPrerequisite((current) => !current)}>另外顯示先修說明尚未結構化的課程</button></details></div>
+            <div className="filter-control"><div className="filter-control-heading"><strong>先修條件</strong><span>根據你的已修課程判斷</span></div><div className="filter-chip-grid" role="radiogroup" aria-label="先修條件"><label className={`filter-choice radio-choice ${prerequisiteFilter === "exclude_unmet" ? "selected" : ""}`}><input type="radio" name="prerequisite" checked={prerequisiteFilter === "exclude_unmet"} onChange={() => setPrerequisiteFilter("exclude_unmet")} /><span>隱藏我尚未完成先修條件的課程</span></label><label className={`filter-choice radio-choice ${prerequisiteFilter === "show_with_warning" ? "selected" : ""}`}><input type="radio" name="prerequisite" checked={prerequisiteFilter === "show_with_warning"} onChange={() => setPrerequisiteFilter("show_with_warning")} /><span>仍顯示，但提醒我尚未完成先修條件</span></label></div><details className="filter-advanced"><summary>進階設定 <small>{includeUnknownPrerequisite ? "已包含資料不明課程" : "不含資料不明課程"}</small></summary><button type="button" className={`filter-toggle ${includeUnknownPrerequisite ? "active" : ""}`} aria-pressed={includeUnknownPrerequisite} onClick={() => setIncludeUnknownPrerequisite((current) => !current)}>也顯示無法自動判斷先修資格的課程</button></details></div>
             <div className="filter-control"><div className="filter-control-heading"><strong>課程程度</strong><span>只依課名中的明確字樣保守判定</span></div><div className="filter-chip-grid" role="radiogroup" aria-label="課程程度">{([['all', '不限程度'], ['exclude_introductory', '排除入門'], ['introductory', '只要入門'], ['intermediate', '只要中階'], ['advanced', '只要進階']] as const).map(([value, label]) => <label className={"filter-choice radio-choice " + (courseLevelFilter === value ? "selected" : "")} key={value}><input type="radio" name="course-level" value={value} checked={courseLevelFilter === value} onChange={() => setCourseLevelFilter(value)} /><span>{label}</span></label>)}</div>{courseLevelFilter !== "all" && <details className="filter-advanced"><summary>進階設定 <small>{includeUnknownCourseLevel ? "已顯示程度不明課程" : "不顯示程度不明課程"}</small></summary><button type="button" className={`filter-toggle ${includeUnknownCourseLevel ? "active" : ""}`} aria-pressed={includeUnknownCourseLevel} onClick={() => setIncludeUnknownCourseLevel((current) => !current)}>另外顯示程度資料不明的課程</button></details>}</div>
           </div>
         </details>
@@ -725,14 +766,14 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
       {loading && <div className="empty-panel" role="status"><h2>正在產生推薦…</h2><p>正在比對課程內容與你設定的修課條件。</p></div>}
       {!lastEmbedding && !loading && !error && <div className="empty-panel"><h2>輸入主題，開始找適合的課</h2><div className="feature-grid"><span>明確篩選</span><span>語意檢索</span><span>關鍵字檢索</span><span>RRF 融合排名</span></div></div>}
       {lastEmbedding && !results.length && !loading && !error && <div className="empty-panel"><h2>沒有符合全部條件的課程</h2><p>可以放寬條件，或換一個更廣泛的主題。</p><div className="empty-actions"><button type="button" onClick={clearFilters}>清除全部條件</button><button type="button" onClick={() => document.getElementById("subject-query")?.focus()}>修改主題</button></div></div>}
-      <div className="course-grid">{results.map((item, index) => <CourseCard key={item.course.course_id} course={item.course} alternatives={item.alternatives} profile={profile} catalog={catalog} rank={index + 1} reasons={item.reasons} recommendationCategory={item.category} />)}</div>
+      <div className="course-grid">{results.map((item, index) => <CourseCard key={item.course.course_id} course={item.course} alternatives={item.alternatives} profile={profile} rank={index + 1} reasons={item.reasons} recommendationCategory={item.category} />)}</div>
     </section>
   );
 }
 
 type AssistantTurn = { question: string; answer: AIAnswer };
 
-function AssistantPage({ catalog, profile }: { catalog: Course[]; profile?: Profile }) {
+function AssistantPage({ profile }: { profile?: Profile }) {
   const [completed] = useStore<CompletedCourse & { id: string }>("completedCourses");
   const { activePlan } = useSchedulePlans();
   const [preferences] = useStore<Record<string, unknown>>("recommendationPreferences");
@@ -776,6 +817,7 @@ function AssistantPage({ catalog, profile }: { catalog: Course[]; profile?: Prof
     if (!consent) return;
     setLoading(true); setLoadingPhase(0); setError(""); setLastFailedQuestion(""); setCopied(false);
     try {
+      const catalog = await getCatalog();
       const analysis = analyzeQuery(cleaned, { catalog });
       const response = await askCourseAssistant({
         request_id: crypto.randomUUID(),
@@ -854,7 +896,7 @@ function AssistantPage({ catalog, profile }: { catalog: Course[]; profile?: Prof
           {turns.map((turn, turnIndex) => <article className="assistant-turn" key={`${turn.answer.request_id}-${turnIndex}`}>
             <div className="assistant-user-message"><span>你</span><p>{turn.question}</p></div>
             <div className="assistant-answer card"><div className="assistant-answer-label">AI 課程小幫手</div><p className="assistant-summary">{turn.answer.answer || "目前沒有足夠資料可以補充。"}</p>
-              {turn.answer.recommendations.length > 0 && <><h2>推薦課程</h2><div className="course-grid">{turn.answer.recommendations.map((item, index) => <CourseCard key={`${turn.answer.request_id}-${item.course.course_id}`} course={item.course} profile={profile} catalog={catalog} rank={index + 1} reasons={[item.reason]} cautions={item.cautions} matchedFields={item.matched_fields} />)}</div></>}
+              {turn.answer.recommendations.length > 0 && <><h2>推薦課程</h2><div className="course-grid">{turn.answer.recommendations.map((item, index) => <CourseCard key={`${turn.answer.request_id}-${item.course.course_id}`} course={item.course} profile={profile} rank={index + 1} reasons={[item.reason]} cautions={item.cautions} matchedFields={item.matched_fields} />)}</div></>}
               {turn.answer.follow_up_suggestions.length > 0 && <div className="assistant-followups"><strong>你也可以問：</strong>{turn.answer.follow_up_suggestions.map((suggestion) => <button type="button" key={suggestion} onClick={() => { setQuestion(suggestion); window.requestAnimationFrame(() => questionRef.current?.focus()); }}>{suggestion}</button>)}</div>}
               {turn.answer.limitations.length > 0 && <div className="assistant-limitations">{turn.answer.limitations.map((limitation) => <p key={limitation}><Info aria-hidden="true" />{limitation}</p>)}<NavLink to="/explore">前往探索課程 →</NavLink></div>}
             </div>
@@ -865,7 +907,9 @@ function AssistantPage({ catalog, profile }: { catalog: Course[]; profile?: Prof
   );
 }
 
-function ExplorePage({ catalog, profile }: { catalog: Course[]; profile?: Profile }) {
+function ExplorePage({ profile }: { profile?: Profile }) {
+  const [facets, setFacets] = useState<Record<string, { value: string; label: string }[]>>({});
+  useEffect(() => { void getFacets().then(setFacets).catch(() => undefined); }, []);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [department, setDepartment] = useState("");
@@ -877,15 +921,8 @@ function ExplorePage({ catalog, profile }: { catalog: Course[]; profile?: Profil
   const [loading, setLoading] = useState(true);
   const [hasLoaded, setHasLoaded] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
-  const departments = useMemo(() => {
-    const options = new Map<string, { value: string; label: string }>();
-    for (const item of catalog) {
-      if (!item.department) continue;
-      const value = item.department_identity ?? "legacy:" + item.department;
-      options.set(value, { value, label: item.official_department_label ?? item.department_display ?? item.department });
-    }
-    return [...options.values()].sort((left, right) => left.label.localeCompare(right.label, "zh-Hant"));
-  }, [catalog]);
+  const departments = useMemo(() => [...(facets.departments ?? [])]
+    .sort((left, right) => left.label.localeCompare(right.label, "zh-Hant")), [facets]);
   useEffect(() => {
     const timer = window.setTimeout(() => { setDebouncedQuery(query); setPage(1); }, 300);
     return () => window.clearTimeout(timer);
@@ -925,13 +962,13 @@ function ExplorePage({ catalog, profile }: { catalog: Course[]; profile?: Profil
       {loading && !hasLoaded && <div className="course-grid skeleton-grid" role="status" aria-label="正在載入課程">{[1, 2, 3, 4].map((item) => <div className="course-skeleton" key={item}><span></span><span></span><span></span></div>)}</div>}
       {error && <div className="notice danger" role="alert">無法載入課程：{error}<button type="button" onClick={() => setRetryKey((value) => value + 1)}>重試</button></div>}
       {hasLoaded && !error && !courses.length && !loading && <div className="empty-panel"><h2>找不到符合條件的課程</h2><p>請嘗試較短的關鍵字，或清除目前篩選。</p><button type="button" onClick={clearExploreFilters}>清除篩選</button></div>}
-      {hasLoaded && !error && <div className="results-region" aria-busy={loading}>{loading && <div className="updating-indicator" role="status">正在更新結果…</div>}<div className="course-grid">{courses.map((item) => <CourseCard key={item.course_id} course={item} profile={profile} catalog={catalog} />)}</div></div>}
+      {hasLoaded && !error && <div className="results-region" aria-busy={loading}>{loading && <div className="updating-indicator" role="status">正在更新結果…</div>}<div className="course-grid">{courses.map((item) => <CourseCard key={item.course_id} course={item} profile={profile} />)}</div></div>}
       {hasLoaded && !error && courses.length > 0 && <div className="pager"><button disabled={loading || page === 1} onClick={() => setPage((value) => value - 1)}>上一頁</button><span>第 {page} 頁</span><button disabled={loading || page * 25 >= total} onClick={() => setPage((value) => value + 1)}>下一頁</button></div>}
     </section>
   );
 }
 
-function CourseCard({ course, alternatives, profile, catalog, rank, reasons, cautions, matchedFields, recommendationCategory }: { course: Course; alternatives?: Course[]; profile?: Profile; catalog: Course[]; rank?: number; reasons?: string[]; cautions?: string[]; matchedFields?: string[]; recommendationCategory?: Recommendation["category"] }) {
+function CourseCard({ course, alternatives, profile, rank, reasons, cautions, matchedFields, recommendationCategory }: { course: Course; alternatives?: Course[]; profile?: Profile; rank?: number; reasons?: string[]; cautions?: string[]; matchedFields?: string[]; recommendationCategory?: Recommendation["category"] }) {
   const [completed] = useStore<CompletedCourse & { id: string }>("completedCourses");
   const [favorites] = useStore<{ id: string }>("favorites");
   const { activePlan, selectPlan } = useSchedulePlans();
@@ -999,7 +1036,13 @@ function CourseCard({ course, alternatives, profile, catalog, rank, reasons, cau
     if (pending || scheduled) return;
     let plan = activePlan;
     if (!plan) plan = { id: crypto.randomUUID(), name: "我的課表", entries: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-    const scheduledCourses = coursesInPlan(catalog, plan);
+    let scheduledCourses: Course[];
+    try {
+      scheduledCourses = await getCoursesByIds(plan.entries.map((entry) => entry.courseId));
+    } catch (error) {
+      notify("無法檢查目前課表：" + (error as Error).message, "error");
+      return;
+    }
     const courseConflict = courseConflicts(selectedCourse, scheduledCourses);
     const fixedConflict = meetingsConflict(selectedCourse.meetings, (plan.fixedEntries ?? []).flatMap((entry) => entry.meetings));
     if (courseConflict.conflict || fixedConflict.conflict) {
@@ -1014,7 +1057,7 @@ function CourseCard({ course, alternatives, profile, catalog, rank, reasons, cau
     <article className="course-card">
       <div className="course-top">{rank && <span className="rank">#{rank}</span>}{selectedRecommendationCategory && <span className={"category-tag " + selectedRecommendationCategory}>{recommendationCategoryLabels[selectedRecommendationCategory]}</span>}<span className={"status " + eligibility.status}>{eligibility.blocked.some((rule) => rule.kind === "course_prerequisite") ? "有擋修條件" : statusLabels[eligibility.status]}</span><button type="button" className={"heart icon-button " + (favorite ? "active" : "")} onClick={() => void toggleFavorite()} disabled={pending === "favorite"} aria-busy={pending === "favorite"} aria-pressed={favorite} aria-label={favorite ? "取消收藏課程" : "收藏課程"}><Heart weight={favorite ? "fill" : "regular"} aria-hidden="true" /></button></div>
       <h2>{selectedCourse.name_zh}</h2><p className="muted">{selectedCourse.name_en}</p>
-      <div className="meta"><span>{selectedCourse.official_department_label ?? selectedCourse.department_display ?? inferAudienceDepartment(selectedCourse)}</span><span>{selectedCourse.teacher || "教師未定"}</span><span>{selectedCourse.credits} 學分</span><span>{selectedCourse.required_elective_name}</span></div>{selectedCourse.course_tags?.length ? <div className="official-course-tags" aria-label="官方課程標籤">{selectedCourse.course_tags.map((tag) => <span key={tag.code}>{tag.label_zh}</span>)}</div> : null}
+      <div className="meta"><span className="study-level-badge">{formatCourseStudyLevelLabel(selectedCourse)}</span><span>{selectedCourse.official_department_label ?? selectedCourse.department_display ?? inferAudienceDepartment(selectedCourse)}</span><span>{selectedCourse.teacher || "教師未定"}</span><span>{selectedCourse.credits} 學分</span><span>{selectedCourse.required_elective_name}</span></div>{selectedCourse.course_tags?.length ? <div className="official-course-tags" aria-label="官方課程標籤">{selectedCourse.course_tags.map((tag) => <span key={tag.code}>{tag.label_zh}</span>)}</div> : null}
       <p className="meeting">{formatMeetings(selectedCourse)}</p>
       {variants.length > 1 && <details className="course-variants"><summary>可選的班別／共同開課項目（{variants.length} 個）</summary><div className="variant-list">{variants.map((variant) => { const variantEligibility = evaluateEligibility(variant, profile, completedNames); return <button type="button" className={variant.course_id === selectedCourse.course_id ? "active" : ""} aria-pressed={variant.course_id === selectedCourse.course_id} onClick={() => setSelectedCourseId(variant.course_id)} key={variant.course_id}><strong>{variant.official_department_label ?? variant.department_display ?? inferAudienceDepartment(variant)}</strong><span>{variant.teacher || "教師未定"} · {formatMeetings(variant)}</span><small>{variantEligibility.blocked.some((rule) => rule.kind === "course_prerequisite") ? "有擋修條件" : statusLabels[variantEligibility.status]}</small></button>; })}</div></details>}
       {reasons?.length ? <div className="recommendation-reasons"><strong>為什麼推薦這堂？</strong><ul className="reasons">{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div> : null}
@@ -1027,7 +1070,7 @@ function CourseCard({ course, alternatives, profile, catalog, rank, reasons, cau
   );
 }
 
-function DataPage({ catalog }: { catalog: Course[] }) {
+function DataPage() {
   const [completed] = useStore<CompletedCourse & { id: string }>("completedCourses");
   const [favorites] = useStore<{ id: string }>("favorites");
   const { plans } = useSchedulePlans();
@@ -1044,11 +1087,11 @@ function DataPage({ catalog }: { catalog: Course[] }) {
     if (!codes.trim() || busy) return;
     setBusy("recognize");
     try {
-      const values = codes.split(/[s,，;；]+/).map((item) => item.trim().toLowerCase()).filter(Boolean);
-      const matches = catalog.filter((course) => values.includes(course.ava_no?.toLowerCase()) || values.includes(course.name_zh.toLowerCase()));
-      for (const course of matches) await putRecord("completedCourses", { id: course.course_id, courseId: course.course_id, courseName: course.name_zh, continueLearning: false, addedAt: new Date().toISOString() });
+      const values = codes.split(/[\s,，;；]+/).map((item) => item.trim().toLowerCase()).filter(Boolean);
+      const result = await lookupCourses(values);
+      for (const course of result.items) await putRecord("completedCourses", { id: course.course_id, courseId: course.course_id, courseName: course.name_zh, continueLearning: false, addedAt: new Date().toISOString() });
       setCodes("");
-      notify("已加入 " + matches.length + " 門；" + (values.length - matches.length) + " 筆未找到");
+      notify("已加入 " + result.items.length + " 門；" + result.unmatched_values.length + " 筆未找到");
     } catch (error) { notify("辨識課程失敗：" + (error as Error).message, "error"); }
     finally { setBusy(""); }
   };

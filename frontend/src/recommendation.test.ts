@@ -226,7 +226,7 @@ describe("query-only recommendation ranking", () => {
     expect(new Set(results.map((item) => item.category))).toEqual(new Set(["home_required", "home_elective"]));
   });
 
-  it("filters graduate courses when the student's study level does not match", () => {
+  it("keeps graduate courses visible when no explicit study-level filter is applied", () => {
     const graduate = {
       ...course("graduate", "資工", "選修", "研究所機器學習"),
       raw_department: "資工碩一",
@@ -243,7 +243,7 @@ describe("query-only recommendation ranking", () => {
       dismissedIds: [],
       scheduledCourses: [],
     });
-    expect(results).toHaveLength(0);
+    expect(results).toHaveLength(1);
   });
 
   it("does not let an unknown schedule pass strict weekday filters", () => {

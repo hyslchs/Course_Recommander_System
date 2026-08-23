@@ -56,6 +56,33 @@ export async function getCourses(params: URLSearchParams, signal?: AbortSignal) 
   );
 }
 
+export async function getClassGroups(params: URLSearchParams, signal?: AbortSignal): Promise<string[]> {
+  const result = await getJson<{ items: string[] }>(`/api/v1/class-groups?${params}`, { signal });
+  return result.items;
+}
+
+export async function getCoursesByIds(courseIds: string[]): Promise<Course[]> {
+  if (!courseIds.length) return [];
+  const result = await getJson<{ items: Course[]; missing_course_ids: string[] }>("/api/v1/courses/batch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ course_ids: courseIds }),
+  });
+  return result.items;
+}
+
+export async function lookupCourses(values: string[]): Promise<{
+  items: Course[];
+  matched_values: string[];
+  unmatched_values: string[];
+}> {
+  return getJson("/api/v1/courses/lookup", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ values }),
+  });
+}
+
 export async function getCourse(courseId: string): Promise<Course> {
   return getJson(`/api/v1/courses/${encodeURIComponent(courseId)}`);
 }

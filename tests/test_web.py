@@ -37,9 +37,38 @@ def test_health_catalog_and_embedding_api(tmp_path):
         assert departments.status_code == 200
         assert departments.json()["schema_version"].startswith("fju_department_catalog_")
         assert client.get("/api/v1/courses?q=資料").json()["total"] == 1
+        assert client.get("/api/v1/class-groups?division=日間部&grade=3").json()["items"] == ["甲班"]
         response = client.post("/api/v1/query-embedding", json={"text": "我想學資料分析"})
         assert response.status_code == 200
         assert response.json()["dimension"] == 3
+
+
+def test_batch_and_lookup_course_api(tmp_path):
+    with _client(tmp_path) as client:
+        batch = client.post("/api/v1/courses/batch", json={"course_ids": ["1", "missing"]})
+        assert batch.status_code == 200
+        assert [item["course_id"] for item in batch.json()["items"]] == ["1"]
+        assert batch.json()["missing_course_ids"] == ["missing"]
+
+        lookup = client.post("/api/v1/courses/lookup", json={"values": ["資料科學", "不存在"]})
+        assert lookup.status_code == 200
+        assert [item["course_id"] for item in lookup.json()["items"]] == ["1"]
+        assert lookup.json()["matched_values"] == ["資料科學"]
+        assert lookup.json()["unmatched_values"] == ["不存在"]
+
+        assert client.post("/api/v1/courses/batch", json={"course_ids": []}).status_code == 422
+        assert client.post("/api/v1/courses/lookup", json={"values": []}).status_code == 422
+
+
+def test_large_json_responses_are_compressed(tmp_path):
+    records = [_record(str(index), f"資料科學 {index}") for index in range(20)]
+    output = tmp_path / "artifacts"
+    build_artifacts(records, output, encoder=FakeEncoder(), year=115, semester=1)
+    app = create_app(store=ArtifactStore(output), query_encoder=FakeQueryEncoder(), load_runtime=False)
+    with TestClient(app) as client:
+        response = client.get("/api/v1/courses?page_size=20", headers={"Accept-Encoding": "gzip"})
+        assert response.status_code == 200
+        assert response.headers["content-encoding"] == "gzip"
 
 
 def test_embedding_api_rejects_profile_fields_and_blank_text(tmp_path):

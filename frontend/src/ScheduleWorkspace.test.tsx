@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { formatMeetings, ScheduleWorkspace } from "./ScheduleWorkspace";
 import type { Course, Meeting, Profile, SchedulePlan } from "./types";
 
-const apiMocks = vi.hoisted(() => ({ getEmbeddingBundle: vi.fn() }));
+const apiMocks = vi.hoisted(() => ({ getCatalog: vi.fn(), getCourses: vi.fn(), getEmbeddingBundle: vi.fn() }));
 const dbMocks = vi.hoisted(() => ({ getAllRecords: vi.fn(), putRecord: vi.fn() }));
 vi.mock("./api", () => apiMocks);
 vi.mock("./db", () => dbMocks);
@@ -42,6 +42,8 @@ describe("schedule workspace", () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    apiMocks.getCatalog.mockResolvedValue(catalog);
+    apiMocks.getCourses.mockResolvedValue({ items: [], total: 0, page: 1, total_pages: 1 });
     apiMocks.getEmbeddingBundle.mockResolvedValue({
       index: { course_ids: catalog.map((item) => item.course_id), dimension: 2 },
       vectors: new Float32Array([1, 0, 0, 1, 0.95, 0.05]),

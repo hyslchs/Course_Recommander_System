@@ -69,6 +69,17 @@ export function inferCourseStudyLevel(course: Pick<Course, "study_level" | "raw_
   return "unknown";
 }
 
+export function formatCourseStudyLevelLabel(course: Pick<Course, "study_level" | "raw_department" | "division">): string {
+  const level = inferCourseStudyLevel(course);
+  if (level === "master") return "碩士班";
+  if (level === "doctoral") return "博士班";
+  if (level === "undergraduate") {
+    const division = course.division?.trim();
+    return division && division !== "研究所" ? `${division}（大學部）` : "大學部";
+  }
+  return course.division?.trim() || "學制未標示";
+}
+
 export function inferProfileStudyLevel(profile?: Pick<Profile, "studyLevel" | "division">): StudyLevel {
   if (!profile) return "unknown";
   // The official FJU outline search groups master's, in-service master's,
@@ -103,20 +114,11 @@ export function inferAudienceGrade(course: Pick<Course, "audience_grade" | "grad
 }
 
 export function getEligibilityRules(course: Course): EligibilityRule[] {
-  const rules = course.eligibility_rules ?? [];
-  if (rules.some((rule) => rule.kind === "study_level_only")) return rules;
+  // Course level is informational in the recommender. Some departments allow
+  // undergraduates to take graduate courses early, so it must not become an
+  // automatic eligibility restriction.
+  const rules = (course.eligibility_rules ?? []).filter((rule) => rule.kind !== "study_level_only");
   const studyLevel = inferCourseStudyLevel(course);
-  if (studyLevel === "master" || studyLevel === "doctoral") {
-    const label = studyLevel === "doctoral" ? "博士班" : "研究所／碩士班";
-    return [...rules, {
-      kind: "study_level_only",
-      reason_code: "study_level_restriction",
-      message: `授課對象為${label}，請確認個人學制資格`,
-      source_field: "raw_department / division",
-      evidence: [course.raw_department, course.division].filter(Boolean).join("、") || label,
-      value: { study_level: studyLevel },
-    }];
-  }
   const audienceGrade = inferAudienceGrade(course);
   if (studyLevel === "undergraduate" && audienceGrade !== null && audienceGrade >= 3) {
     return [...rules, {

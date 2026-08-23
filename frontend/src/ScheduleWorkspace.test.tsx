@@ -1,5 +1,6 @@
-import { act } from "react";
-import { createRoot, type Root } from "react-dom/client";
+import "@testing-library/jest-dom/vitest";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { formatMeetings, ScheduleWorkspace } from "./ScheduleWorkspace";
 import type { Course, Meeting, Profile, SchedulePlan } from "./types";
@@ -8,8 +9,6 @@ const apiMocks = vi.hoisted(() => ({ getCatalog: vi.fn(), getCourses: vi.fn(), g
 const dbMocks = vi.hoisted(() => ({ getAllRecords: vi.fn(), putRecord: vi.fn() }));
 vi.mock("./api", () => apiMocks);
 vi.mock("./db", () => dbMocks);
-
-(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 function course(id: string, name: string, meetings: Meeting[]): Course {
   return {
@@ -29,9 +28,10 @@ function course(id: string, name: string, meetings: Meeting[]): Course {
   } as unknown as Course;
 }
 
+/** Accessible name of a `.class-block` button: `課名，星期X 節次…`. Slot buttons never contain the comma. */
+const classBlockName = /，星期/;
+
 describe("schedule workspace", () => {
-  let container: HTMLDivElement;
-  let root: Root;
   const catalog = [
     course("day", "日間課程", [{ weekday: 1, sections: ["D2", "D3"], room: "A101", week_pattern: "A" }]),
     course("night", "週末夜間課程", [{ weekday: 6, sections: ["E1", "E2"], room: "B202", week_pattern: "S" }]),
@@ -40,7 +40,7 @@ describe("schedule workspace", () => {
   const plan: SchedulePlan = { id: "plan", name: "測試方案", entries: [{ courseId: "day", locked: false }, { courseId: "night", locked: false }], createdAt: "now", updatedAt: "now" };
   const profile: Profile = { id: "current", division: "日間部", department: "測試系", grade: 1, admissionYear: 115, interests: "", preferredWeekdays: [1, 2, 3, 4, 5], updatedAt: "now" };
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
     apiMocks.getCatalog.mockResolvedValue(catalog);
     apiMocks.getCourses.mockResolvedValue({ items: [], total: 0, page: 1, total_pages: 1 });
@@ -50,84 +50,82 @@ describe("schedule workspace", () => {
     });
     dbMocks.getAllRecords.mockResolvedValue([]);
     dbMocks.putRecord.mockResolvedValue(undefined);
-    container = document.createElement("div");
-    document.body.append(container);
-    root = createRoot(container);
-    await act(async () => { root.render(<ScheduleWorkspace catalog={catalog} plans={[plan]} active={plan} profile={profile} selectPlan={async () => undefined} />); });
+    // Deliberately rendered with no providers mounted: the workspace must stay usable standalone.
+    render(<ScheduleWorkspace catalog={catalog} plans={[plan]} active={plan} profile={profile} selectPlan={async () => undefined} />);
   });
 
-  afterEach(async () => {
-    await act(async () => root.unmount());
-    container.remove();
-  });
+  // Vitest runs without `globals: true`, so testing-library's auto-cleanup hook is not registered.
+  afterEach(() => cleanup());
+
+  const openSlotRecommendations = async (user: ReturnType<typeof userEvent.setup>, name: string, dialogName: string) => {
+    await user.click(screen.getByRole("button", { name }));
+    return screen.findByRole("dialog", { name: dialogName });
+  };
 
   it("auto-expands weekend and evening periods when they contain a course", () => {
-    const grid = container.querySelector(".schedule-grid");
-    expect(grid?.textContent).toContain("星期六");
-    expect(grid?.textContent).toContain("E1");
-    expect(grid?.querySelectorAll(".class-block")).toHaveLength(2);
+    const grid = within(screen.getByRole("grid"));
+    expect(grid.getByRole("columnheader", { name: "星期六" })).toBeInTheDocument();
+    expect(grid.getByRole("rowheader", { name: "E1" })).toBeInTheDocument();
+    expect(grid.getAllByRole("button", { name: classBlockName })).toHaveLength(2);
+    expect(grid.getByRole("button", { name: /^日間課程，/ })).toBeInTheDocument();
+    expect(grid.getByRole("button", { name: /^週末夜間課程，/ })).toBeInTheDocument();
   });
 
   it("opens an accessible detail drawer with the official outline link", async () => {
-    const block = container.querySelector<HTMLButtonElement>('.class-block[aria-label^="日間課程"]');
-    await act(async () => block?.click());
-    const dialog = document.querySelector('[role="dialog"]');
-    expect(dialog?.textContent).toContain("測試課程目標");
-    expect(dialog?.querySelector<HTMLAnchorElement>("a.schedule-outline-link")?.href).toBe("https://example.test/course/day");
-    const close = dialog?.querySelector<HTMLButtonElement>(".dialog-close");
-    await act(async () => {
-      close?.click();
-      await new Promise<void>((resolve) => window.requestAnimationFrame(() => resolve()));
-    });
-    expect(document.activeElement).toBe(block);
+    const user = userEvent.setup();
+    const block = within(screen.getByRole("grid")).getByRole("button", { name: /^日間課程，/ });
+    await user.click(block);
+    const dialog = within(await screen.findByRole("dialog", { name: "日間課程" }));
+    expect(dialog.getByText("測試課程目標")).toBeInTheDocument();
+    expect(dialog.getByRole("link", { name: "開啟官方完整課綱" })).toHaveAttribute("href", "https://example.test/course/day");
+    await user.click(dialog.getByRole("button", { name: "關閉對話框" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await waitFor(() => expect(block).toHaveFocus());
   });
 
   it("warns when compact mode hides occupied uncommon periods", async () => {
-    const compact = [...container.querySelectorAll<HTMLButtonElement>(".segmented-control button")].find((button) => button.textContent?.startsWith("核心時段"));
-    await act(async () => compact?.click());
-    expect(container.querySelector(".schedule-hidden-notice")?.textContent).toContain("1 門課");
-    expect(container.querySelector(".schedule-grid")?.textContent).not.toContain("星期六");
+    const user = userEvent.setup();
+    const viewRange = within(screen.getByRole("group", { name: "課表顯示範圍" }));
+    await user.click(viewRange.getByRole("button", { name: /^核心時段/ }));
+    expect(screen.getByRole("button", { name: "顯示有課時段" })).toBeInTheDocument();
+    expect(screen.getByText(/1 門課/)).toBeInTheDocument();
+    expect(within(screen.getByRole("grid")).queryByRole("columnheader", { name: "星期六" })).not.toBeInTheDocument();
   });
 
   it("opens timetable-based recommendations from an empty keyboard-accessible slot", async () => {
-    expect(container.querySelector('[aria-label="推薦星期一 D2 可以排入的課程"]')).toBeNull();
-    const slot = container.querySelector<HTMLButtonElement>('[aria-label="推薦星期三 D5 可以排入的課程"]');
-    expect(slot?.tabIndex).toBeGreaterThanOrEqual(-1);
-    await act(async () => {
-      slot?.click();
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-    const dialog = document.querySelector('.slot-recommendation-dialog[role="dialog"]');
-    expect(dialog?.textContent).toContain("星期三 D5 的課程推薦");
-    expect(dialog?.textContent).toContain("資料分析實務");
-    expect(dialog?.textContent).toContain("本系選修");
-    expect(dialog?.textContent).toContain("完整上課時間不與目前課表衝堂");
-    expect(dialog?.querySelectorAll(".slot-category-filter")).toHaveLength(4);
-    const homeElectiveFilter = dialog?.querySelector<HTMLButtonElement>(".slot-category-filter.home_elective");
-    expect(homeElectiveFilter?.getAttribute("aria-pressed")).toBe("true");
-    await act(async () => homeElectiveFilter?.click());
-    expect(dialog?.querySelector<HTMLButtonElement>(".slot-category-filter.home_elective")?.getAttribute("aria-pressed")).toBe("false");
-    expect(dialog?.textContent).not.toContain("資料分析實務");
-    await act(async () => dialog?.querySelector<HTMLButtonElement>(".slot-category-filter.home_elective")?.click());
-    expect(dialog?.textContent).toContain("資料分析實務");
+    const user = userEvent.setup();
+    expect(screen.queryByRole("button", { name: "推薦星期一 D2 可以排入的課程" })).not.toBeInTheDocument();
+    const slot = screen.getByRole("button", { name: "推薦星期三 D5 可以排入的課程" });
+    expect(slot.tabIndex).toBeGreaterThanOrEqual(-1);
+
+    await user.click(slot);
+    const dialog = within(await screen.findByRole("dialog", { name: "星期三 D5 的課程推薦" }));
+    expect(dialog.getByText(/只推薦完整上課時間能排入課表的課程/)).toBeInTheDocument();
+
+    const recommendation = within(await dialog.findByRole("article"));
+    expect(recommendation.getByRole("heading", { name: "資料分析實務" })).toBeInTheDocument();
+    expect(recommendation.getByText("本系選修")).toBeInTheDocument();
+    expect(recommendation.getByText(/完整上課時間不與目前課表衝堂/)).toBeInTheDocument();
+
+    const filters = within(dialog.getByRole("group", { name: "顯示哪些課程" }));
+    expect(filters.getAllByRole("button", { pressed: true })).toHaveLength(4);
+    await user.click(filters.getByRole("button", { name: "本系選修", pressed: true }));
+    expect(filters.getAllByRole("button", { pressed: true })).toHaveLength(3);
+    expect(filters.getAllByRole("button", { pressed: false })).toHaveLength(1);
+    expect(dialog.queryByRole("heading", { name: "資料分析實務" })).not.toBeInTheDocument();
+
+    await user.click(filters.getByRole("button", { name: "本系選修", pressed: false }));
+    expect(dialog.getByRole("heading", { name: "資料分析實務" })).toBeInTheDocument();
   });
 
   it("adds a recommended course to the active plan", async () => {
-    const slot = container.querySelector<HTMLButtonElement>('[aria-label="推薦星期三 D5 可以排入的課程"]');
-    await act(async () => {
-      slot?.click();
-      await Promise.resolve();
-      await Promise.resolve();
-    });
-    const add = document.querySelector<HTMLButtonElement>(".slot-recommendation-actions button");
-    await act(async () => {
-      add?.click();
-      await Promise.resolve();
-    });
-    expect(dbMocks.putRecord).toHaveBeenCalledWith("schedulePlans", expect.objectContaining({
+    const user = userEvent.setup();
+    const dialog = within(await openSlotRecommendations(user, "推薦星期三 D5 可以排入的課程", "星期三 D5 的課程推薦"));
+    const recommendation = within(await dialog.findByRole("article"));
+    await user.click(recommendation.getByRole("button", { name: "加入課表" }));
+    await waitFor(() => expect(dbMocks.putRecord).toHaveBeenCalledWith("schedulePlans", expect.objectContaining({
       entries: expect.arrayContaining([expect.objectContaining({ courseId: "candidate", locked: false })]),
-    }));
+    })));
   });
 });
 

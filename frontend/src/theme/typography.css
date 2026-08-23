@@ -18,9 +18,7 @@
  *      CJK still wraps freely but English course titles are not sliced.
  *   6. font-synthesis: none is kept.
  *
- * FONTS ARE NOT SELF-HOSTED IN THIS COMMIT — see the note at the bottom of
- * this file. No Google Fonts CDN link is wired up either; the stack falls
- * back to the system fonts already in use.
+ * Noto Sans TC IS now self-hosted — see ./fonts.css. Still no CDN.
  *
  * This file defines tokens only. Nothing consumes them yet, by design: T11
  * must not change the rendered output.
@@ -50,27 +48,19 @@
 }
 
 /*
- * Self-hosting status — read this before "fixing" the missing @font-face.
+ * Self-hosting status — RESOLVED by T12, see ./fonts.css.
  *
- * Noto Sans TC is NOT self-hosted in this commit, and no Google Fonts CDN
- * link is wired up either (a local-first app must not depend on one). The
- * stack above therefore resolves to whatever CJK face the OS provides, which
- * is exactly what the app already did before T11 — the rendered output is
- * unchanged, which is this commit's hard requirement.
+ * T11 left this deferred because styles.css already declares
+ * `font-family: "Noto Sans TC"` at :root, so adding @font-face would
+ * immediately repaint every Han glyph — a visual change T11 was forbidden to
+ * make. T12 owns that repaint: @fontsource/noto-sans-tc@5.3.0 (OFL-1.1) is a
+ * plain npm dependency, weights 400/500/600/700, unicode-range-sliced,
+ * font-display: swap. Still no CDN — a local-first app must not depend on one.
  *
- * The files are obtainable: @fontsource/noto-sans-tc@5.3.0 ships the
- * unicode-range-split woff2 subsets on npm. It was measured, not guessed:
- * 68.2 MB / 1977 files unpacked, of which the four permitted weights
- * (400/500/600/700) in woff2 are 424 files / ~14 MB of binaries.
- *
- * It is deferred, not forgotten, for two reasons:
- *   1. styles.css already declares font-family: "Noto Sans TC" at :root, so
- *      adding @font-face here would immediately repaint every Han glyph in
- *      the app — a visual change T11 is explicitly forbidden from making.
- *   2. ~14 MB of binaries belongs in the commit that actually applies the
- *      typography, next to the subsetting decision that shrinks it.
- *
- * Pick this up in the typography task: add @fontsource/noto-sans-tc +
- * @fontsource-variable/inter, import the chinese-traditional + latin subsets
- * only, and keep font-display: swap.
+ * STILL OPEN: `--font-latin` above names "Inter var"/"Inter", which is not
+ * self-hosted and not installed. Latin therefore renders in Noto Sans TC's
+ * own Latin (the :root stack in styles.css puts Noto Sans TC first, so
+ * --font-latin is not consumed yet anyway). Whoever wires --font-sans into
+ * the cascade owns adding @fontsource-variable/inter or dropping Inter from
+ * the token.
  */

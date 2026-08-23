@@ -1,0 +1,61 @@
+/*
+ * Self-hosted Noto Sans TC (plan §4.4, task T12)
+ *
+ * T11 built the type scale and the font stacks but deliberately stopped short
+ * of shipping the faces, so until this file existed `font-family: "Noto Sans
+ * TC"` in styles.css silently resolved to whatever CJK face the OS happened to
+ * have. This file is the missing half.
+ *
+ * NO CDN. The binaries come from the `@fontsource/noto-sans-tc` npm dependency
+ * (5.3.0, OFL-1.1) and are emitted into dist/assets by Vite at build time, so
+ * ~9 MB of woff2 never enters git.
+ *
+ * ── Which weights ───────────────────────────────────────────────────────────
+ * 400 / 500 / 600 / 700 only (§4.4-2). Noto Sans TC ships no 650/750/800/900
+ * instance and `font-synthesis: none` (styles.css :root) forbids faking them,
+ * so the legacy `font-weight: 650|750|800|900` declarations resolve to the
+ * nearest real face (700) by the CSS font-matching algorithm. Importing more
+ * weights would download bytes nothing can render.
+ *
+ * ── Which subsets ───────────────────────────────────────────────────────────
+ * Each `<weight>.css` below is fontsource's unicode-range-split build: 105
+ * @font-face rules per weight — 101 CJK slices plus latin, latin-ext,
+ * cyrillic and vietnamese, 420 rules in total. This is exactly the subsetting
+ * §4.4 asks for, and the split is the whole point: the browser fetches only
+ * the slices whose `unicode-range` intersects the text actually on screen.
+ * Measured on the production build of /recommend: 15 of the 404 emitted woff2
+ * files, 491 kB — 9 slices at 400, 5 at 700, plus latin.
+ *
+ * The deliberately-NOT-taken alternative is fontsource's per-subset build
+ * (`chinese-traditional-400.css`): one @font-face with no unicode-range at
+ * all, backed by a single 997 kB woff2. Four weights of that is ~4 MB
+ * downloaded on every cold page view regardless of what is rendered — 8x
+ * worse in transfer than the sliced build, which is why it is not used here.
+ *
+ * Declaring all 105 slices per weight rather than a hand-picked subset is a
+ * measured decision, not laziness. Running the 5,179 distinct codepoints of
+ * the real corpus (data/**.json — the 115-1 catalogue, department tables and
+ * match reviews — plus every string in frontend/src) against fontsource's
+ * shipped unicode.json shows 103 of the 105 slices carry at least one
+ * character that actually occurs; even the thinnest slices ([97], [87], [88])
+ * are hit by real course and department names. Pruning would not save
+ * transfer — unused slices are never fetched — it would only make uncommon
+ * hanzi drop to a system face mid-sentence. What the full declaration does
+ * cost is CSS: the bundled stylesheet goes 70.9 kB -> 557.8 kB (gzip 12.5 kB
+ * -> 219.5 kB), most of it incompressible unicode-range hex. That is the
+ * price of correct CJK subsetting and it is paid once, cached thereafter.
+ *
+ * `font-display: swap` is already set on every rule by fontsource — text
+ * paints immediately in the fallback and re-paints when the slice lands,
+ * rather than a flash of invisible text. `font-synthesis: none` stays on
+ * :root in styles.css (§4.4-6), so the four real weights are the only weights.
+ *
+ * Fontsource lists a legacy `.woff` next to every `.woff2`; the
+ * `fju-drop-legacy-woff-fallback` plugin in vite.config.ts strips it from the
+ * build (408 files / 11.5 MB that no browser able to run this app requests).
+ */
+
+@import "@fontsource/noto-sans-tc/400.css";
+@import "@fontsource/noto-sans-tc/500.css";
+@import "@fontsource/noto-sans-tc/600.css";
+@import "@fontsource/noto-sans-tc/700.css";

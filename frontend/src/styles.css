@@ -43,6 +43,11 @@
 @import "./theme/fju.css" layer(theme);
 @import "./theme/typography.css" layer(theme);
 
+/* Deliberately UNLAYERED. @font-face is not a style rule, so cascade layers do
+   not apply to it — wrapping it in layer(theme) would only be misleading. See
+   the file header for the weight/subset choices and their measured cost. */
+@import "./theme/fonts.css";
+
 /* KNOWN, DELIBERATE SHADOWING — do not "fix" by editing the legacy block.
    The legacy stylesheet below declares custom properties on an UNLAYERED
    :root (twice: the opening rule and the "UX accessibility" rule further

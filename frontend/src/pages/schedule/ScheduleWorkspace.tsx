@@ -1,138 +1,35 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Check, Lock, MapPin, Plus, Sparkle, Warning } from "@phosphor-icons/react";
-import { getAllRecords, putRecord } from "./db";
-import { getCatalog, getCourses, getEmbeddingBundle } from "./api";
-import { courseConflicts, eligibilityStatusShortLabels, meetingsConflict } from "./eligibility";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
+import { Lock, MapPin, Sparkle, Warning } from "@phosphor-icons/react";
+import { getCatalog, getEmbeddingBundle } from "@/data/api";
+import { getAllRecords, putRecord } from "@/data/db";
+import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
 import {
   buildScheduleBlocks,
   CORE_SCHEDULE_SECTIONS,
   EXTENDED_SCHEDULE_SECTIONS,
   formatMeetings,
   hasUnscheduledMeeting,
-  parseManualSections,
   SCHEDULE_SECTIONS,
   sectionGridSpan,
   unplacedBlock,
   weekdayLabels,
   weekPatternLabel,
   type ScheduleBlock,
-} from "./schedule";
-import { coursesInPlan } from "./scheduleUtils";
-import { rankScheduleSlotCourses, type ScheduleSlotRecommendationResult } from "./scheduleRecommendation";
-import { recommendationCategoryLabels } from "./recommendation";
-import type { CompletedCourse, Course, FixedScheduleEntry, Profile, RecommendationCategory, ScheduleEntry, SchedulePlan } from "./types";
-import { ConfirmDialog, Modal, useFeedback } from "./ui";
-
-const scheduleRecommendationCategories = Object.keys(recommendationCategoryLabels) as RecommendationCategory[];
-
-function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: SchedulePlan }) {
-  const [query, setQuery] = useState("");
-  const [selectedCourseId, setSelectedCourseId] = useState("");
-  const [useCustomTime, setUseCustomTime] = useState(false);
-  const [customWeekday, setCustomWeekday] = useState(3);
-  const [customSections, setCustomSections] = useState("D5,D6");
-  const [message, setMessage] = useState("");
-  const [messageKind, setMessageKind] = useState<"success" | "error">("success");
-  const [adding, setAdding] = useState(false);
-  const [pendingConflict, setPendingConflict] = useState<{ entry: ScheduleEntry; courseName: string; reason: string }>();
-  const showMessage = (text: string, kind: "success" | "error") => { setMessage(text); setMessageKind(kind); };
-  const normalizedQuery = query.trim();
-  const [courseOptions, setCourseOptions] = useState<Course[]>([]);
-  useEffect(() => {
-    if (!normalizedQuery) {
-      setCourseOptions([]);
-      return;
-    }
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      const params = new URLSearchParams({ q: normalizedQuery, page: "1", page_size: "50" });
-      void getCourses(params, controller.signal)
-        .then((result) => setCourseOptions(result.items))
-        .catch((error) => { if ((error as Error).name !== "AbortError") showMessage("搜尋課程失敗：" + (error as Error).message, "error"); });
-    }, 250);
-    return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [normalizedQuery]);
-  const selectedCourse = courseOptions.find((course) => course.course_id === selectedCourseId);
-  const customTimeRequired = Boolean(selectedCourse && !selectedCourse.meetings.some((meeting) => meeting.weekday && meeting.sections.length));
-  const customTimeActive = useCustomTime || customTimeRequired;
-
-  const saveEntry = async (entry: ScheduleEntry, courseName: string, warning?: string) => {
-    setAdding(true);
-    try {
-      await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, entry], updatedAt: new Date().toISOString() });
-      setSelectedCourseId("");
-      setQuery("");
-      setUseCustomTime(false);
-      showMessage(warning ? warning + "你仍選擇加入，請再確認課表。" : "已加入「" + courseName + "」。", warning ? "error" : "success");
-      setPendingConflict(undefined);
-    } catch (error) {
-      showMessage("加入課表失敗：" + (error as Error).message, "error");
-    } finally {
-      setAdding(false);
-    }
-  };
-  const addCourse = async () => {
-    setMessage("");
-    if (!selectedCourse) return showMessage("請先搜尋並選擇要加入的課程。", "error");
-    if (plan.entries.some((entry) => entry.courseId === selectedCourse.course_id)) return showMessage("這門課已經在目前課表中。", "error");
-    let meetings = selectedCourse.meetings;
-    if (customTimeActive) {
-      const sections = parseManualSections(customSections);
-      if (!sections.length) return showMessage("請輸入有效節次，例如 D5,D6 或 DN。", "error");
-      meetings = [{ weekday: customWeekday, sections, room: null, week_pattern: "A" }];
-    }
-    if (!meetings.length) return showMessage("這門課沒有可用的上課時間，請使用指定時間加入。", "error");
-    const entry: ScheduleEntry = { courseId: selectedCourse.course_id, locked: false, ...(customTimeActive ? { meetingsOverride: meetings } : {}) };
-    const scheduledCourse = { ...selectedCourse, meetings };
-    const courseConflict = courseConflicts(scheduledCourse, coursesInPlan(catalog, plan));
-    const fixedConflict = meetingsConflict(meetings, (plan.fixedEntries ?? []).flatMap((item) => item.meetings));
-    if (courseConflict.conflict || fixedConflict.conflict || courseConflict.uncertain || fixedConflict.uncertain) {
-      const reason = courseConflict.conflict || fixedConflict.conflict ? "這門課與目前課表或固定時段衝堂。" : "這門課的週次資料不完整，可能與目前課表衝堂。";
-      setPendingConflict({ entry, courseName: selectedCourse.name_zh, reason });
-      return;
-    }
-    await saveEntry(entry, selectedCourse.name_zh);
-  };
-  return <section className="card schedule-add-card">
-    <h2>手動加入課程</h2>
-    <p>可搜尋學校分發的課程；加入後推薦會一併檢查衝堂。</p>
-    <div className="schedule-add-grid">
-      <label>搜尋課程<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="輸入課名、課號或教師，例如：國文" /></label>
-      <label>選擇課程<select value={selectedCourseId} onChange={(event) => setSelectedCourseId(event.target.value)} disabled={!courseOptions.length}><option value="">{courseOptions.length ? "請選擇課程" : "請先輸入搜尋文字"}</option>{courseOptions.map((course) => <option key={course.course_id} value={course.course_id}>{course.name_zh}｜{course.ava_no}｜{formatMeetings(course)}</option>)}</select></label>
-    </div>
-    {selectedCourse && <>
-      <p className="muted">課程資料時間：{formatMeetings(selectedCourse)}</p>
-      <label className="check"><input type="checkbox" checked={customTimeActive} disabled={customTimeRequired} onChange={(event) => setUseCustomTime(event.target.checked)} />使用指定時間加入{customTimeRequired ? "（此課程沒有完整時間）" : ""}</label>
-      {customTimeActive && <div className="schedule-add-grid"><label>星期<select value={customWeekday} onChange={(event) => setCustomWeekday(Number(event.target.value))}>{weekdayLabels.map((day, index) => <option key={index + 1} value={index + 1}>星期{day}</option>)}</select></label><label>節次<input value={customSections} onChange={(event) => setCustomSections(event.target.value)} placeholder="例如 D5,D6 或 DN" /></label></div>}
-    </>}
-    {message && <p className={"notice " + (messageKind === "error" ? "danger" : "")} role={messageKind === "error" ? "alert" : "status"}>{message}</p>}
-    <button className="primary" type="button" onClick={() => void addCourse()} disabled={!selectedCourse || adding} aria-busy={adding}>{adding ? "加入中…" : "加入「" + plan.name + "」"}</button>
-    <ConfirmDialog open={Boolean(pendingConflict)} title="確認加入衝堂課程" description={<p>{pendingConflict?.reason}仍要加入課表嗎？</p>} confirmLabel="仍要加入" busy={adding} onCancel={() => setPendingConflict(undefined)} onConfirm={() => pendingConflict && saveEntry(pendingConflict.entry, pendingConflict.courseName, pendingConflict.reason)} />
-  </section>;
-}
-
-function CourseDetails({ block, catalog, scheduledCourses, plan, onClose }: { block: ScheduleBlock; catalog: Course[]; scheduledCourses: Course[]; plan: SchedulePlan; onClose: () => void }) {
-  const scheduledCourse = block.source === "course" ? scheduledCourses.find((course) => course.course_id === block.sourceId) : undefined;
-  const originalCourse = block.source === "course" ? catalog.find((course) => course.course_id === block.sourceId) : undefined;
-  const scheduleEntry = block.source === "course" ? plan.entries.find((entry) => entry.courseId === block.sourceId) : undefined;
-  const fixedEntry = block.source === "fixed" ? plan.fixedEntries?.find((entry) => entry.id === block.sourceId) : undefined;
-  return <Modal open title={scheduledCourse?.name_zh ?? fixedEntry?.name ?? block.name} onClose={onClose} className="schedule-dialog">
-    <div className="eyebrow">{block.source === "course" ? "課程詳細資訊" : "固定時段"}</div>
-    {scheduledCourse && originalCourse ? <>
-      {originalCourse.name_en && <p className="muted">{originalCourse.name_en}</p>}
-      <div className="schedule-detail-meta"><span><strong>課號</strong>{originalCourse.ava_no || originalCourse.course_id}</span><span><strong>教師</strong>{originalCourse.teacher || "教師未定"}</span><span><strong>學分</strong>{originalCourse.credits ?? "未提供"}</span><span><strong>類別</strong>{originalCourse.required_elective_name || "未提供"}</span><span><strong>開課單位</strong>{originalCourse.official_department_label ?? originalCourse.department_display ?? originalCourse.department}</span></div>
-      <section><h3>課表採用時間</h3><p>{formatMeetings(scheduledCourse)}</p>{scheduleEntry?.meetingsOverride && <><span className="manual-time-tag">手動指定</span><p className="muted">校方原始時間：{formatMeetings(originalCourse)}</p></>}</section>
-      {(originalCourse.prerequisite || originalCourse.enrollment_note) && <section><h3>選課條件</h3>{originalCourse.prerequisite && <p><strong>先備條件：</strong>{originalCourse.prerequisite}</p>}{originalCourse.enrollment_note && <p><strong>選課備註：</strong>{originalCourse.enrollment_note}</p>}</section>}
-      <section><h3>課程目標</h3><p className="schedule-objective">{originalCourse.sections.objective || "未提供"}</p></section>
-      <a className="primary button-link schedule-outline-link" href={originalCourse.source_url} target="_blank" rel="noreferrer">開啟官方完整課綱</a>
-    </> : <><p>{formatMeetings(fixedEntry ?? { meetings: [] })}</p><p><strong>說明：</strong>{fixedEntry?.source ?? "固定課表時段"}</p><p className="muted">固定時段不是課程，因此沒有官方課綱連結。</p></>}
-  </Modal>;
-}
-
-interface SelectedScheduleSlot {
-  weekday: number;
-  section: string;
-}
+} from "@/domain/schedule";
+import { coursesInPlan } from "@/domain/scheduleUtils";
+import { rankScheduleSlotCourses } from "@/domain/scheduleRecommendation";
+import type { ScheduleSlotRecommendationResult } from "@/domain/scheduleRecommendation";
+import { Modal, useFeedback } from "@/components/ui";
+import type { CompletedCourse, Course, FixedScheduleEntry, Profile, RecommendationCategory, ScheduleEntry, SchedulePlan } from "@/domain/types";
+import { CourseDetails } from "./CourseDetails";
+import { ManualCoursePanel } from "./ManualCoursePanel";
+import { SlotRecommendationDialog } from "./SlotRecommendationDialog";
+import {
+  scheduleRecommendationCategories,
+  SlotRecommendationContext,
+  type SelectedScheduleSlot,
+  type SlotRecommendationContextValue,
+} from "./SlotRecommendationContext";
 
 interface LoadedSlotRecommendationData {
   catalog: Course[];
@@ -141,73 +38,6 @@ interface LoadedSlotRecommendationData {
   dimension: number;
   completed: CompletedCourse[];
   dismissedIds: string[];
-}
-
-function SlotRecommendationDialog({
-  slot,
-  result,
-  loading,
-  error,
-  addingCourseId,
-  categoryFilters,
-  onClose,
-  onRetry,
-  onAdd,
-  onToggleCategory,
-  onSelectAllCategories,
-}: {
-  slot?: SelectedScheduleSlot;
-  result?: ScheduleSlotRecommendationResult;
-  loading: boolean;
-  error: string;
-  addingCourseId: string;
-  categoryFilters: RecommendationCategory[];
-  onClose: () => void;
-  onRetry: () => void;
-  onAdd: (courseId: string) => void;
-  onToggleCategory: (category: RecommendationCategory) => void;
-  onSelectAllCategories: () => void;
-}) {
-  const slotLabel = slot ? `星期${weekdayLabels[slot.weekday - 1]} ${slot.section}` : "空白時段";
-  return <Modal open={Boolean(slot)} title={`${slotLabel} 的課程推薦`} onClose={onClose} className="schedule-dialog slot-recommendation-dialog">
-    <div className="slot-recommendation-intro">
-      <span className="eyebrow"><Sparkle aria-hidden="true" />依目前課表推測</span>
-      <p>只推薦完整上課時間能排入課表的課程。課表內容留在此裝置，不會送出作為查詢。</p>
-    </div>
-    <fieldset className="slot-category-filters" disabled={loading}>
-      <legend>顯示哪些課程</legend>
-      <div className="slot-category-filter-heading"><span>可複選課程分類</span><button type="button" disabled={loading || categoryFilters.length === scheduleRecommendationCategories.length} onClick={onSelectAllCategories}>全選</button></div>
-      <div className="slot-category-filter-options">{scheduleRecommendationCategories.map((category) => {
-        const selected = categoryFilters.includes(category);
-        return <button type="button" key={category} className={`slot-category-filter ${category} ${selected ? "selected" : ""}`} aria-pressed={selected} onClick={() => onToggleCategory(category)}>{selected && <Check aria-hidden="true" />}{recommendationCategoryLabels[category]}</button>;
-      })}</div>
-    </fieldset>
-    {loading && <div className="slot-recommendation-state" role="status"><strong>正在比對課表興趣…</strong><span>同時檢查完整時段、修課資格與重複課程。</span></div>}
-    {!loading && error && <div className="notice danger" role="alert"><strong>無法產生推薦</strong><span>{error}</span><button type="button" onClick={onRetry}>重試</button></div>}
-    {!loading && !error && categoryFilters.length === 0 && <div className="slot-recommendation-state"><strong>尚未選擇課程分類</strong><span>請至少選擇一種分類，或使用「全選」恢復全部結果。</span><button type="button" onClick={onSelectAllCategories}>顯示全部分類</button></div>}
-    {!loading && !error && categoryFilters.length > 0 && result?.basisCourseCount === 0 && <div className="slot-recommendation-state"><strong>目前沒有足夠的課程推測興趣</strong><span>先在這個方案加入至少一門有課程向量的課，再點選空白時段。</span></div>}
-    {!loading && !error && categoryFilters.length > 0 && result && result.basisCourseCount > 0 && <>
-      <div className="slot-recommendation-summary" role="status">
-        <span><strong>{result.basisCourseCount}</strong> 門課作為依據</span>
-        <span><strong>{result.interestClusterCount}</strong> 個興趣方向</span>
-        <span><strong>{result.candidateCount}</strong> 門通過排課檢查</span>
-      </div>
-      {result.lowConfidence && <p className="slot-confidence-note"><Warning aria-hidden="true" />{result.requiredOnly ? "目前課表只有必修課，興趣推測的參考性較低。" : "目前作為興趣依據的課程較少，推薦結果僅供探索。"}</p>}
-      {!result.recommendations.length ? <div className="slot-recommendation-state"><strong>這個時段暫時沒有合適課程</strong><span>候選課程可能有其他節次衝堂、資格不符，或已經在課表與已修清單中。</span></div> : <div className="slot-recommendation-list">
-        {result.recommendations.map((recommendation, index) => <article key={recommendation.course.course_id}>
-          <div className="slot-recommendation-rank" aria-label={`推薦順位 ${index + 1}`}>{index + 1}</div>
-          <div className="slot-recommendation-content">
-            <div className="slot-recommendation-heading"><div><h3>{recommendation.course.name_zh}</h3><p>{recommendation.course.name_en}</p></div><div className="slot-recommendation-tags"><span className={`category-tag ${recommendation.category}`}>{recommendationCategoryLabels[recommendation.category]}</span><span className={`status ${recommendation.eligibility}`}>{eligibilityStatusShortLabels[recommendation.eligibility]}</span></div></div>
-            <div className="slot-recommendation-meta"><span>{recommendation.course.credits === null ? "學分未定" : `${recommendation.course.credits} 學分`}</span><span>{recommendation.course.teacher || "教師未定"}</span><span>{recommendation.course.required_elective_name || "類別未定"}</span></div>
-            <p className="meeting">{formatMeetings(recommendation.course)}</p>
-            <ul className="reasons">{recommendation.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
-            {recommendation.alternatives.length > 0 && <p className="muted">另有 {recommendation.alternatives.length} 個符合時段的班別／共同開課項目</p>}
-            <div className="slot-recommendation-actions"><a href={recommendation.course.source_url} target="_blank" rel="noreferrer">查看官方課綱</a><button type="button" className="primary" disabled={Boolean(addingCourseId)} aria-busy={addingCourseId === recommendation.course.course_id} onClick={() => onAdd(recommendation.course.course_id)}><Plus aria-hidden="true" />{addingCourseId === recommendation.course.course_id ? "加入中…" : "加入課表"}</button></div>
-          </div>
-        </article>)}
-      </div>}
-    </>}
-  </Modal>;
 }
 
 export function ScheduleWorkspace({ catalog, plans, active, profile, selectPlan }: { catalog: Course[]; plans: SchedulePlan[]; active?: SchedulePlan; profile?: Profile; selectPlan: (planId: string) => Promise<void> }) {
@@ -460,9 +290,24 @@ export function ScheduleWorkspace({ catalog, plans, active, profile, selectPlan 
     setLastRemoved(undefined);
   };
 
+  const slotRecommendationValue: SlotRecommendationContextValue = {
+    slot: selectedSlot,
+    result: slotRecommendation,
+    loading: slotRecommendationLoading,
+    error: slotRecommendationError,
+    addingCourseId: addingRecommendedCourseId,
+    categoryFilters: slotCategoryFilters,
+    close: closeSlotRecommendations,
+    retry: () => { if (selectedSlot) void loadSlotRecommendations(selectedSlot, slotCategoryFilters); },
+    add: (courseId) => void addRecommendedCourse(courseId),
+    toggleCategory: toggleSlotCategoryFilter,
+    selectAllCategories: () => applySlotCategoryFilters([...scheduleRecommendationCategories]),
+  };
+
   return <section className="page"><div className="page-heading"><div><div className="eyebrow">安排多個選課方案</div><h1>我的課表</h1></div><button className="primary" type="button" onClick={createPlan}>新增方案</button></div>
     <div className="plan-tabs" role="tablist" aria-label="課表方案">{plans.map((plan, index) => <button ref={(element) => { planTabRefs.current[index] = element; }} type="button" role="tab" id={"plan-tab-" + plan.id} aria-controls={"plan-panel-" + plan.id} aria-selected={plan.id === active?.id} tabIndex={plan.id === active?.id ? 0 : -1} className={plan.id === active?.id ? "active" : ""} onKeyDown={(event) => onPlanTabKeyDown(event, index)} onClick={() => void selectPlan(plan.id)} key={plan.id}>{plan.name}</button>)}</div>
-    {!active ? <section className="empty-state"><h1>先建立一個課表方案</h1><p>建立課表後，你可以加入課程並檢查衝堂。</p><button className="primary" type="button" onClick={createPlan}>建立第一個方案</button></section> : <>
+    {/* `<h2>`, not `<h1>`: the page heading above already owns this route's single `<h1>` (plan R9). */}
+    {!active ? <section className="empty-state"><h2 className="page-title">先建立一個課表方案</h2><p>建立課表後，你可以加入課程並檢查衝堂。</p><button className="primary" type="button" onClick={createPlan}>建立第一個方案</button></section> : <>
       <div id={"plan-panel-" + active.id} role="tabpanel" aria-labelledby={"plan-tab-" + active.id}><div className="schedule-plan-actions"><strong>目前方案：{active.name}</strong><button type="button" onClick={renamePlan}>重新命名</button><button onClick={() => void duplicatePlan()}>建立副本</button><button onClick={printSchedule}>列印／另存 PDF</button></div>
       <ManualCoursePanel catalog={catalog} plan={active} />
       <div className="schedule-summary"><strong>{courses.length} 門課</strong><span>{credits} 學分</span>{fixedEntries.length > 0 && <span>{fixedEntries.length} 個固定時段</span>}{conflictCount > 0 && <span className="schedule-conflict-summary"><Warning aria-hidden="true" />{conflictCount} 門課衝堂</span>}{unplacedCourses.length > 0 && <span>待安排 {unplacedCourses.length} 門</span>}</div>
@@ -482,7 +327,7 @@ export function ScheduleWorkspace({ catalog, plans, active, profile, selectPlan 
       {lastRemoved && <div className="undo-toast" role="status"><span>已從課表移除課程。</span><button onClick={() => void undoRemove()}>復原</button><button aria-label="關閉" onClick={() => setLastRemoved(undefined)}>×</button></div>}
       <div className="schedule-list">{fixedEntries.map((entry) => <div key={entry.id} className="fixed-schedule-entry"><span><strong>{entry.name}</strong><small>{formatMeetings(entry)} · {entry.teacher ?? "固定時段"}</small></span><span>固定時段</span></div>)}{courses.map((course) => { const entry = active.entries.find((item) => item.courseId === course.course_id)!; return <div key={course.course_id}><span><strong>{course.name_zh}{entry.meetingsOverride && <em className="manual-time-tag">手動時間</em>}</strong><small>{formatMeetings(course)}</small></span><button onClick={() => void toggleLock(course.course_id)}>{entry.locked ? <><Lock aria-hidden="true" />已鎖定</> : "鎖定"}</button><button onClick={() => void removeEntry(course.course_id)}>移除</button></div>; })}</div>
       {selectedBlock && <CourseDetails block={selectedBlock} catalog={catalog} scheduledCourses={courses} plan={active} onClose={closeDetails} />}
-      <SlotRecommendationDialog slot={selectedSlot} result={slotRecommendation} loading={slotRecommendationLoading} error={slotRecommendationError} addingCourseId={addingRecommendedCourseId} categoryFilters={slotCategoryFilters} onClose={closeSlotRecommendations} onRetry={() => selectedSlot && void loadSlotRecommendations(selectedSlot, slotCategoryFilters)} onAdd={(courseId) => void addRecommendedCourse(courseId)} onToggleCategory={toggleSlotCategoryFilter} onSelectAllCategories={() => applySlotCategoryFilters([...scheduleRecommendationCategories])} />
+      <SlotRecommendationContext.Provider value={slotRecommendationValue}><SlotRecommendationDialog /></SlotRecommendationContext.Provider>
       </div>
     </>}
     <Modal open={Boolean(planDialog)} title={planDialog === "create" ? "建立課表方案" : "重新命名課表方案"} onClose={() => setPlanDialog("")} initialFocusRef={planNameRef}>

@@ -1,6 +1,6 @@
 import { getRecord, putRecord } from "./db";
-import type { AIAnswer, AIAskContext, AIHistoryTurn, ArtifactManifest, Course, DepartmentCatalog, EmbeddingIndex, HardConstraints } from "./types";
-import type { RouteBundle, RouteInfo } from "./queryAnalysis";
+import type { AIAnswer, AIAskContext, AIHistoryTurn, ArtifactManifest, Course, DepartmentCatalog, EmbeddingIndex, HardConstraints } from "@/domain/types";
+import type { RouteBundle, RouteInfo } from "@/domain/queryAnalysis";
 
 async function getJson<T>(url: string, init?: RequestInit): Promise<T> {
   const response = await fetch(url, init);

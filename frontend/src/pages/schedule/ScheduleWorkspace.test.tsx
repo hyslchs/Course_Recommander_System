@@ -3,12 +3,12 @@ import { cleanup, render, screen, waitFor, within } from "@testing-library/react
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ScheduleWorkspace } from "./ScheduleWorkspace";
-import type { Course, Meeting, Profile, SchedulePlan } from "./types";
+import type { Course, Meeting, Profile, SchedulePlan } from "@/domain/types";
 
 const apiMocks = vi.hoisted(() => ({ getCatalog: vi.fn(), getCourses: vi.fn(), getEmbeddingBundle: vi.fn() }));
 const dbMocks = vi.hoisted(() => ({ getAllRecords: vi.fn(), putRecord: vi.fn() }));
-vi.mock("./api", () => apiMocks);
-vi.mock("./db", () => dbMocks);
+vi.mock("@/data/api", () => apiMocks);
+vi.mock("@/data/db", () => dbMocks);
 
 function course(id: string, name: string, meetings: Meeting[]): Course {
   return {

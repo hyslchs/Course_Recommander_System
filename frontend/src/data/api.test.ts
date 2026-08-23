@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { artifactCacheKey } from "./api";
-import type { ArtifactManifest } from "./types";
+import type { ArtifactManifest } from "@/domain/types";
 
 const manifest: ArtifactManifest = {
   artifact_version: "fju_recommender_v3",

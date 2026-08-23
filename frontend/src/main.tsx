@@ -2,10 +2,10 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router";
 import { I18nProvider } from "@heroui/react";
-import App from "./App";
+import App from "./app/App";
 import "./styles.css";
 import "./courseVariants.css";
-import { FeedbackProvider } from "./ui";
+import { FeedbackProvider } from "./components/ui";
 
 // React Aria's built-in announcements ("N results available", date/number
 // formatting, collator-based filtering) default to English. HeroUI v3 needs no

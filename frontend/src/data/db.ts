@@ -1,4 +1,4 @@
-import type { CompletedCourse, Profile, SchedulePlan } from "./types";
+import type { CompletedCourse, Profile, SchedulePlan } from "@/domain/types";
 
 export const DB_NAME = "fju-course-recommender";
 export const DB_VERSION = 1;

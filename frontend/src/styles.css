@@ -307,3 +307,5 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .schedule-cell.occupied{background:#f7faf7}
 .recommendation-reasons{border-left:3px solid var(--green);background:#f2f8f4;padding:.6rem .75rem;font-size:.87rem}
 .recommendation-reasons strong{display:block;margin-bottom:.25rem;color:var(--green)}
+/* T20: headings demoted from h1 to h2 so each route keeps exactly one h1 (plan R9). Renders identically to the global h1 rule. */
+.page-title{font-size:clamp(2rem,4vw,3.4rem);line-height:1.08;margin:.5rem 0 1rem;letter-spacing:-.04em}

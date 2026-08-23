@@ -49,9 +49,10 @@ export async function getDepartmentCatalog(): Promise<DepartmentCatalog> {
   return getJson("/api/v1/departments");
 }
 
-export async function getCourses(params: URLSearchParams) {
+export async function getCourses(params: URLSearchParams, signal?: AbortSignal) {
   return getJson<{ items: Course[]; total: number; page: number; total_pages: number }>(
     `/api/v1/courses?${params}`,
+    { signal },
   );
 }
 

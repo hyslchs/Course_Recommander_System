@@ -359,7 +359,7 @@ describe("query-only recommendation ranking", () => {
     });
     expect(results).toHaveLength(1);
     expect(results[0].eligibility).toBe("blocked_confirmed");
-    expect(results[0].reasons).toContain("有擋修條件，請展開查看原始依據");
+    expect(results[0].reasons).not.toContain("有擋修條件，請展開查看原始依據");
   });
 
   it("can explicitly exclude courses with unmet formal prerequisites", () => {
@@ -533,7 +533,36 @@ describe("query-only recommendation ranking", () => {
     });
     expect(results).toHaveLength(1);
     expect(results[0].alternatives?.map((item) => item.course_id)).toEqual(["food-tue"]);
-    expect(results[0].reasons).toContain("已合併 2 個相同課程班別／共同開課項目");
+    expect(results[0].reasons).not.toContain("已合併 2 個相同課程班別／共同開課項目");
+  });
+
+  it("keeps another section recommendable when only one section is dismissed", () => {
+    const monday = {
+      ...course("food-mon-dismissed", "食科", "必修", "食品分析實驗"),
+      teacher: "王老師",
+      sections: { objective: "以實驗操作學習食品成分分析方法與儀器使用，並完成分析結果報告。" },
+      meetings: [{ weekday: 1, sections: ["D2", "D3"], room: "HE101", week_pattern: "A" }],
+    };
+    const tuesday = {
+      ...course("food-tue-kept", "食科", "必修", "食品分析實驗"),
+      teacher: "李老師",
+      sections: { objective: "以實驗操作學習食品成分分析方法與儀器使用，並完成分析結果報告。" },
+      meetings: [{ weekday: 2, sections: ["D2", "D3"], room: "HE101", week_pattern: "A" }],
+    };
+    const results = rankCourses({
+      catalog: [monday, tuesday],
+      courseIds: [monday.course_id, tuesday.course_id],
+      vectors: new Float32Array([1, 0, 0.99, 0.1]),
+      dimension: 2,
+      query: new Float32Array([1, 0]),
+      queryText: "食品分析實驗",
+      profile,
+      completed: [],
+      dismissedIds: [monday.course_id],
+      scheduledCourses: [],
+    });
+    expect(results.map((item) => item.course.course_id)).toEqual([tuesday.course_id]);
+    expect(results[0].alternatives).toEqual([]);
   });
 
   it("prefers the student's home-department offering inside a cross-listed family", () => {

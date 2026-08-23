@@ -1,5 +1,6 @@
 import { FormEvent, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { NavLink, Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { NavLink, Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { CaretDown, Heart, Info, List, Warning } from "@phosphor-icons/react";
 import { askCourseAssistant, embedQuery, getCatalog, getCourses, getDepartmentCatalog, getEmbeddingBundle, getFeatures } from "./api";
 import {
   clearPersonalData,
@@ -25,7 +26,6 @@ import {
 } from "./departmentOptions";
 import {
   classifyRecommendationCategory,
-  getSafetyFilterStats,
   rankCourses,
   recommendationCategoryLabels,
   type CourseLevelFilter,
@@ -37,7 +37,8 @@ import { coursesInPlan, meetingsInPlan, resolveActiveSchedulePlan } from "./sche
 import { buildSearchIndex, type SearchIndex } from "./search";
 import { formatMeetings, ScheduleWorkspace } from "./ScheduleWorkspace";
 import { analyzeQuery } from "./queryAnalysis";
-import { detectedFilterLabels, sanitizeSubjectQuery, type DetectedFilterPhrase } from "./subjectQuery";
+import { ConfirmDialog, Modal, useFeedback } from "./ui";
+import { sanitizeSubjectQuery, type DetectedFilterPhrase } from "./subjectQuery";
 import type {
   CompletedCourse,
   Course,
@@ -65,17 +66,6 @@ const assistantFieldLabels: Record<string, string> = {
   history: "最近對話課程",
 };
 
-type FilterSuggestion = "prerequisite" | "introductory" | "study_level" | "working_schedule";
-
-function getFilterSuggestion(item: DetectedFilterPhrase): { kind: FilterSuggestion; label: string } | null {
-  if (/先修/.test(item.text)) return { kind: "prerequisite", label: "套用：排除未滿足或不明先修" };
-  if (/入門|初級|初階|基礎|概論|導論/.test(item.text)) return { kind: "introductory", label: "套用：排除入門與程度不明" };
-  if (/(?:大學部?|碩士班?|博士班?|研究所)/.test(item.text)) return { kind: "study_level", label: "套用：依我的學制嚴格篩選" };
-  if (/(?:平日|週間).*?(?:晚間|晚上|夜間).*?(?:星期六|週六|周六)|(?:星期六|週六|周六).*?(?:平日|週間).*?(?:晚間|晚上|夜間)/.test(item.text)) {
-    return { kind: "working_schedule", label: "套用：平日晚間＋星期六" };
-  }
-  return null;
-}
 const defaultPreferredWeekdays = [1, 2, 3, 4, 5];
 function profileStudyLevelLabel(profile?: Pick<Profile, "division" | "studyLevel">): string {
   const level = inferProfileStudyLevel(profile);
@@ -136,18 +126,50 @@ function useStore<T>(store: StoreName): [T[], () => Promise<void>] {
   return [rows, reload];
 }
 
+const navigationItems = [
+  { to: "/recommend", label: "為你推薦" },
+  { to: "/assistant", label: "AI 小幫手" },
+  { to: "/explore", label: "探索課程" },
+  { to: "/schedule", label: "我的課表" },
+  { to: "/data", label: "資料管理" },
+];
+
+function RouteFocusManager() {
+  const location = useLocation();
+  useEffect(() => {
+    window.requestAnimationFrame(() => {
+      const heading = document.querySelector<HTMLElement>("#main-content h1");
+      if (!heading) return;
+      heading.tabIndex = -1;
+      heading.focus({ preventScroll: true });
+      heading.scrollIntoView({ block: "start" });
+    });
+  }, [location.pathname]);
+  return null;
+}
+
 function App() {
   const [catalog, setCatalog] = useState<Course[]>([]);
   const [departmentCatalog, setDepartmentCatalog] = useState<DepartmentCatalog>();
   const [catalogError, setCatalogError] = useState("");
-  useEffect(() => {
-    Promise.all([getCatalog(), getDepartmentCatalog()])
-      .then(([courseCatalog, officialDepartments]) => {
-        setCatalog(courseCatalog);
-        setDepartmentCatalog(officialDepartments);
-      })
-      .catch((error: Error) => setCatalogError(error.message));
+  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuFirstRef = useRef<HTMLAnchorElement>(null);
+  const loadCatalog = useCallback(async () => {
+    setCatalogLoading(true);
+    setCatalogError("");
+    try {
+      const [courseCatalog, officialDepartments] = await Promise.all([getCatalog(), getDepartmentCatalog()]);
+      setCatalog(courseCatalog);
+      setDepartmentCatalog(officialDepartments);
+    } catch (error) {
+      setCatalogError((error as Error).message);
+    } finally {
+      setCatalogLoading(false);
+    }
   }, []);
+  useEffect(() => { void loadCatalog(); }, [loadCatalog]);
+
   const searchIndex = useMemo(() => buildSearchIndex(catalog), [catalog]);
   const [profiles] = useStore<Profile>("profile");
   const profile = profiles.find((item) => item.id === "current");
@@ -166,38 +188,53 @@ function App() {
     if (activePlan && activePreference?.planId !== activePlan.id) void selectPlan(activePlan.id);
   }, [activePlan, activePreference?.planId, selectPlan]);
 
+  const profileLabel = profile ? profile.department + " " + profile.grade + " 年級" : "開始設定";
   return (
-    <SchedulePlanContext.Provider value={{ plans, activePlan, selectPlan }}><div className="app-shell">
-      <header className="topbar">
-        <NavLink to="/recommend" className="brand"><span>FJU</span><strong>選課指南</strong></NavLink>
-        <nav>
-          <NavLink to="/recommend">為你推薦</NavLink>
-          <NavLink to="/assistant">AI 小幫手</NavLink>
-          <NavLink to="/explore">探索課程</NavLink>
-          <NavLink to="/schedule">我的課表</NavLink>
-          <NavLink to="/data">資料管理</NavLink>
+    <SchedulePlanContext.Provider value={{ plans, activePlan, selectPlan }}>
+      <a className="skip-link" href="#main-content">跳到主要內容</a>
+      <div className="app-shell">
+        <header className="topbar">
+          <NavLink to="/recommend" className="brand"><span>FJU</span><strong>選課指南</strong></NavLink>
+          <nav className="desktop-nav" aria-label="主要導覽">
+            {navigationItems.map((item) => <NavLink key={item.to} to={item.to}>{item.label}</NavLink>)}
+          </nav>
+          <NavLink className="profile-link desktop-profile" to="/onboarding">
+            <span className="profile-full">{profileLabel}</span>
+            <span className="profile-compact">{profile ? "個人設定 · " + profile.grade + " 年級" : "開始設定"}</span>
+          </NavLink>
+          <button type="button" className="icon-button menu-button" aria-label="開啟選單" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}>
+            <List aria-hidden="true" />
+          </button>
+        </header>
+        {catalogLoading && <div className="status-banner" role="status">正在載入課程資料…</div>}
+        {catalogError && <div className="error-banner" role="alert">課程資料載入失敗：{catalogError}<button type="button" onClick={() => void loadCatalog()}>重試</button></div>}
+        <main id="main-content" aria-busy={catalogLoading}>
+          <RouteFocusManager />
+          <Routes>
+            <Route path="/" element={<Navigate to={profile ? "/recommend" : "/onboarding"} replace />} />
+            <Route path="/onboarding" element={<Onboarding catalog={catalog} departmentCatalog={departmentCatalog} profile={profile} />} />
+            <Route path="/recommend" element={<RecommendPage catalog={catalog} profile={profile} searchIndex={searchIndex} />} />
+            <Route path="/assistant" element={<AssistantPage catalog={catalog} profile={profile} />} />
+            <Route path="/explore" element={<ExplorePage catalog={catalog} profile={profile} />} />
+            <Route path="/schedule" element={<ScheduleWorkspace catalog={catalog} plans={plans} active={activePlan} selectPlan={selectPlan} />} />
+            <Route path="/data" element={<DataPage catalog={catalog} />} />
+          </Routes>
+        </main>
+        <footer>MVP 1.0 · 推薦結果僅供規劃參考，實際資格、名額與開課資訊以校方選課系統為準。</footer>
+      </div>
+      <Modal open={menuOpen} title="前往功能" onClose={() => setMenuOpen(false)} initialFocusRef={menuFirstRef} className="navigation-drawer">
+        <nav aria-label="行動版主要導覽" onClick={() => setMenuOpen(false)}>
+          {navigationItems.map((item, index) => <NavLink ref={index === 0 ? menuFirstRef : undefined} key={item.to} to={item.to}>{item.label}</NavLink>)}
+          <NavLink to="/onboarding">個人設定<span>{profileLabel}</span></NavLink>
         </nav>
-        <NavLink className="profile-link" to="/onboarding">{profile ? `${profile.department} ${profile.grade} 年級` : "開始設定"}</NavLink>
-      </header>
-      {catalogError && <div className="error-banner">課程資料尚未就緒：{catalogError}</div>}
-      <main>
-        <Routes>
-          <Route path="/" element={<Navigate to={profile ? "/recommend" : "/onboarding"} replace />} />
-          <Route path="/onboarding" element={<Onboarding catalog={catalog} departmentCatalog={departmentCatalog} profile={profile} />} />
-          <Route path="/recommend" element={<RecommendPage catalog={catalog} profile={profile} searchIndex={searchIndex} />} />
-          <Route path="/assistant" element={<AssistantPage catalog={catalog} profile={profile} />} />
-          <Route path="/explore" element={<ExplorePage catalog={catalog} profile={profile} />} />
-          <Route path="/schedule" element={<ScheduleWorkspace catalog={catalog} plans={plans} active={activePlan} selectPlan={selectPlan} />} />
-          <Route path="/data" element={<DataPage catalog={catalog} />} />
-        </Routes>
-      </main>
-      <footer>MVP 1.0 · 推薦結果僅供規劃參考，實際資格、名額與開課資訊以校方選課系統為準。</footer>
-    </div></SchedulePlanContext.Provider>
+      </Modal>
+    </SchedulePlanContext.Provider>
   );
 }
 
 function Onboarding({ catalog, departmentCatalog, profile }: { catalog: Course[]; departmentCatalog?: DepartmentCatalog; profile?: Profile }) {
   const navigate = useNavigate();
+  const { notify } = useFeedback();
   const { plans, activePlan, selectPlan } = useSchedulePlans();
   const divisions = useMemo(() => buildDivisionOptions(catalog, departmentCatalog), [catalog, departmentCatalog]);
   const departmentOptions = useMemo(() => buildDepartmentOptions(catalog, departmentCatalog), [catalog, departmentCatalog]);
@@ -234,6 +271,8 @@ function Onboarding({ catalog, departmentCatalog, profile }: { catalog: Course[]
   const [departmentMenuOpen, setDepartmentMenuOpen] = useState(false);
   const [activeDepartmentIndex, setActiveDepartmentIndex] = useState(0);
   const [departmentError, setDepartmentError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const departmentPickerRef = useRef<HTMLDivElement>(null);
   const departmentInputRef = useRef<HTMLInputElement>(null);
   const departmentSearchTerm = selectedDepartmentOption
@@ -303,6 +342,9 @@ function Onboarding({ catalog, departmentCatalog, profile }: { catalog: Course[]
       departmentInputRef.current?.focus();
       return;
     }
+    setSaving(true);
+    setSaveError("");
+    try {
     const option = profileDepartmentOption(form);
     const savedProfile: Profile = {
       ...form,
@@ -366,16 +408,21 @@ function Onboarding({ catalog, departmentCatalog, profile }: { catalog: Course[]
       ].filter(Boolean);
       const summary = summaryParts.length ? `${summaryParts.join("；")}。` : "目前沒有可直接加入課表的必修課或固定時段。";
       const detail = skipped > 0 ? `\n${skipped} 門課因已在課表、已修、或與現有課表衝堂而略過。` : "";
-      window.alert(`${summary}${detail}\n共同必修中的英文／國文課程仍請依校方分發結果確認。`);
+      notify(summary + detail.replace("\n", " ") + " 共同必修中的英文／國文課程仍請依校方分發結果確認。");
     }
     navigate("/recommend");
+    } catch (error) {
+      setSaveError((error as Error).message || "無法儲存個人設定，請稍後重試。");
+    } finally {
+      setSaving(false);
+    }
   };
   return (
     <section className="narrow-page">
       <div className="eyebrow">只存在這台裝置</div>
       <h1>先設定你的基本資料</h1>
-      <p className="lead">目前使用 115-1 課程大綱資料；系級與修課紀錄會保存在瀏覽器，不會建立帳號或上傳到伺服器。</p>
-      <form className="card form-grid" onSubmit={save}>
+      <p className="lead">一般推薦所需的系級與修課紀錄只保存在這個瀏覽器，不會建立帳號。AI 小幫手只有在你另行同意後，才會傳送畫面上說明的必要資料。</p>
+      <form className="card form-grid profile-form" onSubmit={save} aria-busy={saving}><fieldset className="contents-fieldset" disabled={saving}>
         <label>部別<select value={form.division} onChange={(e) => { const division = e.target.value; setDepartmentInput(""); setDepartmentMenuOpen(false); setDepartmentError(""); setForm({ ...form, division, studyLevel: inferProfileStudyLevel({ division }), department: "", classGroup: "", department_identity: null, division_code: null, department_code: null, official_department_name_zh: null, official_department_type: null }); }}>{divisions.map((value) => <option key={value}>{value}</option>)}</select><small>部別與系所選項依輔大官方課程大綱查詢系統。</small></label>
         <div className="department-field wide">
           <label htmlFor="department-combobox">主修系所／學位學程</label>
@@ -420,7 +467,7 @@ function Onboarding({ catalog, departmentCatalog, profile }: { catalog: Course[]
                 }
               }}
             />
-            <button className="department-combobox-toggle" type="button" aria-label={departmentMenuOpen ? "收合系所清單" : "展開系所清單"} onClick={() => { setDepartmentMenuOpen((open) => !open); departmentInputRef.current?.focus(); }}>⌄</button>
+            <button className="department-combobox-toggle" type="button" aria-label={departmentMenuOpen ? "收合系所清單" : "展開系所清單"} onClick={() => { setDepartmentMenuOpen((open) => !open); departmentInputRef.current?.focus(); }}><CaretDown aria-hidden="true" /></button>
             {departmentMenuOpen && <div className="department-options" id="department-options" role="listbox">
               <div className="department-result-count">{visibleDepartmentOptions.length ? `${form.division} · ${visibleDepartmentOptions.length} 個符合單位` : "找不到符合的主修系所"}</div>
               {departmentOptionGroups.map((group) => <div className="department-option-group" key={group.type}>
@@ -455,8 +502,9 @@ function Onboarding({ catalog, departmentCatalog, profile }: { catalog: Course[]
 
         <label className="check wide"><input type="checkbox" checked={autoAddRequiredCourses} onChange={(e) => setAutoAddRequiredCourses(e.target.checked)} />儲存後自動將本系／共同必修加入「{activePlan?.name ?? "我的課表"}」</label>
         <small className="wide">只會加入目前 115-1 課程資料中符合部別、年級與班別的課程；英文、國文等共同課程仍須依學校分發或免修結果確認。</small>
-        <button className="primary wide" type="submit">儲存並前往推薦</button>
-      </form>
+        {saveError && <div className="notice danger wide" role="alert">儲存失敗：{saveError}</div>}
+        <button className="primary wide" type="submit" aria-busy={saving}>{saving ? "儲存中…" : "儲存並前往推薦"}</button>
+      </fieldset></form>
     </section>
   );
 }
@@ -472,7 +520,7 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
   const [showOtherWeekdays, setShowOtherWeekdays] = useState(false);
   const [creditFilters, setCreditFilters] = useState<number[]>([]);
   const [timeOfDayFilter, setTimeOfDayFilter] = useState<TimeOfDayFilter>("all");
-  const [includeUnknownSchedule, setIncludeUnknownSchedule] = useState(false);
+  const [includeUnknownSchedule, setIncludeUnknownSchedule] = useState(true);
   const [prerequisiteFilter, setPrerequisiteFilter] = useState<PrerequisiteFilter>("exclude_unmet");
   const [includeUnknownPrerequisite, setIncludeUnknownPrerequisite] = useState(false);
   const [studyLevelOnly, setStudyLevelOnly] = useState(true);
@@ -487,6 +535,7 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [validationError, setValidationError] = useState("");
+  const validationSummaryRef = useRef<HTMLDivElement>(null);
   useEffect(() => setInterest(profile?.interests ?? ""), [profile?.interests]);
   useEffect(() => {
     setPreferredWeekdays(profile?.preferredWeekdays?.length ? profile.preferredWeekdays : defaultPreferredWeekdays);
@@ -505,17 +554,6 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
     ));
   }, [catalog]);
   const sanitizedPreview = useMemo(() => sanitizeSubjectQuery(interest), [interest]);
-  const safetyStats = useMemo(() => getSafetyFilterStats({
-    catalog,
-    profile,
-    completed,
-    studyLevelFilter: studyLevelOnly ? inferProfileStudyLevel(profile) : undefined,
-    includeUnknownStudyLevel,
-    courseLevelFilter,
-    includeUnknownCourseLevel,
-    prerequisiteFilter,
-    includeUnknownPrerequisite,
-  }), [catalog, completed, courseLevelFilter, includeUnknownCourseLevel, includeUnknownPrerequisite, includeUnknownStudyLevel, prerequisiteFilter, profile, studyLevelOnly]);
   const rerank = useCallback((embedding: RecommendationEmbedding, filters: RecommendationCategoryFilters) => {
     const scheduledCourses = coursesInPlan(catalog, activePlan);
     const scheduledMeetings = meetingsInPlan(catalog, activePlan);
@@ -578,7 +616,7 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
     setShowOtherWeekdays(true);
     setCreditFilters([]);
     setTimeOfDayFilter("all");
-    setIncludeUnknownSchedule(false);
+    setIncludeUnknownSchedule(true);
     setPrerequisiteFilter("show_with_warning");
     setIncludeUnknownPrerequisite(false);
     setStudyLevelOnly(false);
@@ -637,37 +675,18 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
       return next;
     });
   };
-  const applyFilterSuggestion = (suggestion: FilterSuggestion) => {
-    if (suggestion === "prerequisite") {
-      setPrerequisiteFilter("exclude_unmet");
-      setIncludeUnknownPrerequisite(false);
-    } else if (suggestion === "introductory") {
-      setCourseLevelFilter("exclude_introductory");
-      setIncludeUnknownCourseLevel(false);
-      setStudyLevelOnly(true);
-      setIncludeUnknownStudyLevel(false);
-    } else if (suggestion === "study_level") {
-      setStudyLevelOnly(true);
-      setIncludeUnknownStudyLevel(false);
-    } else {
-      setPreferredWeekdays([1, 2, 3, 4, 5, 6]);
-      setShowOtherWeekdays(false);
-      setTimeOfDayFilter("weekday_evening_or_saturday");
-      setIncludeUnknownSchedule(false);
-    }
-  };
   if (!profile) return <EmptyState title="先完成個人設定" body="設定系所與年級後，才能判斷課程限制並產生推薦。" action="開始設定" href="/onboarding" />;
   return (
     <section className="page">
       <div className="hero"><div><div className="eyebrow">115-1 個人化推薦</div><h1>找到真正適合你的下一門課</h1><p>推薦在你的裝置上完成；已修課、收藏和課表不會送到後端。</p></div><div className="privacy-pill">● Local-first</div></div>
-      <div className="recommend-box"><div className="subject-query-field"><label htmlFor="subject-query">想學的主題或技能</label><textarea id="subject-query" aria-label="想學的主題或技能" maxLength={500} value={interest} onChange={(e) => setInterest(e.target.value)} placeholder="例如：電子商務、社群行銷、零售數據分析與業界案例" /><small>搜尋文字只決定課程內容的相關性；上課時間、學分、學制與先修條件請使用下方篩選器。</small></div><button className="primary" onClick={recommend} disabled={loading || !catalog.length}>{loading ? "正在分析…" : "產生推薦"}</button></div>
-      {sanitizedPreview.detectedFilterPhrases.length > 0 && <section className="card filter-language-notice" role="status"><strong>偵測到可能的篩選說明</strong><p>以下文字不會進入學科主題向量，也不會在未確認時自動套用。你可以使用建議按鈕，或在下方自行調整。</p><div className="detected-filter-list">{sanitizedPreview.detectedFilterPhrases.map((item, index) => { const suggestion = getFilterSuggestion(item); return <span key={`${item.kind}-${item.text}-${index}`}><span className="detected-filter-text"><b>{detectedFilterLabels[item.kind]}</b>{item.text}</span>{suggestion && <button type="button" onClick={() => applyFilterSuggestion(suggestion.kind)}>{suggestion.label}</button>}</span>; })}</div><p><strong>實際搜尋主題：</strong>{sanitizedPreview.subjectQuery || "尚未輸入學科主題"}</p></section>}
-      {lastEmbedding && <section className="search-execution-summary" aria-label="本次搜尋內容"><span><strong>本次學科主題</strong>{lastEmbedding.queryText}</span><span><strong>已忽略的限制文字</strong>{lastEmbedding.detectedFilterPhrases.length ? `${lastEmbedding.detectedFilterPhrases.length} 段（未送入主題向量）` : "沒有"}</span><span><strong>硬條件來源</strong>下方明確篩選器</span><span><strong>目前結果</strong>{results.length ? `顯示前 ${results.length} 門` : "尚未找到符合條件的課程"}</span></section>}
+      <div className="recommend-box"><div className="subject-query-field"><label htmlFor="subject-query">想學的主題或技能</label><textarea id="subject-query" aria-label="想學的主題或技能" aria-invalid={Boolean(validationError && !sanitizedPreview.subjectQuery)} aria-describedby={validationError && !sanitizedPreview.subjectQuery ? "recommend-subject-error" : undefined} maxLength={500} value={interest} onChange={(e) => setInterest(e.target.value)} placeholder="例如：電子商務、社群行銷、零售數據分析與業界案例" /><small>搜尋文字只決定課程內容的相關性；上課星期、學分、學制與先修條件請使用下方篩選器。</small>{validationError && !sanitizedPreview.subjectQuery && <small id="recommend-subject-error" className="field-error">{validationError}</small>}</div><button className="primary" onClick={recommend} disabled={loading || !catalog.length}>{loading ? "正在分析…" : "產生推薦"}</button></div>
+      {validationError && <div ref={validationSummaryRef} className="notice danger error-summary" role="alert" tabIndex={-1}><strong>請修正後再產生推薦</strong><p>{validationError}</p></div>}
+      {lastEmbedding && <section className="search-execution-summary" aria-label="本次搜尋內容"><span><strong>本次學科主題</strong>{lastEmbedding.queryText}</span><span><strong>硬條件來源</strong>下方明確篩選器</span><span><strong>目前結果</strong>{results.length ? `顯示前 ${results.length} 門` : "尚未找到符合條件的課程"}</span></section>}
       <section className="filter-workspace" aria-labelledby="recommendation-filter-heading">
         <div className="filter-section-heading"><div><span>硬條件篩選</span><h2 id="recommendation-filter-heading">選出真正可修的課</h2></div><p>先設定重要條件，再依學科主題排序；不常用的選項會收在進階設定。</p></div>
         <div className="applied-filters" aria-live="polite"><div><strong>已套用 {activeFilterCount} 項條件</strong><div className="applied-filter-list">
           {!showOtherWeekdays && <button type="button" onClick={() => setShowOtherWeekdays(true)}>星期{preferredWeekdays.map((day) => weekdays[day - 1]).join("、")}<span aria-hidden="true">×</span></button>}
-          {timeOfDayFilter !== "all" && <button type="button" onClick={() => setTimeOfDayFilter("all")}>{timeOfDayFilter === "daytime" ? "日間 D 節" : timeOfDayFilter === "evening" ? "晚間 E 節" : "平日晚間＋週六"}<span aria-hidden="true">×</span></button>}
+          {timeOfDayFilter !== "all" && <button type="button" onClick={() => { setTimeOfDayFilter("all"); setIncludeUnknownSchedule(true); }}>{timeOfDayFilter === "daytime" ? "日間 D 節" : timeOfDayFilter === "evening" ? "晚間 E 節" : "平日晚間＋週六"}<span aria-hidden="true">×</span></button>}
           {creditFilters.length > 0 && <button type="button" onClick={() => setCreditFilters([])}>{creditFilters.join("、")} 學分<span aria-hidden="true">×</span></button>}
           {studyLevelOnly && <button type="button" onClick={() => setStudyLevelOnly(false)}>符合我的學制<span aria-hidden="true">×</span></button>}
           {prerequisiteFilter === "exclude_unmet" && <button type="button" onClick={() => setPrerequisiteFilter("show_with_warning")}>排除未滿足先修<span aria-hidden="true">×</span></button>}
@@ -675,13 +694,13 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
           {includeScheduleInfo && <button type="button" onClick={() => setIncludeScheduleInfo(false)}>檢查衝堂<span aria-hidden="true">×</span></button>}
           {categoryFilters.length > 0 && <button type="button" onClick={() => setCategoryFilters([])}>課程類別 {categoryFilters.length}<span aria-hidden="true">×</span></button>}
           {courseTagFilters.length > 0 && <button type="button" onClick={() => setCourseTagFilters([])}>官方標籤 {courseTagFilters.length}<span aria-hidden="true">×</span></button>}
-          {(includeUnknownSchedule || includeUnknownStudyLevel || includeUnknownPrerequisite || includeUnknownCourseLevel) && <span className="applied-filter-note">已包含部分資料不明課程</span>}
+          {(includeUnknownStudyLevel || includeUnknownPrerequisite || includeUnknownCourseLevel) && <span className="applied-filter-note">已包含部分資料不明課程</span>}
         </div></div><button type="button" className="clear-filters" onClick={clearFilters} disabled={activeFilterCount === 0}>清除全部</button></div>
         <details className="filter-group" open>
           <summary><span><b>上課安排</b><small>{showOtherWeekdays ? "不限星期" : `星期${preferredWeekdays.map((day) => weekdays[day - 1]).join("、")}`}{timeOfDayFilter !== "all" && " · 已限制時段"}{creditFilters.length > 0 && ` · ${creditFilters.join("、")} 學分`}</small></span><span className="filter-group-count">常用</span></summary>
           <div className="filter-group-content">
-            <div className="filter-control"><div className="filter-control-heading"><strong>上課星期</strong><span>{showOtherWeekdays ? "目前不依星期排除" : "只顯示可上的星期"}</span></div><div className="choice-row" aria-label="偏好的上課星期">{weekdays.map((label, index) => { const day = index + 1; return <button type="button" className={`choice-chip ${preferredWeekdays.includes(day) ? "selected" : ""}`} aria-pressed={preferredWeekdays.includes(day)} key={day} onClick={() => togglePreferredWeekday(day)}>星期{label}</button>; })}</div><button type="button" className={`filter-toggle ${showOtherWeekdays ? "active" : ""}`} aria-pressed={showOtherWeekdays} onClick={() => setShowOtherWeekdays((current) => !current)}>暫時忽略星期限制</button></div>
-            <div className="filter-control"><div className="filter-control-heading"><strong>上課時段</strong><span>選一項；不選即不限</span></div><div className="filter-chip-grid" role="radiogroup" aria-label="上課時段">{([['all', '不限時段'], ['daytime', '只要日間 D 節'], ['evening', '只要晚間 E 節'], ['weekday_evening_or_saturday', '平日晚間＋星期六']] as const).map(([value, label]) => <button type="button" role="radio" aria-checked={timeOfDayFilter === value} className={`filter-choice ${timeOfDayFilter === value ? "selected" : ""}`} key={value} onClick={() => setTimeOfDayFilter(value)}>{label}</button>)}</div><details className="filter-advanced"><summary>進階設定 <small>{includeUnknownSchedule ? "已顯示時間未定課程" : "時間未定課程不會混入結果"}</small></summary><button type="button" className={`filter-toggle ${includeUnknownSchedule ? "active" : ""}`} aria-pressed={includeUnknownSchedule} onClick={() => setIncludeUnknownSchedule((current) => !current)}>另外顯示時間未定的課程</button></details></div>
+            <div className="filter-control"><div className="filter-control-heading"><strong>上課星期</strong><span>{showOtherWeekdays ? "目前不依星期排除" : "只顯示可上的星期"}</span></div><div className="choice-row" aria-label="偏好的上課星期" aria-describedby={!preferredWeekdays.length ? "weekday-error" : undefined}>{weekdays.map((label, index) => { const day = index + 1; return <button type="button" className={`choice-chip ${preferredWeekdays.includes(day) ? "selected" : ""}`} aria-pressed={preferredWeekdays.includes(day)} key={day} onClick={() => togglePreferredWeekday(day)}>星期{label}</button>; })}</div>{!preferredWeekdays.length && <small id="weekday-error" className="field-error">請至少選擇一個星期</small>}<button type="button" className={`filter-toggle ${showOtherWeekdays ? "active" : ""}`} aria-pressed={showOtherWeekdays} onClick={() => setShowOtherWeekdays((current) => !current)}>暫時忽略星期限制</button></div>
+            
             <div className="filter-control"><div className="filter-control-heading"><strong>學分數</strong><span>{creditFilters.length ? `只顯示 ${creditFilters.join("、")} 學分` : "不限學分"}</span></div><div className="filter-chip-grid"><button type="button" className={`filter-choice ${creditFilters.length === 0 ? "selected" : ""}`} aria-pressed={creditFilters.length === 0} onClick={() => setCreditFilters([])}>不限學分</button>{creditOptions.map((credits) => <button type="button" className={`filter-choice ${creditFilters.includes(credits) ? "selected" : ""}`} aria-pressed={creditFilters.includes(credits)} key={credits} onClick={() => setCreditFilters((current) => current.includes(credits) ? current.filter((item) => item !== credits) : [...current, credits])}>{credits} 學分</button>)}</div></div>
             <div className="filter-control filter-schedule-toggle"><div><strong>課表衝堂</strong><span>{includeScheduleInfo ? `已納入「${activePlan?.name ?? "目前課表"}」` : "不檢查目前課表"}</span></div><button type="button" className={`filter-toggle ${includeScheduleInfo ? "active" : ""}`} aria-pressed={includeScheduleInfo} onClick={() => setIncludeScheduleInfo((current) => !current)}>納入完整課表檢查衝堂</button></div>
           </div>
@@ -689,8 +708,8 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
         <details className="filter-group">
           <summary><span><b>修課資格</b><small>{studyLevelOnly ? `符合${profileStudyLevelLabel(profile)}` : "不限學制"} · {prerequisiteFilter === "exclude_unmet" ? "排除未滿足先修" : "保留先修警告"}</small></span><span className="filter-group-count">{[studyLevelOnly, prerequisiteFilter === "exclude_unmet", courseLevelFilter !== "all"].filter(Boolean).length} 項</span></summary>
           <div className="filter-group-content">
-            <div className="filter-control"><div className="filter-control-heading"><strong>學制與先修</strong><span>根據你的個人設定與已修課程判斷</span></div><button type="button" className={`filter-toggle ${studyLevelOnly ? "active" : ""}`} aria-pressed={studyLevelOnly} onClick={() => setStudyLevelOnly((current) => !current)}>只顯示符合「{profileStudyLevelLabel(profile)}」層級的課程</button><div className="filter-chip-grid" role="radiogroup" aria-label="先修條件"><button type="button" role="radio" aria-checked={prerequisiteFilter === "exclude_unmet"} className={`filter-choice ${prerequisiteFilter === "exclude_unmet" ? "selected" : ""}`} onClick={() => setPrerequisiteFilter("exclude_unmet")}>排除確定未滿足先修</button><button type="button" role="radio" aria-checked={prerequisiteFilter === "show_with_warning"} className={`filter-choice ${prerequisiteFilter === "show_with_warning" ? "selected" : ""}`} onClick={() => setPrerequisiteFilter("show_with_warning")}>保留未滿足先修並警告</button></div><details className="filter-advanced"><summary>進階設定 <small>{includeUnknownStudyLevel || includeUnknownPrerequisite ? "已包含資料不明課程" : "不含資料不明課程"}</small></summary>{studyLevelOnly && <button type="button" className={`filter-toggle ${includeUnknownStudyLevel ? "active" : ""}`} aria-pressed={includeUnknownStudyLevel} onClick={() => setIncludeUnknownStudyLevel((current) => !current)}>另外顯示學制資料不明的課程</button>}<button type="button" className={`filter-toggle ${includeUnknownPrerequisite ? "active" : ""}`} aria-pressed={includeUnknownPrerequisite} onClick={() => setIncludeUnknownPrerequisite((current) => !current)}>另外顯示先修說明尚未結構化的課程</button></details></div>
-            <div className="filter-control"><div className="filter-control-heading"><strong>課程程度</strong><span>只依課名中的明確字樣保守判定</span></div><div className="filter-chip-grid" role="radiogroup" aria-label="課程程度">{([['all', '不限程度'], ['exclude_introductory', '排除入門'], ['introductory', '只要入門'], ['intermediate', '只要中階'], ['advanced', '只要進階']] as const).map(([value, label]) => <button type="button" role="radio" aria-checked={courseLevelFilter === value} className={`filter-choice ${courseLevelFilter === value ? "selected" : ""}`} key={value} onClick={() => setCourseLevelFilter(value)}>{label}</button>)}</div>{courseLevelFilter !== "all" && <details className="filter-advanced"><summary>進階設定 <small>{includeUnknownCourseLevel ? "已顯示程度不明課程" : "不顯示程度不明課程"}</small></summary><button type="button" className={`filter-toggle ${includeUnknownCourseLevel ? "active" : ""}`} aria-pressed={includeUnknownCourseLevel} onClick={() => setIncludeUnknownCourseLevel((current) => !current)}>另外顯示程度資料不明的課程</button></details>}</div>
+            <div className="filter-control"><div className="filter-control-heading"><strong>學制與先修</strong><span>根據你的個人設定與已修課程判斷</span></div><button type="button" className={`filter-toggle ${studyLevelOnly ? "active" : ""}`} aria-pressed={studyLevelOnly} onClick={() => setStudyLevelOnly((current) => !current)}>只顯示符合「{profileStudyLevelLabel(profile)}」層級的課程</button><div className="filter-chip-grid" role="radiogroup" aria-label="先修條件"><label className={`filter-choice radio-choice ${prerequisiteFilter === "exclude_unmet" ? "selected" : ""}`}><input type="radio" name="prerequisite" checked={prerequisiteFilter === "exclude_unmet"} onChange={() => setPrerequisiteFilter("exclude_unmet")} /><span>排除確定未滿足先修</span></label><label className={`filter-choice radio-choice ${prerequisiteFilter === "show_with_warning" ? "selected" : ""}`}><input type="radio" name="prerequisite" checked={prerequisiteFilter === "show_with_warning"} onChange={() => setPrerequisiteFilter("show_with_warning")} /><span>保留未滿足先修並警告</span></label></div><details className="filter-advanced"><summary>進階設定 <small>{includeUnknownStudyLevel || includeUnknownPrerequisite ? "已包含資料不明課程" : "不含資料不明課程"}</small></summary>{studyLevelOnly && <button type="button" className={`filter-toggle ${includeUnknownStudyLevel ? "active" : ""}`} aria-pressed={includeUnknownStudyLevel} onClick={() => setIncludeUnknownStudyLevel((current) => !current)}>另外顯示學制資料不明的課程</button>}<button type="button" className={`filter-toggle ${includeUnknownPrerequisite ? "active" : ""}`} aria-pressed={includeUnknownPrerequisite} onClick={() => setIncludeUnknownPrerequisite((current) => !current)}>另外顯示先修說明尚未結構化的課程</button></details></div>
+            <div className="filter-control"><div className="filter-control-heading"><strong>課程程度</strong><span>只依課名中的明確字樣保守判定</span></div><div className="filter-chip-grid" role="radiogroup" aria-label="課程程度">{([['all', '不限程度'], ['exclude_introductory', '排除入門'], ['introductory', '只要入門'], ['intermediate', '只要中階'], ['advanced', '只要進階']] as const).map(([value, label]) => <label className={"filter-choice radio-choice " + (courseLevelFilter === value ? "selected" : "")} key={value}><input type="radio" name="course-level" value={value} checked={courseLevelFilter === value} onChange={() => setCourseLevelFilter(value)} /><span>{label}</span></label>)}</div>{courseLevelFilter !== "all" && <details className="filter-advanced"><summary>進階設定 <small>{includeUnknownCourseLevel ? "已顯示程度不明課程" : "不顯示程度不明課程"}</small></summary><button type="button" className={`filter-toggle ${includeUnknownCourseLevel ? "active" : ""}`} aria-pressed={includeUnknownCourseLevel} onClick={() => setIncludeUnknownCourseLevel((current) => !current)}>另外顯示程度資料不明的課程</button></details>}</div>
           </div>
         </details>
         <details className="filter-group">
@@ -701,10 +720,11 @@ function RecommendPage({ catalog, profile, searchIndex }: { catalog: Course[]; p
           </div>
         </details>
       </section>
-      <section className="card safety-filter-summary" aria-label="安全篩選統計"><strong>目前安全條件會先排除</strong><div><span><b>{safetyStats.studyLevelMismatch}</b> 門學制不符</span><span><b>{safetyStats.studyLevelUnknown}</b> 門學制不明</span><span><b>{safetyStats.courseLevelMismatch}</b> 門程度不符</span><span><b>{safetyStats.courseLevelUnknown}</b> 門程度不明</span><span><b>{safetyStats.unmetPrerequisite}</b> 門確定未滿足先修</span><span><b>{safetyStats.ambiguousPrerequisite}</b> 門先修說明未結構化</span></div><small>各數字可能重複計入同一門課；推薦結果會再套用時間、學分、課表與課程類別條件。</small></section>
       {validationError && <div className="notice danger">{validationError}</div>}
-      {error && <div className="notice danger">{error}</div>}
-      {!results.length && !loading && <div className="empty-panel"><h2>先設定硬條件，再依學科主題排序</h2><div className="feature-grid"><span>明確篩選</span><span>語意檢索</span><span>關鍵字檢索</span><span>RRF 融合排名</span></div></div>}
+      {error && <div className="notice danger" role="alert">推薦失敗：{error}<button type="button" onClick={() => void recommend()}>重試</button></div>}
+      {loading && <div className="empty-panel" role="status"><h2>正在產生推薦…</h2><p>正在比對課程內容與你設定的修課條件。</p></div>}
+      {!lastEmbedding && !loading && !error && <div className="empty-panel"><h2>輸入主題，開始找適合的課</h2><div className="feature-grid"><span>明確篩選</span><span>語意檢索</span><span>關鍵字檢索</span><span>RRF 融合排名</span></div></div>}
+      {lastEmbedding && !results.length && !loading && !error && <div className="empty-panel"><h2>沒有符合全部條件的課程</h2><p>可以放寬條件，或換一個更廣泛的主題。</p><div className="empty-actions"><button type="button" onClick={clearFilters}>清除全部條件</button><button type="button" onClick={() => document.getElementById("subject-query")?.focus()}>修改主題</button></div></div>}
       <div className="course-grid">{results.map((item, index) => <CourseCard key={item.course.course_id} course={item.course} alternatives={item.alternatives} profile={profile} catalog={catalog} rank={index + 1} reasons={item.reasons} recommendationCategory={item.category} />)}</div>
     </section>
   );
@@ -726,6 +746,9 @@ function AssistantPage({ catalog, profile }: { catalog: Course[]; profile?: Prof
   const [enabled, setEnabled] = useState<boolean | null>(null);
   const [maxChars, setMaxChars] = useState(500);
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState("");
+  const [completionAnnouncement, setCompletionAnnouncement] = useState("");
+  const questionRef = useRef<HTMLTextAreaElement>(null);
   const phases = ["正在搜尋相關課綱", "正在檢查修課條件", "正在整理推薦理由"];
   const examples = [
     "想學 Python 實作，避開星期三",
@@ -793,10 +816,16 @@ function AssistantPage({ catalog, profile }: { catalog: Course[]; profile?: Prof
   };
   const copyLatest = async () => {
     const latest = turns.at(-1)?.answer.answer;
-    if (!latest || !navigator.clipboard) return;
-    await navigator.clipboard.writeText(latest);
-    setCopied(true);
-    window.setTimeout(() => setCopied(false), 1600);
+    if (!latest) return;
+    setCopyError("");
+    try {
+      if (!navigator.clipboard) throw new Error("這個瀏覽器不支援剪貼簿");
+      await navigator.clipboard.writeText(latest);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch (caught) {
+      setCopyError("複製失敗：" + (caught as Error).message);
+    }
   };
   const retry = () => {
     const retryQuestion = lastFailedQuestion || turns.at(-1)?.question;
@@ -812,20 +841,22 @@ function AssistantPage({ catalog, profile }: { catalog: Course[]; profile?: Prof
         {enabled === false && <div className="notice danger">AI 小幫手尚未設定 API key；其他課程功能仍可正常使用。</div>}
         <form className="assistant-composer card" onSubmit={(event) => void ask(event)}>
           <label htmlFor="assistant-question"><strong>想問什麼課程問題？</strong></label>
-          <textarea id="assistant-question" aria-label="AI 課程問題" maxLength={maxChars} value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void ask(); } }} placeholder="例如：我想學資料分析，也希望不要和星期一的課衝堂…" />
-          <div className="assistant-input-meta"><span>{question.length}/{maxChars}</span><button className="primary" type="submit" disabled={loading || enabled === false || !question.trim()}>{loading ? "正在整理…" : "詢問小幫手"}</button></div>
+          <textarea ref={questionRef} id="assistant-question" aria-label="AI 課程問題" maxLength={maxChars} value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); void ask(); } }} placeholder="例如：我想學資料分析，也希望不要和星期一的課衝堂…" />
+          <div className="assistant-input-meta"><span>{question.length}/{maxChars}</span><button className="primary" type="submit" disabled={loading || enabled === false || !question.trim()} aria-busy={loading}>{loading ? "正在整理…" : "詢問小幫手"}</button></div>
           <div className="assistant-examples" aria-label="問題範例">{examples.map((example) => <button type="button" key={example} onClick={() => setQuestion(example)}>{example}</button>)}</div>
         </form>
-        {loading && <div className="assistant-thinking" role="status" aria-live="polite"><span className="thinking-dots"><i></i><i></i><i></i></span><strong>{phases[loadingPhase]}</strong><span>請稍候，正在依課程資料整理答案</span></div>}
-        {error && <div className="notice danger assistant-error">{error}<button type="button" onClick={retry}>重試上一題</button></div>}
+        {loading && <div className="assistant-thinking"><span className="sr-only" role="status">正在整理回答</span><span className="thinking-dots" aria-hidden="true"><i></i><i></i><i></i></span><strong aria-hidden="true">{phases[loadingPhase]}</strong><span aria-hidden="true">請稍候，正在依課程資料整理答案</span></div>}
+        <div className="sr-only" role="status" aria-live="polite">{completionAnnouncement}</div>
+        {copyError && <div className="notice danger" role="alert">{copyError}</div>}
+        {error && <div className="notice danger assistant-error" role="alert">{error}<button type="button" onClick={retry}>重試上一題</button></div>}
         {turns.length > 0 && <div className="assistant-toolbar"><span>本次對話保留最近兩輪上下文</span><div><button type="button" onClick={() => void copyLatest()}>{copied ? "已複製" : "複製最新答案"}</button><button type="button" onClick={() => setTurns([])}>清除對話</button></div></div>}
         <div className="assistant-thread">
           {turns.map((turn, turnIndex) => <article className="assistant-turn" key={`${turn.answer.request_id}-${turnIndex}`}>
             <div className="assistant-user-message"><span>你</span><p>{turn.question}</p></div>
             <div className="assistant-answer card"><div className="assistant-answer-label">AI 課程小幫手</div><p className="assistant-summary">{turn.answer.answer || "目前沒有足夠資料可以補充。"}</p>
               {turn.answer.recommendations.length > 0 && <><h2>推薦課程</h2><div className="course-grid">{turn.answer.recommendations.map((item, index) => <CourseCard key={`${turn.answer.request_id}-${item.course.course_id}`} course={item.course} profile={profile} catalog={catalog} rank={index + 1} reasons={[item.reason]} cautions={item.cautions} matchedFields={item.matched_fields} />)}</div></>}
-              {turn.answer.follow_up_suggestions.length > 0 && <div className="assistant-followups"><strong>你也可以問：</strong>{turn.answer.follow_up_suggestions.map((suggestion) => <button type="button" key={suggestion} onClick={() => setQuestion(suggestion)}>{suggestion}</button>)}</div>}
-              {turn.answer.limitations.length > 0 && <div className="assistant-limitations">{turn.answer.limitations.map((limitation) => <p key={limitation}>ⓘ {limitation}</p>)}<NavLink to="/explore">前往探索課程 →</NavLink></div>}
+              {turn.answer.follow_up_suggestions.length > 0 && <div className="assistant-followups"><strong>你也可以問：</strong>{turn.answer.follow_up_suggestions.map((suggestion) => <button type="button" key={suggestion} onClick={() => { setQuestion(suggestion); window.requestAnimationFrame(() => questionRef.current?.focus()); }}>{suggestion}</button>)}</div>}
+              {turn.answer.limitations.length > 0 && <div className="assistant-limitations">{turn.answer.limitations.map((limitation) => <p key={limitation}><Info aria-hidden="true" />{limitation}</p>)}<NavLink to="/explore">前往探索課程 →</NavLink></div>}
             </div>
           </article>)}
         </div>
@@ -836,43 +867,66 @@ function AssistantPage({ catalog, profile }: { catalog: Course[]; profile?: Prof
 
 function ExplorePage({ catalog, profile }: { catalog: Course[]; profile?: Profile }) {
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [department, setDepartment] = useState("");
   const [weekday, setWeekday] = useState("");
   const [courses, setCourses] = useState<Course[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const [retryKey, setRetryKey] = useState(0);
   const departments = useMemo(() => {
     const options = new Map<string, { value: string; label: string }>();
     for (const item of catalog) {
       if (!item.department) continue;
-      const value = item.department_identity ?? `legacy:${item.department}`;
-      options.set(value, {
-        value,
-        label: item.official_department_label ?? item.department_display ?? item.department,
-      });
+      const value = item.department_identity ?? "legacy:" + item.department;
+      options.set(value, { value, label: item.official_department_label ?? item.department_display ?? item.department });
     }
     return [...options.values()].sort((left, right) => left.label.localeCompare(right.label, "zh-Hant"));
   }, [catalog]);
-  const load = useCallback(async () => {
-    const params = new URLSearchParams({ page: String(page), page_size: "25" });
-    if (query) params.set("q", query);
-    if (department) params.set("department", department);
-    if (weekday) params.set("weekday", weekday);
-    try {
-      setError("");
-      const result = await getCourses(params); setCourses(result.items); setTotal(result.total);
-    } catch (caught) {
-      setCourses([]); setTotal(0); setError((caught as Error).message);
-    }
-  }, [query, department, weekday, page]);
-  useEffect(() => { void load(); }, [load]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => { setDebouncedQuery(query); setPage(1); }, 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+  useEffect(() => {
+    const controller = new AbortController();
+    const load = async () => {
+      const params = new URLSearchParams({ page: String(page), page_size: "25" });
+      if (debouncedQuery) params.set("q", debouncedQuery);
+      if (department) params.set("department", department);
+      if (weekday) params.set("weekday", weekday);
+      setLoading(true); setError("");
+      try {
+        const result = await getCourses(params, controller.signal);
+        setCourses(result.items); setTotal(result.total); setHasLoaded(true);
+      } catch (caught) {
+        if ((caught as Error).name === "AbortError") return;
+        setError((caught as Error).message); setHasLoaded(true);
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    };
+    void load();
+    return () => controller.abort();
+  }, [debouncedQuery, department, page, retryKey, weekday]);
+  const clearExploreFilters = () => {
+    setQuery(""); setDebouncedQuery(""); setDepartment(""); setWeekday(""); setPage(1);
+  };
   return (
-    <section className="page"><div className="page-heading"><div><div className="eyebrow">探索全部課程</div><h1>課程資料庫</h1></div><strong>{total.toLocaleString()} 門結果</strong></div>
-      <div className="filters-bar"><input type="search" value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="課名、教師、課號或系所" /><select value={department} onChange={(e) => { setDepartment(e.target.value); setPage(1); }}><option value="">所有系所</option>{departments.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select><select value={weekday} onChange={(e) => { setWeekday(e.target.value); setPage(1); }}><option value="">所有星期</option>{weekdays.map((label, index) => <option key={label} value={index + 1}>星期{label}</option>)}</select></div>
-      {error && <div className="notice danger">無法載入課程：{error}</div>}
-      <div className="course-grid">{courses.map((course) => <CourseCard key={course.course_id} course={course} profile={profile} catalog={catalog} />)}</div>
-      <div className="pager"><button disabled={page === 1} onClick={() => setPage(page - 1)}>上一頁</button><span>第 {page} 頁</span><button disabled={page * 25 >= total} onClick={() => setPage(page + 1)}>下一頁</button></div>
+    <section className="page">
+      <div className="page-heading"><div><div className="eyebrow">探索全部課程</div><h1>課程資料庫</h1></div><strong>{total.toLocaleString()} 門結果</strong></div>
+      <div className="filters-bar">
+        <label><span>搜尋課程</span><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="課名、教師、課號或系所" /></label>
+        <label><span>開課系所</span><select value={department} onChange={(event) => { setDepartment(event.target.value); setPage(1); }}><option value="">所有系所</option>{departments.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
+        <label><span>上課星期</span><select value={weekday} onChange={(event) => { setWeekday(event.target.value); setPage(1); }}><option value="">所有星期</option>{weekdays.map((label, index) => <option key={label} value={index + 1}>星期{label}</option>)}</select></label>
+      </div>
+      {loading && !hasLoaded && <div className="course-grid skeleton-grid" role="status" aria-label="正在載入課程">{[1, 2, 3, 4].map((item) => <div className="course-skeleton" key={item}><span></span><span></span><span></span></div>)}</div>}
+      {error && <div className="notice danger" role="alert">無法載入課程：{error}<button type="button" onClick={() => setRetryKey((value) => value + 1)}>重試</button></div>}
+      {hasLoaded && !error && !courses.length && !loading && <div className="empty-panel"><h2>找不到符合條件的課程</h2><p>請嘗試較短的關鍵字，或清除目前篩選。</p><button type="button" onClick={clearExploreFilters}>清除篩選</button></div>}
+      {hasLoaded && !error && <div className="results-region" aria-busy={loading}>{loading && <div className="updating-indicator" role="status">正在更新結果…</div>}<div className="course-grid">{courses.map((item) => <CourseCard key={item.course_id} course={item} profile={profile} catalog={catalog} />)}</div></div>}
+      {hasLoaded && !error && courses.length > 0 && <div className="pager"><button disabled={loading || page === 1} onClick={() => setPage((value) => value - 1)}>上一頁</button><span>第 {page} 頁</span><button disabled={loading || page * 25 >= total} onClick={() => setPage((value) => value + 1)}>下一頁</button></div>}
     </section>
   );
 }
@@ -881,56 +935,94 @@ function CourseCard({ course, alternatives, profile, catalog, rank, reasons, cau
   const [completed] = useStore<CompletedCourse & { id: string }>("completedCourses");
   const [favorites] = useStore<{ id: string }>("favorites");
   const { activePlan, selectPlan } = useSchedulePlans();
-  const variants = [course, ...(alternatives ?? [])].filter((item, index, values) => (
-    values.findIndex((candidate) => candidate.course_id === item.course_id) === index
-  ));
+  const { notify } = useFeedback();
+  const [pending, setPending] = useState<"favorite" | "completed" | "schedule" | "dismiss" | "">("");
+  const [conflictRequest, setConflictRequest] = useState<{ plan: SchedulePlan; message: string }>();
+  const variants = [course, ...(alternatives ?? [])].filter((item, index, values) => values.findIndex((candidate) => candidate.course_id === item.course_id) === index);
   const [selectedCourseId, setSelectedCourseId] = useState(course.course_id);
   useEffect(() => setSelectedCourseId(course.course_id), [course.course_id]);
   const selectedCourse = variants.find((item) => item.course_id === selectedCourseId) ?? course;
-  const selectedRecommendationCategory = recommendationCategory
-    ? classifyRecommendationCategory(selectedCourse, profile)
-    : undefined;
+  const selectedRecommendationCategory = recommendationCategory ? classifyRecommendationCategory(selectedCourse, profile) : undefined;
   const completedNames = new Set(completed.map((item) => item.courseName));
   const eligibility = evaluateEligibility(selectedCourse, profile, completedNames);
+  const eligibilityCautions = eligibility.blocked.some((rule) => rule.kind === "course_prerequisite")
+    ? ["本課程設有先修條件，請確認你是否已修畢。"]
+    : eligibility.status === "blocked_confirmed"
+      ? ["目前可能不符合修課資格，請展開查看規定。"]
+      : eligibility.status === "needs_confirmation"
+        ? ["修課資格尚未能確認，建議先查看課綱或選課系統。"]
+        : [];
+  const courseCautions = [...new Set([...eligibilityCautions, ...(cautions ?? [])])];
   const favorite = favorites.some((item) => item.id === selectedCourse.course_id);
   const isCompleted = completed.some((item) => item.id === selectedCourse.course_id);
-  const toggleFavorite = async () => favorite ? deleteRecord("favorites", selectedCourse.course_id) : putRecord("favorites", { id: selectedCourse.course_id, addedAt: new Date().toISOString() });
-  const toggleCompleted = async () => isCompleted ? deleteRecord("completedCourses", selectedCourse.course_id) : putRecord("completedCourses", { id: selectedCourse.course_id, courseId: selectedCourse.course_id, courseName: selectedCourse.name_zh, continueLearning: false, addedAt: new Date().toISOString() });
+  const scheduled = Boolean(activePlan?.entries.some((item) => item.courseId === selectedCourse.course_id));
+
+  const toggleFavorite = async () => {
+    if (pending) return;
+    setPending("favorite");
+    try {
+      if (favorite) await deleteRecord("favorites", selectedCourse.course_id);
+      else await putRecord("favorites", { id: selectedCourse.course_id, addedAt: new Date().toISOString() });
+    } catch (error) { notify("收藏操作失敗：" + (error as Error).message, "error"); }
+    finally { setPending(""); }
+  };
+  const toggleCompleted = async () => {
+    if (pending) return;
+    setPending("completed");
+    try {
+      if (isCompleted) await deleteRecord("completedCourses", selectedCourse.course_id);
+      else await putRecord("completedCourses", { id: selectedCourse.course_id, courseId: selectedCourse.course_id, courseName: selectedCourse.name_zh, continueLearning: false, addedAt: new Date().toISOString() });
+    } catch (error) { notify("更新已修狀態失敗：" + (error as Error).message, "error"); }
+    finally { setPending(""); }
+  };
   const dismiss = async () => {
-    const addedAt = new Date().toISOString();
-    await Promise.all(variants.map((item) => putRecord("dismissedCourses", { id: item.course_id, addedAt })));
+    if (pending) return;
+    setPending("dismiss");
+    const id = selectedCourse.course_id;
+    try {
+      const addedAt = new Date().toISOString();
+      await putRecord("dismissedCourses", { id, addedAt });
+      notify("已從推薦中排除此課程", "success", { label: "復原", onAction: () => deleteRecord("dismissedCourses", id) });
+    } catch (error) { notify("無法更新推薦偏好：" + (error as Error).message, "error"); }
+    finally { setPending(""); }
+  };
+  const commitSchedule = async (plan: SchedulePlan) => {
+    setPending("schedule");
+    try {
+      await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, { courseId: selectedCourse.course_id, locked: false }], updatedAt: new Date().toISOString() });
+      if (!activePlan) await selectPlan(plan.id);
+      notify("已加入「" + plan.name + "」");
+    } catch (error) { notify("加入課表失敗：" + (error as Error).message, "error"); }
+    finally { setPending(""); setConflictRequest(undefined); }
   };
   const addSchedule = async () => {
+    if (pending || scheduled) return;
     let plan = activePlan;
     if (!plan) plan = { id: crypto.randomUUID(), name: "我的課表", entries: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-    if (plan.entries.some((item) => item.courseId === selectedCourse.course_id)) return;
-    const scheduled = coursesInPlan(catalog, plan);
-    const courseConflict = courseConflicts(selectedCourse, scheduled);
+    const scheduledCourses = coursesInPlan(catalog, plan);
+    const courseConflict = courseConflicts(selectedCourse, scheduledCourses);
     const fixedConflict = meetingsConflict(selectedCourse.meetings, (plan.fixedEntries ?? []).flatMap((entry) => entry.meetings));
-    const conflict = {
-      conflict: courseConflict.conflict || fixedConflict.conflict,
-      uncertain: courseConflict.uncertain || fixedConflict.uncertain,
-    };
-    if (conflict.conflict && !window.confirm("這門課與目前課表衝堂。仍要加入嗎？")) return;
-    if (conflict.uncertain && !window.confirm("週次資料不完整，可能衝堂。仍要加入嗎？")) return;
-    await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, { courseId: selectedCourse.course_id, locked: false }], updatedAt: new Date().toISOString() });
-    if (!activePlan) await selectPlan(plan.id);
+    if (courseConflict.conflict || fixedConflict.conflict) {
+      setConflictRequest({ plan, message: "這門課與目前課表衝堂。仍要加入嗎？" }); return;
+    }
+    if (courseConflict.uncertain || fixedConflict.uncertain) {
+      setConflictRequest({ plan, message: "週次資料不完整，可能衝堂。仍要加入嗎？" }); return;
+    }
+    await commitSchedule(plan);
   };
   return (
     <article className="course-card">
-      <div className="course-top">{rank && <span className="rank">#{rank}</span>}{selectedRecommendationCategory && <span className={`category-tag ${selectedRecommendationCategory}`}>{recommendationCategoryLabels[selectedRecommendationCategory]}</span>}<span className={`status ${eligibility.status}`}>{eligibility.blocked.some((rule) => rule.kind === "course_prerequisite") ? "有擋修條件" : statusLabels[eligibility.status]}</span><button className={`heart ${favorite ? "active" : ""}`} onClick={toggleFavorite} aria-label="收藏">♥</button></div>
+      <div className="course-top">{rank && <span className="rank">#{rank}</span>}{selectedRecommendationCategory && <span className={"category-tag " + selectedRecommendationCategory}>{recommendationCategoryLabels[selectedRecommendationCategory]}</span>}<span className={"status " + eligibility.status}>{eligibility.blocked.some((rule) => rule.kind === "course_prerequisite") ? "有擋修條件" : statusLabels[eligibility.status]}</span><button type="button" className={"heart icon-button " + (favorite ? "active" : "")} onClick={() => void toggleFavorite()} disabled={pending === "favorite"} aria-busy={pending === "favorite"} aria-pressed={favorite} aria-label={favorite ? "取消收藏課程" : "收藏課程"}><Heart weight={favorite ? "fill" : "regular"} aria-hidden="true" /></button></div>
       <h2>{selectedCourse.name_zh}</h2><p className="muted">{selectedCourse.name_en}</p>
       <div className="meta"><span>{selectedCourse.official_department_label ?? selectedCourse.department_display ?? inferAudienceDepartment(selectedCourse)}</span><span>{selectedCourse.teacher || "教師未定"}</span><span>{selectedCourse.credits} 學分</span><span>{selectedCourse.required_elective_name}</span></div>{selectedCourse.course_tags?.length ? <div className="official-course-tags" aria-label="官方課程標籤">{selectedCourse.course_tags.map((tag) => <span key={tag.code}>{tag.label_zh}</span>)}</div> : null}
       <p className="meeting">{formatMeetings(selectedCourse)}</p>
-      {variants.length > 1 && <details className="course-variants"><summary>{variants.length} 個班別／共同開課選項</summary><div className="variant-list">{variants.map((variant) => {
-        const variantEligibility = evaluateEligibility(variant, profile, completedNames);
-        return <button type="button" className={variant.course_id === selectedCourse.course_id ? "active" : ""} aria-pressed={variant.course_id === selectedCourse.course_id} onClick={() => setSelectedCourseId(variant.course_id)} key={variant.course_id}><strong>{variant.official_department_label ?? variant.department_display ?? inferAudienceDepartment(variant)}</strong><span>{variant.teacher || "教師未定"} · {formatMeetings(variant)}</span><small>{variantEligibility.blocked.some((rule) => rule.kind === "course_prerequisite") ? "有擋修條件" : statusLabels[variantEligibility.status]}</small></button>;
-      })}</div></details>}
-      {reasons?.length ? <div className="recommendation-reasons"><strong>推薦理由</strong><ul className="reasons">{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div> : null}
-      {matchedFields?.length ? <p className="matched-fields">資料依據：{matchedFields.map((field) => assistantFieldLabels[field] ?? field).join("、")}</p> : null}
-      {cautions?.length ? <div className="cautions"><strong>選課注意</strong><ul>{cautions.map((caution) => <li key={caution}>{caution}</li>)}</ul></div> : null}
-      <details><summary>查看課綱與判斷依據</summary><div className="details"><h3>課程目標</h3><p>{selectedCourse.sections.objective || "未提供"}</p>{selectedCourse.prerequisite && <><h3>先備知識</h3><p>{selectedCourse.prerequisite}</p></>}{getEligibilityRules(selectedCourse).map((rule, index) => <div className="evidence" key={`${rule.kind}-${index}`}><strong>{rule.message}</strong><q>{rule.evidence}</q></div>)}<a href={selectedCourse.source_url} target="_blank" rel="noreferrer">開啟官方課綱 ↗</a></div></details>
-      <div className="card-actions"><button onClick={addSchedule}>＋ {activePlan?.name ?? "我的課表"}</button><button onClick={toggleCompleted}>{isCompleted ? "取消已修" : "標記已修"}</button><button className="quiet" onClick={dismiss}>不感興趣</button></div>
+      {variants.length > 1 && <details className="course-variants"><summary>可選的班別／共同開課項目（{variants.length} 個）</summary><div className="variant-list">{variants.map((variant) => { const variantEligibility = evaluateEligibility(variant, profile, completedNames); return <button type="button" className={variant.course_id === selectedCourse.course_id ? "active" : ""} aria-pressed={variant.course_id === selectedCourse.course_id} onClick={() => setSelectedCourseId(variant.course_id)} key={variant.course_id}><strong>{variant.official_department_label ?? variant.department_display ?? inferAudienceDepartment(variant)}</strong><span>{variant.teacher || "教師未定"} · {formatMeetings(variant)}</span><small>{variantEligibility.blocked.some((rule) => rule.kind === "course_prerequisite") ? "有擋修條件" : statusLabels[variantEligibility.status]}</small></button>; })}</div></details>}
+      {reasons?.length ? <div className="recommendation-reasons"><strong>為什麼推薦這堂？</strong><ul className="reasons">{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div> : null}
+      {matchedFields?.length ? <p className="matched-fields">參考課綱：{matchedFields.map((field) => assistantFieldLabels[field] ?? field).join("、")}</p> : null}
+      {courseCautions.length ? <div className="cautions" role="note"><strong>修課前請確認</strong><ul>{courseCautions.map((caution) => <li key={caution}>{caution}</li>)}</ul></div> : null}
+      <details><summary>查看課綱與判斷依據</summary><div className="details"><h3>課程目標</h3><p>{selectedCourse.sections.objective || "未提供"}</p>{selectedCourse.prerequisite && <><h3>先備知識</h3><p>{selectedCourse.prerequisite}</p></>}{getEligibilityRules(selectedCourse).map((rule, index) => <div className="evidence" key={rule.kind + "-" + index}><strong>{rule.message}</strong><q>{rule.evidence}</q></div>)}<a href={selectedCourse.source_url} target="_blank" rel="noreferrer">開啟官方課綱</a></div></details>
+      <div className="card-actions"><button type="button" onClick={() => void addSchedule()} disabled={scheduled || pending === "schedule"} aria-busy={pending === "schedule"}>{scheduled ? "已加入課表" : pending === "schedule" ? "加入中…" : "加入 " + (activePlan?.name ?? "我的課表")}</button><button type="button" onClick={() => void toggleCompleted()} disabled={pending === "completed"} aria-busy={pending === "completed"}>{pending === "completed" ? "更新中…" : isCompleted ? "取消已修" : "標記已修"}</button><button type="button" className="quiet" onClick={() => void dismiss()} disabled={pending === "dismiss"} aria-busy={pending === "dismiss"}>{pending === "dismiss" ? "處理中…" : "不感興趣"}</button></div>
+      <ConfirmDialog open={Boolean(conflictRequest)} title="確認加入課表" description={<p>{conflictRequest?.message}</p>} confirmLabel="仍要加入" onCancel={() => setConflictRequest(undefined)} onConfirm={() => conflictRequest && commitSchedule(conflictRequest.plan)} busy={pending === "schedule"} />
     </article>
   );
 }
@@ -939,21 +1031,106 @@ function DataPage({ catalog }: { catalog: Course[] }) {
   const [completed] = useStore<CompletedCourse & { id: string }>("completedCourses");
   const [favorites] = useStore<{ id: string }>("favorites");
   const { plans } = useSchedulePlans();
+  const { notify } = useFeedback();
   const [codes, setCodes] = useState("");
+  const [busy, setBusy] = useState<"recognize" | "export" | "import" | "clear" | "">("");
+  const [importPreview, setImportPreview] = useState<ReturnType<typeof validateBackup>>();
+  const [overwriteProfile, setOverwriteProfile] = useState(false);
+  const [clearOpen, setClearOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const codesRef = useRef<HTMLTextAreaElement>(null);
+
   const addCodes = async () => {
-    const values = codes.split(/[\s,，;；]+/).map((item) => item.trim().toLowerCase()).filter(Boolean);
-    const matches = catalog.filter((course) => values.includes(course.ava_no?.toLowerCase()) || values.includes(course.name_zh.toLowerCase()));
-    for (const course of matches) await putRecord("completedCourses", { id: course.course_id, courseId: course.course_id, courseName: course.name_zh, continueLearning: false, addedAt: new Date().toISOString() });
-    setCodes(""); window.alert(`已加入 ${matches.length} 門，${values.length - matches.length} 筆未找到。`);
+    if (!codes.trim() || busy) return;
+    setBusy("recognize");
+    try {
+      const values = codes.split(/[s,，;；]+/).map((item) => item.trim().toLowerCase()).filter(Boolean);
+      const matches = catalog.filter((course) => values.includes(course.ava_no?.toLowerCase()) || values.includes(course.name_zh.toLowerCase()));
+      for (const course of matches) await putRecord("completedCourses", { id: course.course_id, courseId: course.course_id, courseName: course.name_zh, continueLearning: false, addedAt: new Date().toISOString() });
+      setCodes("");
+      notify("已加入 " + matches.length + " 門；" + (values.length - matches.length) + " 筆未找到");
+    } catch (error) { notify("辨識課程失敗：" + (error as Error).message, "error"); }
+    finally { setBusy(""); }
   };
-  const exportData = async () => { const backup = await createBackup(); const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const anchor = document.createElement("a"); anchor.href = url; anchor.download = `fju-course-backup-${new Date().toISOString().slice(0,10)}.json`; anchor.click(); URL.revokeObjectURL(url); };
-  const importData = async (file: File) => { try { const backup = validateBackup(JSON.parse(await file.text())); const summary = `備份日期：${backup.exportedAt}\n已修：${backup.data.completedCourses.length}\n收藏：${backup.data.favorites.length}\n課表：${backup.data.schedulePlans.length}`; if (!window.confirm(`${summary}\n\n要匯入並合併嗎？`)) return; const overwrite = window.confirm("是否用備份中的個人設定覆蓋目前設定？"); await importBackup(backup, overwrite); window.alert("匯入完成"); } catch (error) { window.alert(`無法匯入：${(error as Error).message}`); } };
-  const clear = async () => { if (window.confirm("確定清除這台裝置上的個人設定、已修課、收藏與課表？此操作無法復原。")) await clearPersonalData(); };
+  const exportData = async () => {
+    if (busy) return;
+    setBusy("export");
+    try {
+      const backup = await createBackup();
+      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = "fju-course-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+      anchor.click();
+      URL.revokeObjectURL(url);
+      notify("備份已匯出");
+    } catch (error) { notify("匯出失敗：" + (error as Error).message, "error"); }
+    finally { setBusy(""); }
+  };
+  const readImport = async (file: File) => {
+    setBusy("import");
+    try {
+      setImportPreview(validateBackup(JSON.parse(await file.text())));
+      setOverwriteProfile(false);
+    } catch (error) {
+      notify("無法匯入：" + (error as Error).message, "error");
+    } finally {
+      setBusy("");
+      if (fileRef.current) fileRef.current.value = "";
+    }
+  };
+  const confirmImport = async () => {
+    if (!importPreview) return;
+    setBusy("import");
+    try {
+      await importBackup(importPreview, overwriteProfile);
+      notify("匯入完成");
+      setImportPreview(undefined);
+    } catch (error) { notify("匯入失敗：" + (error as Error).message, "error"); }
+    finally { setBusy(""); }
+  };
+  const clearAll = async () => {
+    setBusy("clear");
+    try { await clearPersonalData(); notify("這台裝置上的個人資料已清除"); setClearOpen(false); }
+    catch (error) { notify("清除失敗：" + (error as Error).message, "error"); }
+    finally { setBusy(""); }
+  };
+  const removeCompleted = async (item: CompletedCourse & { id: string }) => {
+    await deleteRecord("completedCourses", item.id);
+    notify("已移除「" + item.courseName + "」", "success", { label: "復原", onAction: () => putRecord("completedCourses", item) });
+  };
+
   return (
-    <section className="page"><div className="page-heading"><div><div className="eyebrow">你的資料由你掌控</div><h1>資料管理</h1></div></div>
-      <div className="data-grid"><section className="card"><h2>批次加入已修課程</h2><p>貼上課號或完整課名，以空白、逗號或換行分隔。</p><textarea rows={6} value={codes} onChange={(e) => setCodes(e.target.value)} placeholder="D030201234&#10;資料結構"/><button className="primary" onClick={addCodes}>辨識並加入</button></section><section className="card"><h2>本機資料摘要</h2><div className="big-stats"><span><strong>{completed.length}</strong>已修課程</span><span><strong>{favorites.length}</strong>收藏</span><span><strong>{plans.length}</strong>課表方案</span></div><button onClick={exportData}>匯出 JSON 備份</button><button onClick={() => fileRef.current?.click()}>匯入 JSON 備份</button><input ref={fileRef} hidden type="file" accept="application/json" onChange={(e) => e.target.files?.[0] && void importData(e.target.files[0])}/><button className="danger-button" onClick={clear}>清除所有個人資料</button></section></div>
-      <section className="card list-card"><h2>已修課程</h2>{completed.map((item) => <div key={item.id}><span>{item.courseName}</span><label className="check"><input type="checkbox" checked={item.continueLearning} onChange={() => putRecord("completedCourses", { ...item, continueLearning: !item.continueLearning })}/>想繼續深入</label><button onClick={() => deleteRecord("completedCourses", item.id)}>移除</button></div>)}</section>
+    <section className="page">
+      <div className="page-heading"><div><div className="eyebrow">你的資料由你掌控</div><h1>資料管理</h1></div></div>
+      <div className="data-grid">
+        <section className="card">
+          <h2>批次加入已修課程</h2>
+          <label htmlFor="completed-course-codes"><strong>課號或完整課名</strong></label>
+          <p id="completed-course-helper">以空白、逗號或換行分隔，例如課號 D030201234 或完整課名。</p>
+          <textarea ref={codesRef} id="completed-course-codes" aria-describedby="completed-course-helper" rows={6} value={codes} onChange={(event) => setCodes(event.target.value)} placeholder={"D030201234\n資料結構"} disabled={busy === "recognize"} />
+          <button className="primary" type="button" onClick={() => void addCodes()} disabled={!codes.trim() || busy === "recognize"} aria-busy={busy === "recognize"}>{busy === "recognize" ? "辨識中…" : "辨識並加入"}</button>
+        </section>
+        <section className="card">
+          <h2>本機資料摘要</h2>
+          <div className="big-stats"><span><strong>{completed.length}</strong>已修課程</span><span><strong>{favorites.length}</strong>收藏</span><span><strong>{plans.length}</strong>課表方案</span></div>
+          <button type="button" onClick={() => void exportData()} disabled={busy === "export"} aria-busy={busy === "export"}>{busy === "export" ? "匯出中…" : "匯出 JSON 備份"}</button>
+          <button type="button" onClick={() => fileRef.current?.click()} disabled={busy === "import"} aria-busy={busy === "import"}>{busy === "import" ? "讀取中…" : "匯入 JSON 備份"}</button>
+          <input ref={fileRef} hidden type="file" accept="application/json" onChange={(event) => event.target.files?.[0] && void readImport(event.target.files[0])}/>
+          <button type="button" className="danger-button" onClick={() => setClearOpen(true)}>清除所有個人資料</button>
+        </section>
+      </div>
+      <section className="card list-card">
+        <h2>已修課程</h2>
+        {!completed.length && <div className="inline-empty"><p>尚未加入已修課程。加入後可讓推薦避開重複修課。</p><button type="button" onClick={() => codesRef.current?.focus()}>前往批次加入</button></div>}
+        {completed.map((item) => <div className="completed-row" key={item.id}><span className="completed-name">{item.courseName}</span><div className="completed-actions"><label className="check"><input type="checkbox" checked={item.continueLearning} onChange={() => void putRecord("completedCourses", { ...item, continueLearning: !item.continueLearning })}/>想繼續深入</label><button type="button" onClick={() => void removeCompleted(item)}>移除</button></div></div>)}
+      </section>
+      <Modal open={Boolean(importPreview)} title="確認匯入備份" onClose={() => setImportPreview(undefined)}>
+        {importPreview && <div className="dialog-content"><p>備份日期：{importPreview.exportedAt}</p><ul><li>已修：{importPreview.data.completedCourses.length}</li><li>收藏：{importPreview.data.favorites.length}</li><li>課表：{importPreview.data.schedulePlans.length}</li></ul><label className="check"><input type="checkbox" checked={overwriteProfile} onChange={(event) => setOverwriteProfile(event.target.checked)} />用備份中的個人設定覆蓋目前設定</label></div>}
+        <div className="dialog-actions"><button type="button" className="secondary" disabled={busy === "import"} onClick={() => setImportPreview(undefined)}>取消</button><button type="button" disabled={busy === "import"} aria-busy={busy === "import"} onClick={() => void confirmImport()}>{busy === "import" ? "匯入中…" : "匯入並合併"}</button></div>
+      </Modal>
+      <ConfirmDialog open={clearOpen} title="清除所有個人資料？" description={<p>將清除這台裝置上的個人設定、已修課、收藏與課表。此操作無法復原。</p>} confirmLabel="清除所有資料" destructive busy={busy === "clear"} onCancel={() => setClearOpen(false)} onConfirm={clearAll} />
     </section>
   );
 }

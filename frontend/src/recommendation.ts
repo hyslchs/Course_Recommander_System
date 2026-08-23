@@ -270,20 +270,15 @@ function queryReasons(
   denseRank: number | undefined,
   sparseRank: number | undefined,
 ): string[] {
-  const reasons = [
-    denseRank !== undefined && sparseRank !== undefined
-      ? "同時符合語意與關鍵字檢索"
-      : sparseRank !== undefined
-        ? "符合關鍵字檢索"
-        : "符合語意檢索",
-  ];
-  if (lexical.exactTitle) reasons.push(`課名精確符合「${queryText}」`);
-  else if (lexical.matchedTerms.length) reasons.push("課名包含查詢關鍵詞");
+  const topic = queryText ? `「${queryText}」` : "你搜尋的主題";
+  const reasons = [`這堂課和${topic}相關`];
+  if (lexical.exactTitle) reasons.push(`課名就是你搜尋的${topic}`);
+  else if (lexical.matchedTerms.length) reasons.push(`課名包含${topic}這個關鍵字`);
   const matchedFields = lexical.matchedFields
     .filter((field) => field !== "title")
     .map(fieldLabel)
     .slice(0, 2);
-  if (matchedFields.length) reasons.push(`課程資料命中：${[...new Set(matchedFields)].join("、")}`);
+  if (matchedFields.length) reasons.push(`課綱的「${[...new Set(matchedFields)].join("、")}」也提到這個主題`);
   return reasons;
 }
 
@@ -358,24 +353,11 @@ function rankSingleCourses(input: {
     }
     if (courseConflicts(course, scheduledCourses).conflict) return [];
     if (input.scheduledMeetings && meetingsConflict(course.meetings, input.scheduledMeetings).conflict) return [];
-    const hasUnknownSchedule = course.meetings.length === 0 || course.meetings.some(
-      (meeting) => meeting.weekday === null || meeting.sections.length === 0,
-    );
-    if (hasUnknownSchedule && input.includeUnknownSchedule === false) return [];
+    if (!matchesTimeOfDayFilter(course, input.timeOfDayFilter ?? "all", input.includeUnknownSchedule)) return [];
     const knownMeetings = course.meetings.filter((meeting) => meeting.weekday !== null);
     if (!input.includeNonPreferredWeekdays && preferredWeekdays.length > 0) {
       if (!knownMeetings.length && input.includeUnknownSchedule !== true) return [];
       if (knownMeetings.some((meeting) => !preferredWeekdays.includes(meeting.weekday!))) return [];
-    }
-    if (input.timeOfDayFilter && input.timeOfDayFilter !== "all") {
-      const sections = knownMeetings.flatMap((meeting) => meeting.sections);
-      if (!sections.length && input.includeUnknownSchedule !== true) return [];
-      if (input.timeOfDayFilter === "weekday_evening_or_saturday") {
-        if (knownMeetings.some((meeting) => meeting.weekday !== 6 && meeting.sections.some((section) => !section.toUpperCase().startsWith("E")))) return [];
-      } else {
-        const expectedPrefix = input.timeOfDayFilter === "evening" ? "E" : "D";
-        if (sections.length && sections.some((section) => !section.toUpperCase().startsWith(expectedPrefix))) return [];
-      }
     }
     if (creditFilters.length > 0 && (course.credits === null || !creditFilters.includes(course.credits))) return [];
     if (courseTagFilters.size > 0 && !(course.course_tags ?? []).some((tag) => courseTagFilters.has(tag.code))) return [];
@@ -451,17 +433,7 @@ function rankSingleCourses(input: {
       score: family.score,
       eligibility: item.eligibility,
       category: item.category,
-      reasons: [
-        ...queryReasons(queryText, item.lexical, denseRanks.get(item.course.course_id), sparseRanks.get(item.course.course_id)),
-        ...(family.alternatives.length
-          ? [`已合併 ${family.alternatives.length + 1} 個相同課程班別／共同開課項目`]
-          : []),
-        ...(item.eligibility === "blocked_confirmed"
-          ? ["有擋修條件，請展開查看原始依據"]
-          : item.eligibility === "needs_confirmation"
-            ? ["存在待確認的選課條件，請展開查看原始依據"]
-            : []),
-      ],
+      reasons: queryReasons(queryText, item.lexical, denseRanks.get(item.course.course_id), sparseRanks.get(item.course.course_id)),
     };
   });
 }
@@ -656,13 +628,10 @@ function rankCompoundCourses(input: Parameters<typeof rankSingleCourses>[0] & { 
   ];
   const hasJointMatch = analysis.relation === "INTERSECTION" && selected.some((item) => item.allAspects.length > 0 && item.allAspects.every(Boolean));
   return selected.slice(0, 20).map((item) => {
-    const reasons = [...(item.baseItem?.reasons ?? ["符合複合查詢中的部分目標"])];
-    if (item.alternatives.length && !reasons.some((reason) => reason.startsWith("已合併"))) {
-      reasons.push(`已合併 ${item.alternatives.length + 1} 個相同課程班別／共同開課項目`);
-    }
-    if (analysis.relation === "COVERAGE") reasons.push(`涵蓋 ${item.qualifiedGoals.filter(Boolean).length}/${analysis.goals.length} 個目標`);
-    if (analysis.relation === "INTERSECTION" && item.allAspects.every(Boolean)) reasons.push("同時符合必要面向");
-    if (analysis.relation === "INTERSECTION" && !hasJointMatch) reasons.unshift("目前沒有找到同時符合所有面向的課程；這是部分符合結果");
+    const reasons = [...(item.baseItem?.reasons ?? ["這堂課符合你部分的需求"])];
+    if (analysis.relation === "COVERAGE") reasons.push(`符合你的 ${item.qualifiedGoals.filter(Boolean).length}/${analysis.goals.length} 項需求`);
+    if (analysis.relation === "INTERSECTION" && item.allAspects.every(Boolean)) reasons.push("同時符合你設定的條件");
+    if (analysis.relation === "INTERSECTION" && !hasJointMatch) reasons.unshift("目前還沒有單一課程能符合所有條件；這堂先符合部分需求");
     return {
       course: item.course,
       alternatives: item.alternatives,
@@ -672,4 +641,30 @@ function rankCompoundCourses(input: Parameters<typeof rankSingleCourses>[0] & { 
       reasons,
     };
   });
+}
+
+export function matchesTimeOfDayFilter(
+  course: Pick<Course, "meetings">,
+  timeOfDayFilter: TimeOfDayFilter,
+  includeUnknownSchedule?: boolean,
+): boolean {
+  const meetings = course.meetings ?? [];
+  const hasUnknownSchedule = meetings.length === 0 || meetings.some(
+    (meeting) => meeting.weekday === null || meeting.sections.length === 0,
+  );
+  if (hasUnknownSchedule && includeUnknownSchedule === false) return false;
+  if (timeOfDayFilter === "all") return true;
+
+  const knownMeetings = meetings.filter((meeting) => meeting.weekday !== null);
+  const sections = knownMeetings.flatMap((meeting) => meeting.sections);
+  if (!sections.length && includeUnknownSchedule !== true) return false;
+  if (timeOfDayFilter === "weekday_evening_or_saturday") {
+    return !knownMeetings.some((meeting) => (
+      meeting.weekday !== 6
+      && meeting.sections.some((section) => !section.toUpperCase().startsWith("E"))
+    ));
+  }
+
+  const expectedPrefix = timeOfDayFilter === "evening" ? "E" : "D";
+  return !sections.some((section) => !section.toUpperCase().startsWith(expectedPrefix));
 }

@@ -55,7 +55,7 @@ describe("schedule workspace", () => {
   it("opens an accessible detail drawer with the official outline link", async () => {
     const block = container.querySelector<HTMLButtonElement>('.class-block[aria-label^="日間課程"]');
     await act(async () => block?.click());
-    const dialog = container.querySelector('[role="dialog"]');
+    const dialog = document.querySelector('[role="dialog"]');
     expect(dialog?.textContent).toContain("測試課程目標");
     expect(dialog?.querySelector<HTMLAnchorElement>("a.schedule-outline-link")?.href).toBe("https://example.test/course/day");
     const close = dialog?.querySelector<HTMLButtonElement>(".dialog-close");

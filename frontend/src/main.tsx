@@ -4,7 +4,6 @@ import { BrowserRouter } from "react-router";
 import { I18nProvider } from "@heroui/react";
 import App from "./app/App";
 import "./styles.css";
-import "./courseVariants.css";
 import { FeedbackProvider } from "./components/ui";
 
 // React Aria's built-in announcements ("N results available", date/number

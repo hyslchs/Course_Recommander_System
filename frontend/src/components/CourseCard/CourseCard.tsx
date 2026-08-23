@@ -1,21 +1,22 @@
 import { useEffect, useState } from "react";
 import { Heart } from "@phosphor-icons/react";
+import { Alert, Button, Card, Chip, Disclosure, Radio, RadioGroup, ToggleButton, Tooltip } from "@heroui/react";
 import { useFetchCoursesByIds } from "@/data/queries";
 import { deleteRecord, putRecord } from "@/data/db";
 import {
   courseConflicts,
-  eligibilityStatusLabels,
   evaluateEligibility,
   formatCourseStudyLevelLabel,
   getEligibilityRules,
   inferAudienceDepartment,
   meetingsConflict,
 } from "@/domain/eligibility";
-import { classifyRecommendationCategory, recommendationCategoryLabels } from "@/domain/recommendation";
+import { classifyRecommendationCategory } from "@/domain/recommendation";
 import { formatMeetings } from "@/domain/schedule";
 import { useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { ConfirmDialog, useFeedback } from "@/components/ui";
+import { CategoryChip, EligibilityChip } from "./statusPresentation";
 import type { CompletedCourse, Course, Recommendation, SchedulePlan } from "@/domain/types";
 
 /** Syllabus field names the assistant may cite, as shown on a recommendation card. */
@@ -28,6 +29,13 @@ const assistantFieldLabels: Record<string, string> = {
   materials: "教材",
   history: "最近對話課程",
 };
+
+/**
+ * A blocking prerequisite is a *reason* for `blocked_confirmed`, not a fifth
+ * status, so it only replaces the wording — `EligibilityChip` still draws the
+ * Prohibit glyph and the danger colour from the status itself.
+ */
+const PREREQUISITE_LABEL = "有擋修條件";
 
 export function CourseCard({ course, alternatives, rank, reasons, cautions, matchedFields, recommendationCategory }: { course: Course; alternatives?: Course[]; rank?: number; reasons?: string[]; cautions?: string[]; matchedFields?: string[]; recommendationCategory?: Recommendation["category"] }) {
   // Context, not props: 25 cards used to mean 25 IndexedDB reads of each store
@@ -47,7 +55,8 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
   const selectedRecommendationCategory = recommendationCategory ? classifyRecommendationCategory(selectedCourse, profile) : undefined;
   const completedNames = new Set(completed.map((item) => item.courseName));
   const eligibility = evaluateEligibility(selectedCourse, profile, completedNames);
-  const eligibilityCautions = eligibility.blocked.some((rule) => rule.kind === "course_prerequisite")
+  const hasPrerequisiteBlock = eligibility.blocked.some((rule) => rule.kind === "course_prerequisite");
+  const eligibilityCautions = hasPrerequisiteBlock
     ? ["本課程設有先修條件，請確認你是否已修畢。"]
     : eligibility.status === "blocked_confirmed"
       ? ["目前可能不符合修課資格，請展開查看規定。"]
@@ -118,19 +127,124 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
     }
     await commitSchedule(plan);
   };
+  const favoriteLabel = favorite ? "取消收藏課程" : "收藏課程";
   return (
-    <article className="course-card">
-      <div className="course-top">{rank && <span className="rank">#{rank}</span>}{selectedRecommendationCategory && <span className={"category-tag " + selectedRecommendationCategory}>{recommendationCategoryLabels[selectedRecommendationCategory]}</span>}<span className={"status " + eligibility.status}>{eligibility.blocked.some((rule) => rule.kind === "course_prerequisite") ? "有擋修條件" : eligibilityStatusLabels[eligibility.status]}</span><button type="button" className={"heart icon-button " + (favorite ? "active" : "")} onClick={() => void toggleFavorite()} disabled={pending === "favorite"} aria-busy={pending === "favorite"} aria-pressed={favorite} aria-label={favorite ? "取消收藏課程" : "收藏課程"}><Heart weight={favorite ? "fill" : "regular"} aria-hidden="true" /></button></div>
-      <h2>{selectedCourse.name_zh}</h2><p className="muted">{selectedCourse.name_en}</p>
-      <div className="meta"><span className="study-level-badge">{formatCourseStudyLevelLabel(selectedCourse)}</span><span>{selectedCourse.official_department_label ?? selectedCourse.department_display ?? inferAudienceDepartment(selectedCourse)}</span><span>{selectedCourse.teacher || "教師未定"}</span><span>{selectedCourse.credits} 學分</span><span>{selectedCourse.required_elective_name}</span></div>{selectedCourse.course_tags?.length ? <div className="official-course-tags" aria-label="官方課程標籤">{selectedCourse.course_tags.map((tag) => <span key={tag.code}>{tag.label_zh}</span>)}</div> : null}
-      <p className="meeting">{formatMeetings(selectedCourse)}</p>
-      {variants.length > 1 && <details className="course-variants"><summary>可選的班別／共同開課項目（{variants.length} 個）</summary><div className="variant-list">{variants.map((variant) => { const variantEligibility = evaluateEligibility(variant, profile, completedNames); return <button type="button" className={variant.course_id === selectedCourse.course_id ? "active" : ""} aria-pressed={variant.course_id === selectedCourse.course_id} onClick={() => setSelectedCourseId(variant.course_id)} key={variant.course_id}><strong>{variant.official_department_label ?? variant.department_display ?? inferAudienceDepartment(variant)}</strong><span>{variant.teacher || "教師未定"} · {formatMeetings(variant)}</span><small>{variantEligibility.blocked.some((rule) => rule.kind === "course_prerequisite") ? "有擋修條件" : eligibilityStatusLabels[variantEligibility.status]}</small></button>; })}</div></details>}
-      {reasons?.length ? <div className="recommendation-reasons"><strong>為什麼推薦這堂？</strong><ul className="reasons">{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div> : null}
-      {matchedFields?.length ? <p className="matched-fields">參考課綱：{matchedFields.map((field) => assistantFieldLabels[field] ?? field).join("、")}</p> : null}
-      {courseCautions.length ? <div className="cautions" role="note"><strong>修課前請確認</strong><ul>{courseCautions.map((caution) => <li key={caution}>{caution}</li>)}</ul></div> : null}
-      <details><summary>查看課綱與判斷依據</summary><div className="details"><h3>課程目標</h3><p>{selectedCourse.sections.objective || "未提供"}</p>{selectedCourse.prerequisite && <><h3>先備知識</h3><p>{selectedCourse.prerequisite}</p></>}{getEligibilityRules(selectedCourse).map((rule, index) => <div className="evidence" key={rule.kind + "-" + index}><strong>{rule.message}</strong><q>{rule.evidence}</q></div>)}<a href={selectedCourse.source_url} target="_blank" rel="noreferrer">開啟官方課綱</a></div></details>
-      <div className="card-actions"><button type="button" onClick={() => void addSchedule()} disabled={scheduled || pending === "schedule"} aria-busy={pending === "schedule"}>{scheduled ? "已加入課表" : pending === "schedule" ? "加入中…" : "加入 " + (activePlan?.name ?? "我的課表")}</button><button type="button" onClick={() => void toggleCompleted()} disabled={pending === "completed"} aria-busy={pending === "completed"}>{pending === "completed" ? "更新中…" : isCompleted ? "取消已修" : "標記已修"}</button><button type="button" className="quiet" onClick={() => void dismiss()} disabled={pending === "dismiss"} aria-busy={pending === "dismiss"}>{pending === "dismiss" ? "處理中…" : "不感興趣"}</button></div>
-      <ConfirmDialog open={Boolean(conflictRequest)} title="確認加入課表" description={<p>{conflictRequest?.message}</p>} confirmLabel="仍要加入" onCancel={() => setConflictRequest(undefined)} onConfirm={() => conflictRequest && commitSchedule(conflictRequest.plan)} busy={pending === "schedule"} />
-    </article>
+    <Card className="course-card" render={(props) => <article {...props} />} variant="default">
+      <Card.Header className="course-card-header">
+        <div className="course-top">
+          {rank && <span className="rank">#{rank}</span>}
+          {selectedRecommendationCategory && <CategoryChip category={selectedRecommendationCategory} />}
+          <EligibilityChip overrideLabel={hasPrerequisiteBlock ? PREREQUISITE_LABEL : undefined} status={eligibility.status} />
+          {/* Icon-only control, so the name lives in `aria-label` and the Tooltip
+              is the sighted-pointer mirror of it — not a substitute (§4.3). The
+              delays are passed explicitly rather than read from
+              `--tooltip-delay`, which resolves to "" under jsdom. */}
+          <Tooltip closeDelay={300} delay={700}>
+            <ToggleButton aria-label={favoriteLabel} className="heart min-h-11 min-w-11" isIconOnly isSelected={favorite} onChange={() => void toggleFavorite()} variant="ghost">
+              <Heart aria-hidden="true" weight={favorite ? "fill" : "regular"} />
+            </ToggleButton>
+            <Tooltip.Content className="course-card-tooltip">{favoriteLabel}</Tooltip.Content>
+          </Tooltip>
+        </div>
+        <Card.Title render={(props) => <h2 {...props} />}>{selectedCourse.name_zh}</Card.Title>
+        <Card.Description>{selectedCourse.name_en}</Card.Description>
+      </Card.Header>
+      <Card.Content>
+        <div className="meta">
+          <span className="study-level-badge">{formatCourseStudyLevelLabel(selectedCourse)}</span>
+          <span>{selectedCourse.official_department_label ?? selectedCourse.department_display ?? inferAudienceDepartment(selectedCourse)}</span>
+          <span>{selectedCourse.teacher || "教師未定"}</span>
+          <span>{selectedCourse.credits} 學分</span>
+          <span>{selectedCourse.required_elective_name}</span>
+        </div>
+        {selectedCourse.course_tags?.length ? <div aria-label="官方課程標籤" className="official-course-tags">{selectedCourse.course_tags.map((tag) => <Chip key={tag.code} color="accent" variant="soft">{tag.label_zh}</Chip>)}</div> : null}
+        <p className="meeting">{formatMeetings(selectedCourse)}</p>
+        {variants.length > 1 && (
+          <Disclosure className="course-variants">
+            <Disclosure.Heading>
+              <Disclosure.Trigger className="course-disclosure-trigger">
+                可選的班別／共同開課項目（{variants.length} 個）
+                <Disclosure.Indicator />
+              </Disclosure.Trigger>
+            </Disclosure.Heading>
+            <Disclosure.Content>
+              {/* Was five `aria-pressed` buttons — a set of toggles that were in
+                  truth mutually exclusive, with no group semantics and no arrow-key
+                  navigation. A radio group says "pick exactly one" in the a11y tree
+                  and gets roving tabindex for free. */}
+              <RadioGroup aria-label="選擇班別／共同開課項目" className="variant-list" onChange={setSelectedCourseId} value={selectedCourse.course_id} variant="secondary">
+                {variants.map((variant) => {
+                  const variantEligibility = evaluateEligibility(variant, profile, completedNames);
+                  const variantPrerequisite = variantEligibility.blocked.some((rule) => rule.kind === "course_prerequisite");
+                  return (
+                    <Radio key={variant.course_id} value={variant.course_id}>
+                      <Radio.Content>
+                        <Radio.Control><Radio.Indicator /></Radio.Control>
+                        <span className="variant-option">
+                          <strong>{variant.official_department_label ?? variant.department_display ?? inferAudienceDepartment(variant)}</strong>
+                          <span>{variant.teacher || "教師未定"} · {formatMeetings(variant)}</span>
+                          <EligibilityChip overrideLabel={variantPrerequisite ? PREREQUISITE_LABEL : undefined} status={variantEligibility.status} />
+                        </span>
+                      </Radio.Content>
+                    </Radio>
+                  );
+                })}
+              </RadioGroup>
+            </Disclosure.Content>
+          </Disclosure>
+        )}
+        {reasons?.length ? <div className="recommendation-reasons"><strong>為什麼推薦這堂？</strong><ul className="reasons">{reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul></div> : null}
+        {matchedFields?.length ? <p className="matched-fields">參考課綱：{matchedFields.map((field) => assistantFieldLabels[field] ?? field).join("、")}</p> : null}
+        {/* Was a `role="note"` div coloured amber. `Alert status="warning"` adds
+            the indicator glyph, so the severity is not colour-only. `role="status"`
+            keeps it polite: nothing here is an error the student caused. */}
+        {courseCautions.length ? (
+          <Alert className="cautions" role="status" status="warning">
+            <Alert.Indicator />
+            <Alert.Content>
+              <Alert.Title>修課前請確認</Alert.Title>
+              {/* Explicit type argument: `render` alone does not drive the
+                  element generic, which defaults to "span" and then fights the
+                  `<ul>` ref type. */}
+              <Alert.Description<"ul"> render={(props) => <ul {...props} />}>{courseCautions.map((caution) => <li key={caution}>{caution}</li>)}</Alert.Description>
+            </Alert.Content>
+          </Alert>
+        ) : null}
+        <Disclosure className="course-details">
+          <Disclosure.Heading>
+            <Disclosure.Trigger className="course-disclosure-trigger">
+              查看課綱與判斷依據
+              <Disclosure.Indicator />
+            </Disclosure.Trigger>
+          </Disclosure.Heading>
+          <Disclosure.Content>
+            <div className="details">
+              {/* h4, not h3: `Disclosure.Heading` is itself the h3 under the card's h2. */}
+              <h4>課程目標</h4>
+              <p>{selectedCourse.sections.objective || "未提供"}</p>
+              {selectedCourse.prerequisite && <><h4>先備知識</h4><p>{selectedCourse.prerequisite}</p></>}
+              {getEligibilityRules(selectedCourse).map((rule, index) => <div className="evidence" key={rule.kind + "-" + index}><strong>{rule.message}</strong><q>{rule.evidence}</q></div>)}
+              <a href={selectedCourse.source_url} rel="noreferrer" target="_blank">開啟官方課綱</a>
+            </div>
+          </Disclosure.Content>
+        </Disclosure>
+      </Card.Content>
+      {/* `isPending` rather than `disabled`: React Aria keeps the button focusable
+          and announces the state change, where `disabled` drops it out of the tab
+          order mid-interaction. `min-h-11` restores the 44px touch target §5.3
+          asks for — HeroUI's `md` button is 40px, and 36px from `md:` up. */}
+      <Card.Footer className="card-actions">
+        <Button className="min-h-11" isDisabled={scheduled} isPending={pending === "schedule"} onPress={() => void addSchedule()}>
+          {scheduled ? "已加入課表" : pending === "schedule" ? "加入中…" : "加入 " + (activePlan?.name ?? "我的課表")}
+        </Button>
+        <Button className="min-h-11" isPending={pending === "completed"} onPress={() => void toggleCompleted()} variant="secondary">
+          {pending === "completed" ? "更新中…" : isCompleted ? "取消已修" : "標記已修"}
+        </Button>
+        <Button className="quiet min-h-11" isPending={pending === "dismiss"} onPress={() => void dismiss()} variant="ghost">
+          {pending === "dismiss" ? "處理中…" : "不感興趣"}
+        </Button>
+      </Card.Footer>
+      <ConfirmDialog busy={pending === "schedule"} confirmLabel="仍要加入" description={<p>{conflictRequest?.message}</p>} onCancel={() => setConflictRequest(undefined)} onConfirm={() => conflictRequest && commitSchedule(conflictRequest.plan)} open={Boolean(conflictRequest)} title="確認加入課表" />
+    </Card>
   );
 }

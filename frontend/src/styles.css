@@ -55,6 +55,21 @@
 @import "@heroui/styles/components/alert.css" layer(components);
 @import "@heroui/styles/components/skeleton.css" layer(components);
 
+/* --- T31 (CourseCard) additions. Keep this block contiguous: several agents
+   edit this file at once and the orchestrator merges by block. `button.css`
+   and `alert.css` are already above; these seven are the newly adopted ones.
+   `radio.css` and `radio-group.css` are two files, not one — the group only
+   styles orientation and the `secondary` variant, the control lives in the
+   other. --- */
+@import "@heroui/styles/components/card.css" layer(components);
+@import "@heroui/styles/components/chip.css" layer(components);
+@import "@heroui/styles/components/disclosure.css" layer(components);
+@import "@heroui/styles/components/tooltip.css" layer(components);
+@import "@heroui/styles/components/toggle-button.css" layer(components);
+@import "@heroui/styles/components/radio.css" layer(components);
+@import "@heroui/styles/components/radio-group.css" layer(components);
+/* --- end T31 imports --- */
+
 @import "./theme/fju.css" layer(theme);
 @import "./theme/typography.css" layer(theme);
 
@@ -403,3 +418,115 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    legacy rules themselves stay untouched until T41 deletes them. */
 .toast[role="alertdialog"]{position:revert-layer;inset:revert-layer;z-index:revert-layer;display:revert-layer;align-items:revert-layer;gap:revert-layer;max-width:revert-layer;padding:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;box-shadow:revert-layer}
 .toast[role="alertdialog"] button{color:revert-layer;background:revert-layer;border-color:revert-layer}
+
+/* ---------------------------------------------------------------------------
+   T31: CourseCard. Appended, never edited in place — the minified block above
+   is legacy source that must not be reformatted (plan R4). Everything here is
+   UNLAYERED, matching that block, so it wins over HeroUI's `components` layer
+   for the handful of places where the card's own look has to survive until
+   T41 deletes the legacy sheet.
+
+   PLAN R3 — runtime-composed class names.
+   The old markup built its class names from TS union values at render time:
+     `category-tag ${recommendation.category}` and `status ${eligibility.status}`
+   Tailwind v4 scans source text for candidates; a template literal yields none,
+   so `.category-tag.home_required` and friends only survive because this whole
+   legacy sheet is emitted verbatim. The moment T41 rewrites these rules as
+   utilities they vanish, silently, with no build error — a status chip loses its
+   colour in production and nothing fails.
+   Fixed structurally rather than with `@source inline(...)`: the values now ride
+   on `data-category` / `data-eligibility` attributes and every selector below
+   spells the value out literally, so there is nothing left for a purge to miss.
+   `CourseCard.test.tsx` pins the attribute, the icon and the HeroUI colour class
+   for all four eligibility values and all four categories. */
+
+/* Course category (§4.3): neutral chip, 4px leading bar from the SEPARATE
+   category scale. Reusing --success/--warning/--danger here would make "本系必修"
+   compete with "條件已符合" for the same visual meaning. */
+.category-chip{position:relative;padding-inline-start:.75rem;overflow:hidden}
+.category-chip::before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px;background:var(--category-bar,var(--border-strong))}
+.category-chip[data-category="home_required"]{--category-bar:var(--category-home-required)}
+.category-chip[data-category="home_elective"]{--category-bar:var(--category-home-elective)}
+.category-chip[data-category="general_education"]{--category-bar:var(--category-general-education)}
+.category-chip[data-category="external_department"]{--category-bar:var(--category-external-department)}
+
+/* Eligibility chip. Colour comes from HeroUI's own .chip--soft.chip--{success,
+   warning,danger,default}; these rules only size the glyph and stop the icon
+   being squeezed out when the label wraps. */
+.eligibility-chip{flex:none;gap:.25rem}
+.eligibility-chip svg{flex:none;width:1em;height:1em}
+/* §4.4-4 again: HeroUI's `.chip` is `text-xs` (14px, and 12.16px once the
+   legacy `.official-course-tags{font-size:.76rem}` cascades in). A status
+   wording like "目前不可修" is content, not chrome — it gets the 15px floor.
+   Measured in Chrome at 375px, not assumed. */
+.eligibility-chip,.category-chip,.course-card .official-course-tags .chip,.course-card .official-course-tags .chip__label{font-size:.9375rem;padding-block:.2rem}
+
+/* §4.4-4: no content text below 15px. `.meta span` was .78rem (12.5px) and the
+   card description inherits HeroUI's `.card__description{text-sm}` (14px). */
+.course-card .meta span{font-size:.9375rem}
+.course-card .card__description{font-size:.9375rem;color:var(--muted)}
+.course-card .card__title{font-size:1.35rem;line-height:1.4;font-weight:600;color:inherit}
+.course-card .card__header{display:flex;flex-direction:column;gap:.35rem}
+.course-card .card__content{display:flex;flex-direction:column;gap:.65rem;min-width:0}
+.course-card .matched-fields,.course-card .recommendation-reasons,.course-card .meeting{font-size:.9375rem}
+
+/* §4.4-5: CJK wraps freely, English course names are not sliced mid-word. The
+   legacy sheet says `overflow-wrap:anywhere` for these, which breaks "Machine
+   Learning" across lines as "Mach / ine". Scoped to .course-card so the other
+   users of that shared rule stay untouched — they belong to other tasks. */
+.course-card h2,.course-card .card__title,.course-card .card__description,.course-card .meeting,.course-card .meta span,.course-card .official-course-tags .chip,.course-card .category-chip,.course-card .eligibility-chip{overflow-wrap:break-word;line-break:strict;word-break:normal;white-space:normal}
+/* HeroUI's .tooltip is `text-xs break-all` — 12px and mid-word breaking, both
+   against §4.4. This tooltip only ever holds the favourite label. */
+.course-card-tooltip{font-size:.9375rem;overflow-wrap:break-word;line-break:strict;word-break:normal}
+
+/* Disclosure trigger, styled to read as the `<summary>` it replaced. The global
+   unlayered `button{border;padding;background}` rule would otherwise turn both
+   disclosures into boxed buttons. 44px min-height per §5.3. */
+.course-disclosure-trigger{display:flex;width:100%;align-items:center;gap:.5rem;min-height:2.75rem;padding:.5rem 0;border:0;border-radius:0;background:none;color:var(--accent);font-weight:700;font-size:.9375rem;text-align:left}
+.course-card .card__content>.disclosure{border-top:1px solid var(--separator);padding-top:.25rem}
+.course-disclosure-trigger .disclosure__indicator{margin-inline-start:auto}
+.course-card .disclosure__content{width:100%}
+.course-card .details{line-height:1.65;padding-bottom:.5rem}
+.course-card .details h4{margin:.6rem 0 .2rem;font-size:1rem;font-weight:600}
+
+/* Course variants. Replaces the deleted courseVariants.css: the old rules
+   styled `.variant-list button`, and those buttons are radios now. */
+.course-variants .variant-list{display:grid;gap:.45rem;margin:0 0 .65rem;padding:0}
+.course-variants .radio{width:100%;margin:0;padding:.65rem .75rem;border:1px solid var(--field-border);border-radius:10px;background:var(--surface)}
+.course-variants [data-orientation="vertical"] [data-slot="radio"]{margin-top:0}
+/* Selection is the one decorative-looking colour §4.1 allows, and it is the
+   single accent — not a status green, which would collide with "條件已符合". */
+.course-variants .radio[data-selected="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent)}
+.course-variants .radio__content{width:100%;align-items:flex-start;min-height:2.75rem}
+.variant-option{display:flex;flex-direction:column;gap:.2rem;min-width:0;font-size:.9375rem;font-weight:400}
+.variant-option strong{font-weight:600}
+.variant-option>span{color:var(--muted)}
+.variant-option .eligibility-chip{align-self:flex-start;margin-top:.15rem}
+
+/* Cautions: `Alert status="warning"` brings the indicator glyph the old
+   `role="note"` div never had, so severity is no longer colour-only (§4.3). */
+.course-card .cautions{border-left:3px solid var(--warning);font-size:.9375rem}
+.course-card .cautions .alert__description ul{margin:0;padding-left:1.1rem}
+
+/* Favourite toggle. The 44px floor is set with `min-h-11 min-w-11` in the TSX
+   (§5.3) — HeroUI's md toggle is 40px and drops to 36px from `md:` up.
+   The selected colour stays a literal: `--danger` is still shadowed by the
+   legacy `#a93232` in BOTH themes until T41, so binding to the token here would
+   buy nothing and hide the fact that it is not theme-aware yet. */
+.course-card .heart{margin-left:auto;border:0;background:none}
+.course-card .heart svg{width:1.35rem;height:1.35rem}
+.course-card .heart[data-selected="true"]{background:none;color:#b52f47}
+
+/* Card shell: keep the legacy box geometry, drop HeroUI's shadow — the
+   reading-room direction builds structure from rules, not elevation.
+   `background`/`color` DO move to the §4.2 tokens, and that is a deliberate
+   correction rather than scope creep: the legacy `.course-card{background:#fff}`
+   is light-only, so under `[data-theme="fju-dark"]` the chips inside took their
+   dark foregrounds while the card stayed white — measured at 2.56:1, a real
+   failure. In light the tokens resolve to the same white/near-black, so nothing
+   visible changes there (title contrast measured 16.34:1 before, 17.4:1 after). */
+.course-card{background:var(--surface);color:var(--surface-foreground);box-shadow:none}
+/* .5rem, not the legacy .45rem: §5.3 puts the floor for adjacent touch targets
+   at 8px and .45rem measured 7.2px in Chrome. */
+.course-card .card__footer{flex-wrap:wrap;gap:.5rem;margin-top:auto}
+.course-top{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;min-width:0}

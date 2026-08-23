@@ -1,0 +1,227 @@
+/*
+ * FJU design tokens — "Reading Room" (plan §4.1 / §4.2)
+ *
+ * Warm low-chroma paper canvas, a single deep academic blue accent, structure
+ * built from borders and separators rather than shadows. Colour is spent on
+ * *state*, never on decoration.
+ *
+ * Mounted as [data-theme="fju"] / [data-theme="fju-dark"]. Imported from
+ * styles.css with `layer(theme)`, which nests these blocks into `theme.base`
+ * — the same sublayer HeroUI's own themes/default/variables.css lands in, so
+ * equal specificity is resolved by source order and our import comes later.
+ *
+ * HeroUI derives --*-soft, --*-hover, --border-secondary/tertiary and
+ * --separator-* from the base tokens with color-mix(). Do not hand-write
+ * those. --info is NOT a HeroUI token: it and its variants are defined here
+ * and bridged into Tailwind from styles.css.
+ *
+ * Contrast (WCAG 2.1 relative luminance, measured not guessed):
+ *   light  foreground/surface 17.76  accent/surface 8.40  muted/surface 6.39
+ *          danger 6.54  info 6.46  success 5.34  warning 5.05
+ *          border-strong/surface 3.81 (>=3 for UI boundaries)
+ *          border/surface 1.30 — DECORATIVE ONLY, never the sole boundary of
+ *          a control or a schedule gridline; those use --border-strong.
+ *          focus ring accent/background 7.77
+ *   dark   every pairing >= 7 (AAA): foreground 14.49, warning 9.66,
+ *          success 9.37, info 9.11, danger 8.55, accent 8.50, muted 7.55
+ */
+
+@layer base {
+  /* ----------------------------------------------------------------- light */
+  [data-theme="fju"] {
+    color-scheme: light;
+
+    /* Primitives — identical in both themes */
+    --white: oklch(100% 0 0);
+    --black: oklch(0% 0 0);
+    --fju-paper: oklch(97.31% 0.0041 91.45); /* #F7F6F3 warm paper */
+    --fju-ink: oklch(20.91% 0.0104 268.19); /* #16181D */
+    --fju-snow: oklch(93.68% 0.0029 264.54); /* #E9EAEC */
+
+    /* Spacing & layout — strict 4px grid (§4.1) */
+    --spacing: 0.25rem;
+    --border-width: 1px;
+    --field-border-width: 1px;
+    --disabled-opacity: 0.5;
+    --ring-offset-width: 2px;
+    --cursor-interactive: pointer;
+    --cursor-disabled: not-allowed;
+
+    /* Radius */
+    --radius: 0.5rem;
+    --field-radius: calc(var(--radius) * 1);
+
+    /* Base */
+    --background: var(--fju-paper);
+    --foreground: var(--fju-ink);
+
+    /* Surface — non-overlay components (cards, accordions, disclosures) */
+    --surface: var(--white);
+    --surface-foreground: var(--foreground);
+
+    /* Overlay — floating components (tooltips, popovers, modals, menus) */
+    --overlay: var(--white);
+    --overlay-foreground: var(--foreground);
+
+    --muted: oklch(48.54% 0.0083 268.47); /* #5D5F64 — 6.39:1 on surface */
+
+    /* Scrollbars */
+    --scrollbar-thumb: color-mix(in oklch, var(--foreground) 18%, transparent);
+    --scrollbar-track: transparent;
+    --scrollbar-gutter: auto;
+    --scrollbar-width: thin;
+    --scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    --scrollbar: var(--scrollbar-thumb);
+
+    --default: oklch(96.15% 0.0035 91.47);
+    --default-foreground: var(--fju-ink);
+
+    /* Accent — #1A4E8A academic indigo. The only decorative colour allowed. */
+    --accent: oklch(42.31% 0.1136 254.59);
+    --accent-foreground: var(--white);
+
+    /* Form fields */
+    --field-background: var(--white);
+    --field-foreground: var(--foreground);
+    --field-placeholder: var(--muted);
+    --field-border: oklch(60.91% 0.0162 264.45); /* = --border-strong, 3.81:1 */
+
+    /* Status (§4.3) — semantic only, never decorative */
+    --success: oklch(51.41% 0.1135 156.25); /* #1B7A4B 條件已符合 */
+    --success-foreground: var(--white);
+    --warning: oklch(54.7% 0.1187 69.75); /* #9C6200 需要確認 */
+    --warning-foreground: var(--white);
+    --danger: oklch(50.13% 0.1783 28.7); /* #B3261E 目前不可修 */
+    --danger-foreground: var(--white);
+
+    /* --info is not a HeroUI token: base, foreground and every derived
+       variant must be written by hand. #1C5FA8 固定時段 */
+    --info: oklch(48.44% 0.1341 254);
+    --info-foreground: var(--white);
+    --info-hover: color-mix(in oklab, var(--info) 90%, var(--info-foreground) 10%);
+    --info-soft: color-mix(in oklab, var(--info) 15%, transparent);
+    --info-soft-hover: color-mix(in oklab, var(--info) 20%, transparent);
+    --info-soft-foreground: color-mix(in oklab, var(--info) 75%, var(--foreground) 25%);
+
+    /* Course category scale (§4.3) — deliberately NOT the status colours.
+       Used as a 4px leading bar on an otherwise neutral chip. */
+    --category-home-required: oklch(42.31% 0.1136 254.59);
+    --category-home-elective: oklch(52.5% 0.0862 232);
+    --category-general-education: oklch(47.5% 0.089 318);
+    --category-external-department: oklch(50.5% 0.0492 168);
+
+    /* Components */
+    --segment: var(--white);
+    --segment-foreground: var(--foreground);
+
+    /* Structure — §4.2: --border is decorative (1.30:1); anything that has to
+       read as a boundary uses --border-strong (3.81:1). */
+    --border: oklch(91.27% 0.0084 91.49); /* #E4E2DC */
+    --border-strong: oklch(60.91% 0.0162 264.45); /* #7E838D */
+    --separator: oklch(93.2% 0.0075 91.5);
+    --focus: var(--accent);
+    --link: var(--accent);
+    --backdrop: rgba(22, 24, 29, 0.5);
+
+    /* Shadows — the reading-room direction builds structure from rules, not
+       elevation, so these stay near-flat by design. */
+    --surface-shadow: 0 0 0 0 transparent;
+    --overlay-shadow: 0 1px 2px 0 rgba(22, 24, 29, 0.06), 0 8px 24px 0 rgba(22, 24, 29, 0.1);
+    --field-shadow: 0 0 0 0 transparent;
+
+    --skeleton-animation: shimmer;
+    --tooltip-delay: 700ms;
+    --tooltip-close-delay: 300ms;
+  }
+
+  /* ------------------------------------------------------------------ dark */
+  [data-theme="fju-dark"] {
+    color-scheme: dark;
+
+    /* Primitives */
+    --white: oklch(100% 0 0);
+    --black: oklch(0% 0 0);
+    --fju-paper: oklch(97.31% 0.0041 91.45);
+    --fju-ink: oklch(20.91% 0.0104 268.19);
+    --fju-snow: oklch(93.68% 0.0029 264.54);
+
+    /* Spacing & layout */
+    --spacing: 0.25rem;
+    --border-width: 1px;
+    --field-border-width: 1px;
+    --disabled-opacity: 0.5;
+    --ring-offset-width: 2px;
+    --cursor-interactive: pointer;
+    --cursor-disabled: not-allowed;
+
+    --radius: 0.5rem;
+    --field-radius: calc(var(--radius) * 1);
+
+    /* Base */
+    --background: oklch(17.68% 0.007 258.37); /* #0F1114 */
+    --foreground: var(--fju-snow);
+
+    --surface: oklch(21.68% 0.0109 260.68); /* #171A1F */
+    --surface-foreground: var(--foreground);
+
+    --overlay: oklch(24.4% 0.0113 260.7);
+    --overlay-foreground: var(--foreground);
+
+    --muted: oklch(73.92% 0.0146 258.35); /* #A5ABB4 — 7.55:1, AAA */
+
+    --scrollbar-thumb: color-mix(in oklch, var(--foreground) 18%, transparent);
+    --scrollbar-track: transparent;
+    --scrollbar-gutter: auto;
+    --scrollbar-width: thin;
+    --scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    --scrollbar: var(--scrollbar-thumb);
+
+    --default: oklch(27.2% 0.0121 260.7);
+    --default-foreground: var(--foreground);
+
+    --accent: oklch(77.21% 0.0936 254.78); /* #8CB8F0 */
+    --accent-foreground: oklch(17.68% 0.007 258.37);
+
+    --field-background: oklch(24.4% 0.0113 260.7);
+    --field-foreground: var(--foreground);
+    --field-placeholder: var(--muted);
+    --field-border: oklch(60.4% 0.0205 258.37); /* = --border-strong */
+
+    --success: oklch(78.49% 0.1338 159.95); /* #5FD39B */
+    --success-foreground: oklch(17.68% 0.007 258.37);
+    --warning: oklch(81.41% 0.1273 77.25); /* #F0B75B */
+    --warning-foreground: oklch(17.68% 0.007 258.37);
+    --danger: oklch(78.85% 0.1223 25.05); /* #FF9A92 */
+    --danger-foreground: oklch(17.68% 0.007 258.37);
+
+    --info: oklch(78.87% 0.0942 238.59); /* #7FC3F0 */
+    --info-foreground: oklch(17.68% 0.007 258.37);
+    --info-hover: color-mix(in oklab, var(--info) 90%, var(--info-foreground) 10%);
+    --info-soft: color-mix(in oklab, var(--info) 15%, transparent);
+    --info-soft-hover: color-mix(in oklab, var(--info) 20%, transparent);
+    --info-soft-foreground: color-mix(in oklab, var(--info) 75%, var(--foreground) 25%);
+
+    --category-home-required: oklch(77.21% 0.0936 254.59);
+    --category-home-elective: oklch(80.5% 0.0782 232);
+    --category-general-education: oklch(79.5% 0.081 318);
+    --category-external-department: oklch(81.5% 0.0592 168);
+
+    --segment: oklch(31.5% 0.0121 260.7);
+    --segment-foreground: var(--foreground);
+
+    --border: oklch(30.36% 0.0161 259.8); /* #2A2F37 */
+    --border-strong: oklch(60.4% 0.0205 258.37); /* #7A828E */
+    --separator: oklch(28.2% 0.0155 259.8);
+    --focus: var(--accent);
+    --link: var(--accent);
+    --backdrop: rgba(6, 8, 10, 0.62);
+
+    --surface-shadow: 0 0 0 0 transparent;
+    --overlay-shadow: 0 0 0 1px rgba(233, 234, 236, 0.08);
+    --field-shadow: 0 0 0 0 transparent;
+
+    --skeleton-animation: shimmer;
+    --tooltip-delay: 700ms;
+    --tooltip-close-delay: 300ms;
+  }
+}

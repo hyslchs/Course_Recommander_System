@@ -1,0 +1,76 @@
+/*
+ * FJU typography tokens (plan §4.4)
+ *
+ * Latin-first is deliberate: browsers resolve font-family per codepoint, so
+ * Inter takes the alphanumerics and punctuation (real tabular figures) while
+ * every CJK codepoint falls through to Noto Sans TC. Noto Sans TC (not SC/HK)
+ * because it uses the Taiwanese Ministry of Education standard glyph skeleton
+ * — the shapes students already see in textbooks and university systems.
+ *
+ * CJK hard rules encoded here (§4.4):
+ *   1. letter-spacing 0 everywhere. Negative tracking collides Han strokes.
+ *   2. Weights 400/500/600/700 only. 650/750/900 have no Noto Sans TC
+ *      instance and font-synthesis:none blocks synthesis, so they are dead.
+ *   3. h1 caps at 36px, not 54px — 54px Han pushes the filters below the fold.
+ *   4. Content text >= 15px; 13px is the absolute floor (schedule secondary
+ *      line only).
+ *   5. overflow-wrap:break-word + line-break:strict + word-break:normal, so
+ *      CJK still wraps freely but English course titles are not sliced.
+ *   6. font-synthesis: none is kept.
+ *
+ * FONTS ARE NOT SELF-HOSTED IN THIS COMMIT — see the note at the bottom of
+ * this file. No Google Fonts CDN link is wired up either; the stack falls
+ * back to the system fonts already in use.
+ *
+ * This file defines tokens only. Nothing consumes them yet, by design: T11
+ * must not change the rendered output.
+ */
+
+@layer base {
+  :root {
+    /* Font stacks */
+    --font-latin: "Inter var", "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-cjk:
+      "Noto Sans TC", "PingFang TC", "Microsoft JhengHei UI", "Noto Sans CJK TC", "Heiti TC",
+      sans-serif;
+    --font-mono-latin: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+
+    /* Weights — 400/500/600/700 only (rule 2) */
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    /* Wrapping — CJK wraps freely, English course titles are not sliced
+       mid-word (rule 5). Held as a token so T4x can apply it in one place. */
+    --wrap-cjk-overflow-wrap: break-word;
+    --wrap-cjk-line-break: strict;
+    --wrap-cjk-word-break: normal;
+  }
+}
+
+/*
+ * Self-hosting status — read this before "fixing" the missing @font-face.
+ *
+ * Noto Sans TC is NOT self-hosted in this commit, and no Google Fonts CDN
+ * link is wired up either (a local-first app must not depend on one). The
+ * stack above therefore resolves to whatever CJK face the OS provides, which
+ * is exactly what the app already did before T11 — the rendered output is
+ * unchanged, which is this commit's hard requirement.
+ *
+ * The files are obtainable: @fontsource/noto-sans-tc@5.3.0 ships the
+ * unicode-range-split woff2 subsets on npm. It was measured, not guessed:
+ * 68.2 MB / 1977 files unpacked, of which the four permitted weights
+ * (400/500/600/700) in woff2 are 424 files / ~14 MB of binaries.
+ *
+ * It is deferred, not forgotten, for two reasons:
+ *   1. styles.css already declares font-family: "Noto Sans TC" at :root, so
+ *      adding @font-face here would immediately repaint every Han glyph in
+ *      the app — a visual change T11 is explicitly forbidden from making.
+ *   2. ~14 MB of binaries belongs in the commit that actually applies the
+ *      typography, next to the subsetting decision that shrinks it.
+ *
+ * Pick this up in the typography task: add @fontsource/noto-sans-tc +
+ * @fontsource-variable/inter, import the chinese-traditional + latin subsets
+ * only, and keep font-display: swap.
+ */

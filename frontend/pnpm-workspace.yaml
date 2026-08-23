@@ -1,4 +1,17 @@
+# Both keys are intentional and must stay in sync.
+#
+#   allowBuilds          — pnpm 11+ (local dev runs 11.9.0). Dropping this key
+#                          makes pnpm refuse the native postinstalls with
+#                          ERR_PNPM_IGNORED_BUILDS.
+#   onlyBuiltDependencies — removed in pnpm 11, but CI pins pnpm 10 via
+#                          pnpm/action-setup@v4, which only understands the
+#                          old key. Dropping it breaks CI and Docker, not
+#                          local dev, so it fails somewhere you will not see.
+#
+# @tailwindcss/oxide is Tailwind v4's native (napi) core.
 allowBuilds:
   esbuild: true
+  "@tailwindcss/oxide": true
 onlyBuiltDependencies:
   - esbuild
+  - "@tailwindcss/oxide"

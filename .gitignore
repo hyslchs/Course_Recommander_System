@@ -17,3 +17,10 @@ data/canonical/
 data/derived/
 logs/
 data/runtime/
+
+# Local agent state and deployment scratch files
+.agents/
+.codex/
+tmp/
+backups/
+*.tar.gz

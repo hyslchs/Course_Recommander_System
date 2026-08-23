@@ -6,7 +6,7 @@ COPY frontend/ ./
 RUN pnpm run build
 
 FROM python:3.11-slim AS runtime
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 HF_HOME=/app/model-cache FJU_RECOMMENDER_ARTIFACTS_DIR=/app/data/artifacts/1151
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 HF_HOME=/app/model-cache FJU_RECOMMENDER_ARTIFACTS_DIR=/app/data/artifacts/1151 FJU_FRONTEND_DIST=/app/frontend/dist
 WORKDIR /app
 COPY pyproject.toml README.md ./
 COPY src/ ./src/

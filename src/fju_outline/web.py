@@ -41,7 +41,14 @@ load_dotenv(override=False)
 
 APP_DIR = Path(__file__).resolve().parent
 LEGACY_STATIC_DIR = APP_DIR / "web_assets"
-FRONTEND_DIST = APP_DIR.parents[1] / "frontend" / "dist"
+FRONTEND_DIST_ENV = os.environ.get("FJU_FRONTEND_DIST")
+FRONTEND_DIST = (
+    Path(FRONTEND_DIST_ENV)
+    if FRONTEND_DIST_ENV and Path(FRONTEND_DIST_ENV).exists()
+    else Path("frontend/dist")
+    if (Path("frontend/dist") / "index.html").exists()
+    else APP_DIR.parents[1] / "frontend" / "dist"
+)
 DEFAULT_ARTIFACTS_DIR = Path("data/artifacts/1151")
 MAX_REQUEST_BYTES = 16 * 1024
 mimetypes.add_type("application/javascript", ".js")
@@ -626,7 +633,15 @@ def register_routes(application: FastAPI) -> None:
 
 
 def _mount_frontend(application: FastAPI) -> None:
-    static_dir = FRONTEND_DIST if (FRONTEND_DIST / "index.html").exists() else LEGACY_STATIC_DIR
+    env_dir = os.environ.get("FJU_FRONTEND_DIST")
+    if env_dir and (Path(env_dir) / "index.html").exists():
+        static_dir = Path(env_dir)
+    elif (FRONTEND_DIST / "index.html").exists():
+        static_dir = FRONTEND_DIST
+    elif (Path("frontend/dist") / "index.html").exists():
+        static_dir = Path("frontend/dist")
+    else:
+        static_dir = LEGACY_STATIC_DIR
     assets_dir = static_dir / "assets"
     if assets_dir.exists():
         application.mount("/assets", StaticFiles(directory=assets_dir), name="assets")

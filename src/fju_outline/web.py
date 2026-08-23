@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 import mimetypes
 import os
@@ -16,7 +17,7 @@ import orjson
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -39,8 +40,9 @@ except ImportError:  # pragma: no cover - optional until the API dependency is i
 load_dotenv(override=False)
 
 
+logger = logging.getLogger(__name__)
+
 APP_DIR = Path(__file__).resolve().parent
-LEGACY_STATIC_DIR = APP_DIR / "web_assets"
 FRONTEND_DIST_ENV = os.environ.get("FJU_FRONTEND_DIST")
 FRONTEND_DIST = (
     Path(FRONTEND_DIST_ENV)
@@ -632,22 +634,55 @@ def register_routes(application: FastAPI) -> None:
         }
 
 
-def _mount_frontend(application: FastAPI) -> None:
+class FrontendBuildMissingError(RuntimeError):
+    """No built frontend bundle could be located.
+
+    There is deliberately no fallback to an older bundled UI: silently serving a
+    stale frontend makes a forgotten ``pnpm build`` look like a code change that
+    had no effect.
+    """
+
+
+def _resolve_frontend_dist() -> Path:
     env_dir = os.environ.get("FJU_FRONTEND_DIST")
-    if env_dir and (Path(env_dir) / "index.html").exists():
-        static_dir = Path(env_dir)
-    elif (FRONTEND_DIST / "index.html").exists():
-        static_dir = FRONTEND_DIST
-    elif (Path("frontend/dist") / "index.html").exists():
-        static_dir = Path("frontend/dist")
-    else:
-        static_dir = LEGACY_STATIC_DIR
+    candidates = [
+        Path(env_dir) if env_dir else None,
+        FRONTEND_DIST,
+        Path("frontend/dist"),
+    ]
+    checked: list[str] = []
+    for candidate in candidates:
+        if candidate is None:
+            continue
+        if (candidate / "index.html").exists():
+            return candidate
+        checked.append(str(candidate))
+    raise FrontendBuildMissingError(
+        "找不到已建置的前端 index.html，後端拒絕以舊版介面遞補。\n"
+        "請先建置前端：cd frontend && pnpm install && pnpm build\n"
+        "或設定 FJU_FRONTEND_DIST 指向已建置的 dist 目錄。\n"
+        "已檢查的路徑：" + ", ".join(checked)
+    )
+
+
+def _mount_frontend(application: FastAPI) -> None:
+    try:
+        static_dir = _resolve_frontend_dist()
+    except FrontendBuildMissingError as error:
+        # Fail loudly on stderr at startup, and keep failing loudly on every
+        # request, instead of quietly serving something that is not the build.
+        logger.error("%s", error)
+        message = str(error)
+
+        @application.get("/{path:path}", include_in_schema=False)
+        def frontend_build_missing(path: str) -> Response:
+            return PlainTextResponse(message, status_code=503)
+
+        return
+
     assets_dir = static_dir / "assets"
     if assets_dir.exists():
         application.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
-    legacy_assets = LEGACY_STATIC_DIR
-    if legacy_assets.exists():
-        application.mount("/static", StaticFiles(directory=legacy_assets), name="static")
 
     @application.get("/{path:path}", include_in_schema=False)
     def spa(path: str) -> Response:

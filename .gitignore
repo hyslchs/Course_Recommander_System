@@ -11,6 +11,11 @@ __pycache__/
 frontend/node_modules/
 frontend/dist/
 frontend/*.tsbuildinfo
+# tsc -b emit artifacts of vite.config.ts — must never be committed:
+# Vite resolves vite.config.js before vite.config.ts, so a stale .js silently
+# shadows the real config.
+frontend/vite.config.js
+frontend/vite.config.d.ts
 
 data/raw/
 data/canonical/
@@ -24,3 +29,7 @@ data/runtime/
 tmp/
 backups/
 *.tar.gz
+
+# local tooling / workflow scratch
+.codegraph/
+.claude/worktrees/

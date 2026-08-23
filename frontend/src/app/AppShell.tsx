@@ -4,7 +4,7 @@ import { List } from "@phosphor-icons/react";
 import { RouteFocusManager } from "./RouteFocusManager";
 import { navigationItems } from "./navigation";
 import { Modal } from "@/components/ui";
-import type { Profile } from "@/domain/types";
+import { useProfile } from "@/hooks/localData";
 
 /**
  * Header, primary navigation, main landmark and footer.
@@ -12,7 +12,8 @@ import type { Profile } from "@/domain/types";
  * The skip link stays outside `.app-shell` on purpose: `Modal` marks
  * `.app-shell` as `inert` while a dialog is open.
  */
-export function AppShell({ profile, children }: { profile?: Profile; children: ReactNode }) {
+export function AppShell({ children }: { children: ReactNode }) {
+  const profile = useProfile();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuFirstRef = useRef<HTMLAnchorElement>(null);
   const profileLabel = profile ? profile.department + " " + profile.grade + " 年級" : "開始設定";

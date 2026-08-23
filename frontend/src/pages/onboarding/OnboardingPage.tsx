@@ -1,7 +1,8 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { CaretDown } from "@phosphor-icons/react";
-import { getCatalog, getClassGroups, getDepartmentCatalog } from "@/data/api";
+import { getCatalog } from "@/data/api";
+import { useClassGroups, useDepartmentCatalog } from "@/data/queries";
 import { getAllRecords, putRecord } from "@/data/db";
 import { courseConflicts, inferProfileStudyLevel, meetingsConflict } from "@/domain/eligibility";
 import {
@@ -17,16 +18,16 @@ import { getFixedScheduleEntries, MENTOR_TIME_ENTRY_ID } from "@/domain/fixedSch
 import { defaultPreferredWeekdays } from "@/domain/profileDefaults";
 import { selectRequiredCourses } from "@/domain/requiredCourses";
 import { coursesInPlan } from "@/domain/scheduleUtils";
+import { useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { useFeedback } from "@/components/ui";
-import type { CompletedCourse, Course, DepartmentCatalog, Profile } from "@/domain/types";
+import type { CompletedCourse, Course, Profile } from "@/domain/types";
 
-export function OnboardingPage({ profile }: { profile?: Profile }) {
-  const [departmentCatalog, setDepartmentCatalog] = useState<DepartmentCatalog>();
-  const [departmentCatalogError, setDepartmentCatalogError] = useState("");
-  useEffect(() => {
-    void getDepartmentCatalog().then(setDepartmentCatalog).catch((error) => setDepartmentCatalogError((error as Error).message));
-  }, []);
+export function OnboardingPage() {
+  const profile = useProfile();
+  const departmentCatalogQuery = useDepartmentCatalog();
+  const departmentCatalog = departmentCatalogQuery.data;
+  const departmentCatalogError = departmentCatalogQuery.error ? (departmentCatalogQuery.error as Error).message : "";
   const navigate = useNavigate();
   const { notify } = useFeedback();
   const { plans, activePlan, selectPlan } = useSchedulePlans();
@@ -80,23 +81,17 @@ export function OnboardingPage({ profile }: { profile?: Profile }) {
     label: getDepartmentTypeLabel(type),
     options: visibleDepartmentOptions.filter((option) => (option.departmentType ?? "unknown") === type),
   })).filter((group) => group.options.length), [visibleDepartmentOptions]);
-  const [classGroupOptions, setClassGroupOptions] = useState<string[]>([]);
+  const classGroupsQuery = useClassGroups(selectedDepartmentOption ? {
+    department: selectedDepartmentOption.identity ?? selectedDepartmentOption.value,
+    division: form.division,
+    grade: form.grade,
+  } : null);
+  const classGroupOptions = selectedDepartmentOption ? (classGroupsQuery.data ?? []) : [];
+  // Existing defect kept verbatim: a class-group failure still surfaces as
+  // "儲存失敗：…". T32 owns the copy fix; T21 only moves where the error comes from.
   useEffect(() => {
-    if (!selectedDepartmentOption) {
-      setClassGroupOptions([]);
-      return;
-    }
-    const controller = new AbortController();
-    const params = new URLSearchParams({
-      department: selectedDepartmentOption.identity ?? selectedDepartmentOption.value,
-      division: form.division,
-      grade: String(form.grade),
-    });
-    void getClassGroups(params, controller.signal).then(setClassGroupOptions).catch((error) => {
-      if ((error as Error).name !== "AbortError") setSaveError((error as Error).message);
-    });
-    return () => controller.abort();
-  }, [form.division, form.grade, selectedDepartmentOption?.identity]);
+    if (classGroupsQuery.error) setSaveError((classGroupsQuery.error as Error).message);
+  }, [classGroupsQuery.error]);
   useEffect(() => {
     if (!departmentMenuOpen) {
       setDepartmentInput(selectedDepartmentOption ? formatDepartmentOption(selectedDepartmentOption) : form.department);

@@ -1,8 +1,11 @@
 import "@testing-library/jest-dom/vitest";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ScheduleWorkspace } from "./ScheduleWorkspace";
+import { ProfileContext } from "@/hooks/localData";
+import { SchedulePlanContext } from "@/hooks/useSchedulePlans";
 import type { Course, Meeting, Profile, SchedulePlan } from "@/domain/types";
 
 const apiMocks = vi.hoisted(() => ({ getCatalog: vi.fn(), getCourses: vi.fn(), getEmbeddingBundle: vi.fn() }));
@@ -50,8 +53,18 @@ describe("schedule workspace", () => {
     });
     dbMocks.getAllRecords.mockResolvedValue([]);
     dbMocks.putRecord.mockResolvedValue(undefined);
-    // Deliberately rendered with no providers mounted: the workspace must stay usable standalone.
-    render(<ScheduleWorkspace catalog={catalog} plans={[plan]} active={plan} profile={profile} selectPlan={async () => undefined} />);
+    // T21 moved plans and profile onto context, so those two are supplied as static
+    // values here. Everything else is still deliberately absent — no FeedbackProvider,
+    // no router, no app shell: the workspace must stay usable standalone.
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <ProfileContext.Provider value={profile}>
+          <SchedulePlanContext.Provider value={{ plans: [plan], activePlan: plan, selectPlan: async () => undefined }}>
+            <ScheduleWorkspace catalog={catalog} />
+          </SchedulePlanContext.Provider>
+        </ProfileContext.Provider>
+      </QueryClientProvider>,
+    );
   });
 
   // `globals: true` lets testing-library register its own auto-cleanup, so this is redundant —

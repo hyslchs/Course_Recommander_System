@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getCourses } from "@/data/api";
+import { useCourses } from "@/data/queries";
 import { putRecord } from "@/data/db";
 import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
 import { formatMeetings, parseManualSections, weekdayLabels } from "@/domain/schedule";
@@ -19,21 +19,16 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
   const [pendingConflict, setPendingConflict] = useState<{ entry: ScheduleEntry; courseName: string; reason: string }>();
   const showMessage = (text: string, kind: "success" | "error") => { setMessage(text); setMessageKind(kind); };
   const normalizedQuery = query.trim();
-  const [courseOptions, setCourseOptions] = useState<Course[]>([]);
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   useEffect(() => {
-    if (!normalizedQuery) {
-      setCourseOptions([]);
-      return;
-    }
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => {
-      const params = new URLSearchParams({ q: normalizedQuery, page: "1", page_size: "50" });
-      void getCourses(params, controller.signal)
-        .then((result) => setCourseOptions(result.items))
-        .catch((error) => { if ((error as Error).name !== "AbortError") showMessage("搜尋課程失敗：" + (error as Error).message, "error"); });
-    }, 250);
-    return () => { window.clearTimeout(timer); controller.abort(); };
+    const timer = window.setTimeout(() => setDebouncedQuery(normalizedQuery), 250);
+    return () => window.clearTimeout(timer);
   }, [normalizedQuery]);
+  const searchQuery = useCourses(debouncedQuery ? { q: debouncedQuery, page: 1, pageSize: 50 } : null);
+  const courseOptions: Course[] = normalizedQuery ? (searchQuery.data?.items ?? []) : [];
+  useEffect(() => {
+    if (searchQuery.error) showMessage("搜尋課程失敗：" + (searchQuery.error as Error).message, "error");
+  }, [searchQuery.error]);
   const selectedCourse = courseOptions.find((course) => course.course_id === selectedCourseId);
   const customTimeRequired = Boolean(selectedCourse && !selectedCourse.meetings.some((meeting) => meeting.weekday && meeting.sections.length));
   const customTimeActive = useCustomTime || customTimeRequired;

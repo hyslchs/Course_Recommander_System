@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { AI_ASSISTANT_VISIBLE } from "./navigation";
 import { EmptyState } from "@/components/EmptyState";
-import type { Profile, SchedulePlan } from "@/domain/types";
+import { useProfile } from "@/hooks/localData";
 
 // Route-level code splitting: every page is its own chunk.
 const OnboardingPage = lazy(async () => ({ default: (await import("@/pages/onboarding/OnboardingPage")).OnboardingPage }));
@@ -25,14 +25,8 @@ function NotFoundPage() {
   return <EmptyState title="找不到這個頁面" body="網址可能已經變更或輸入錯誤。" action="回到推薦" href="/recommend" />;
 }
 
-export interface AppRoutesProps {
-  profile?: Profile;
-  plans: SchedulePlan[];
-  activePlan?: SchedulePlan;
-  selectPlan: (planId: string) => Promise<void>;
-}
-
-export function AppRoutes({ profile, plans, activePlan, selectPlan }: AppRoutesProps) {
+export function AppRoutes() {
+  const profile = useProfile();
   const location = useLocation();
   return (
     // Keyed by path so a thrown route does not keep the whole app on the error
@@ -41,11 +35,11 @@ export function AppRoutes({ profile, plans, activePlan, selectPlan }: AppRoutesP
       <Suspense fallback={<RouteFallback />}>
         <Routes>
           <Route path="/" element={<Navigate to={profile ? "/recommend" : "/onboarding"} replace />} />
-          <Route path="/onboarding" element={<OnboardingPage profile={profile} />} />
-          <Route path="/recommend" element={<RecommendPage profile={profile} />} />
-          <Route path="/assistant" element={AI_ASSISTANT_VISIBLE ? <AssistantPage profile={profile} /> : <Navigate to="/recommend" replace />} />
-          <Route path="/explore" element={<ExplorePage profile={profile} />} />
-          <Route path="/schedule" element={<SchedulePage plans={plans} active={activePlan} profile={profile} selectPlan={selectPlan} />} />
+          <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/recommend" element={<RecommendPage />} />
+          <Route path="/assistant" element={AI_ASSISTANT_VISIBLE ? <AssistantPage /> : <Navigate to="/recommend" replace />} />
+          <Route path="/explore" element={<ExplorePage />} />
+          <Route path="/schedule" element={<SchedulePage />} />
           <Route path="/data" element={<DataPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>

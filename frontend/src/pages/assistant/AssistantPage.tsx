@@ -1,31 +1,34 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { NavLink } from "react-router";
 import { Info } from "@phosphor-icons/react";
-import { askCourseAssistant, getCatalog, getFeatures } from "@/data/api";
+import { useAskCourseAssistant, useFeatures } from "@/data/queries";
 import { putRecord } from "@/data/db";
 import { inferProfileStudyLevel } from "@/domain/eligibility";
-import { analyzeQuery } from "@/domain/queryAnalysis";
+import { useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
-import { useStore } from "@/hooks/useStore";
 import { CourseCard } from "@/components/CourseCard";
 import { EmptyState } from "@/components/EmptyState";
-import type { AIAnswer, AIHistoryTurn, CompletedCourse, HardConstraints, Profile } from "@/domain/types";
+import type { AIAnswer, AIHistoryTurn, CompletedCourse } from "@/domain/types";
 
 type AssistantTurn = { question: string; answer: AIAnswer };
 
-export function AssistantPage({ profile }: { profile?: Profile }) {
-  const [completed] = useStore<CompletedCourse & { id: string }>("completedCourses");
+export function AssistantPage() {
+  const profile = useProfile();
+  const completed = useLocalRecords<CompletedCourse & { id: string }>("completedCourses");
   const { activePlan } = useSchedulePlans();
-  const [preferences] = useStore<Record<string, unknown>>("recommendationPreferences");
+  const preferences = useLocalRecords<Record<string, unknown>>("recommendationPreferences");
   const consent = preferences.find((item) => item.id === "ai-assistant-consent-v1");
   const [question, setQuestion] = useState("");
   const [turns, setTurns] = useState<AssistantTurn[]>([]);
-  const [loading, setLoading] = useState(false);
+  const assistant = useAskCourseAssistant();
+  const loading = assistant.isPending;
+  const error = assistant.error ? ((assistant.error as Error).message || "AI 小幫手暫時無法回應，請稍後再試。") : "";
   const [loadingPhase, setLoadingPhase] = useState(0);
-  const [error, setError] = useState("");
   const [lastFailedQuestion, setLastFailedQuestion] = useState("");
-  const [enabled, setEnabled] = useState<boolean | null>(null);
-  const [maxChars, setMaxChars] = useState(500);
+  const featuresQuery = useFeatures();
+  // `null` until the flag is known; a failed probe means "not configured", as before.
+  const enabled = featuresQuery.isPending ? null : featuresQuery.data?.ai_assistant_enabled !== false && !featuresQuery.isError;
+  const maxChars = featuresQuery.data?.ai_max_question_chars ?? 500;
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState("");
   const [completionAnnouncement, setCompletionAnnouncement] = useState("");
@@ -38,12 +41,6 @@ export function AssistantPage({ profile }: { profile?: Profile }) {
   ];
 
   useEffect(() => {
-    void getFeatures().then((features) => {
-      setEnabled(features.ai_assistant_enabled !== false);
-      if (features.ai_max_question_chars) setMaxChars(features.ai_max_question_chars);
-    }).catch(() => setEnabled(false));
-  }, []);
-  useEffect(() => {
     if (!loading) return undefined;
     const timer = window.setInterval(() => setLoadingPhase((current) => (current + 1) % phases.length), 1600);
     return () => window.clearInterval(timer);
@@ -55,12 +52,9 @@ export function AssistantPage({ profile }: { profile?: Profile }) {
     if (!cleaned || loading) return;
     if (!profile) return;
     if (!consent) return;
-    setLoading(true); setLoadingPhase(0); setError(""); setLastFailedQuestion(""); setCopied(false); setCompletionAnnouncement("");
+    setLoadingPhase(0); setLastFailedQuestion(""); setCopied(false); setCompletionAnnouncement("");
     try {
-      const catalog = await getCatalog();
-      const analysis = analyzeQuery(cleaned, { catalog });
-      const response = await askCourseAssistant({
-        request_id: crypto.randomUUID(),
+      const response = await assistant.mutateAsync({
         question: cleaned,
         history: turns.slice(-2).map<AIHistoryTurn>((turn) => ({
           question: turn.question,
@@ -77,18 +71,15 @@ export function AssistantPage({ profile }: { profile?: Profile }) {
           completed_course_ids: completed.map((item) => item.courseId),
           schedule_course_ids: activePlan?.entries.map((item) => item.courseId) ?? [],
         },
-        hard_constraints: analysis.hardConstraints as HardConstraints,
       });
       setTurns((current) => [...current, { question: cleaned, answer: response }].slice(-6));
       setQuestion("");
       setCompletionAnnouncement(response.recommendations.length
         ? `已完成回答，並附上 ${response.recommendations.length} 門推薦課程。`
         : "已完成回答。");
-    } catch (caught) {
+    } catch {
+      // `assistant.error` already carries the message; only the retry target is local state.
       setLastFailedQuestion(cleaned);
-      setError((caught as Error).message || "AI 小幫手暫時無法回應，請稍後再試。");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -139,7 +130,7 @@ export function AssistantPage({ profile }: { profile?: Profile }) {
           {turns.map((turn, turnIndex) => <article className="assistant-turn" key={`${turn.answer.request_id}-${turnIndex}`}>
             <div className="assistant-user-message"><span>你</span><p>{turn.question}</p></div>
             <div className="assistant-answer card"><div className="assistant-answer-label">AI 課程小幫手</div><p className="assistant-summary">{turn.answer.answer || "目前沒有足夠資料可以補充。"}</p>
-              {turn.answer.recommendations.length > 0 && <><h2>推薦課程</h2><div className="course-grid">{turn.answer.recommendations.map((item, index) => <CourseCard key={`${turn.answer.request_id}-${item.course.course_id}`} course={item.course} profile={profile} rank={index + 1} reasons={[item.reason]} cautions={item.cautions} matchedFields={item.matched_fields} />)}</div></>}
+              {turn.answer.recommendations.length > 0 && <><h2>推薦課程</h2><div className="course-grid">{turn.answer.recommendations.map((item, index) => <CourseCard key={`${turn.answer.request_id}-${item.course.course_id}`} course={item.course} rank={index + 1} reasons={[item.reason]} cautions={item.cautions} matchedFields={item.matched_fields} />)}</div></>}
               {turn.answer.follow_up_suggestions.length > 0 && <div className="assistant-followups"><strong>你也可以問：</strong>{turn.answer.follow_up_suggestions.map((suggestion) => <button type="button" key={suggestion} onClick={() => { setQuestion(suggestion); window.requestAnimationFrame(() => questionRef.current?.focus()); }}>{suggestion}</button>)}</div>}
               {turn.answer.limitations.length > 0 && <div className="assistant-limitations">{turn.answer.limitations.map((limitation) => <p key={limitation}><Info aria-hidden="true" />{limitation}</p>)}<NavLink to="/explore">前往探索課程 →</NavLink></div>}
             </div>

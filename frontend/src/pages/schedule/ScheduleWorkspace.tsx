@@ -19,8 +19,10 @@ import {
 import { coursesInPlan } from "@/domain/scheduleUtils";
 import { rankScheduleSlotCourses } from "@/domain/scheduleRecommendation";
 import type { ScheduleSlotRecommendationResult } from "@/domain/scheduleRecommendation";
+import { useProfile } from "@/hooks/localData";
+import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { Modal, useFeedback } from "@/components/ui";
-import type { CompletedCourse, Course, FixedScheduleEntry, Profile, RecommendationCategory, ScheduleEntry, SchedulePlan } from "@/domain/types";
+import type { CompletedCourse, Course, FixedScheduleEntry, RecommendationCategory, ScheduleEntry, SchedulePlan } from "@/domain/types";
 import { CourseDetails } from "./CourseDetails";
 import { ManualCoursePanel } from "./ManualCoursePanel";
 import { SlotRecommendationDialog } from "./SlotRecommendationDialog";
@@ -40,7 +42,11 @@ interface LoadedSlotRecommendationData {
   dismissedIds: string[];
 }
 
-export function ScheduleWorkspace({ catalog, plans, active, profile, selectPlan }: { catalog: Course[]; plans: SchedulePlan[]; active?: SchedulePlan; profile?: Profile; selectPlan: (planId: string) => Promise<void> }) {
+export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
+  // Plans and profile come from context, not props (plan §6.3-2). `catalog` stays
+  // a prop: it is the schedule route's own fetch, not shared app state.
+  const { plans, activePlan: active, selectPlan } = useSchedulePlans();
+  const profile = useProfile();
   const [viewMode, setViewMode] = useState<"auto" | "core" | "full">("auto");
   const [selectedBlock, setSelectedBlock] = useState<ScheduleBlock>();
   const [selectedSlot, setSelectedSlot] = useState<SelectedScheduleSlot>();
@@ -51,6 +57,10 @@ export function ScheduleWorkspace({ catalog, plans, active, profile, selectPlan 
   const [slotRecommendationError, setSlotRecommendationError] = useState("");
   const [addingRecommendedCourseId, setAddingRecommendedCourseId] = useState("");
   const detailTriggerRef = useRef<HTMLButtonElement | null>(null);
+  // Kept deliberately (plan §6.4): this monotonic request id is already a correct
+  // stale-response guard, and the three sources it awaits — `getCatalog`,
+  // `getEmbeddingBundle` and IndexedDB — are all outside the Query cache, so there
+  // is nothing for Query to guard here.
   const slotRequestRef = useRef(0);
   const slotButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const [activeSlotKey, setActiveSlotKey] = useState("");

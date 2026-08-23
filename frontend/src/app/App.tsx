@@ -1,40 +1,28 @@
-import { useCallback, useEffect } from "react";
+import { useState } from "react";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "./AppShell";
+import { createQueryClient } from "./queryClient";
 import { AppRoutes } from "./routes";
-import { SchedulePlanContext } from "@/hooks/useSchedulePlans";
-import { useStore } from "@/hooks/useStore";
-import { putRecord } from "@/data/db";
-import {
-  ACTIVE_SCHEDULE_PREFERENCE_ID,
-  resolveActiveSchedulePlan,
-  type ActiveSchedulePreference,
-} from "@/domain/scheduleUtils";
-import type { Profile, SchedulePlan } from "@/domain/types";
+import { LocalDataProvider } from "@/hooks/localData";
+import { SchedulePlanProvider } from "@/hooks/useSchedulePlans";
 
+/**
+ * Provider assembly. Server reads go through TanStack Query; local IndexedDB
+ * data is mirrored once by `LocalDataProvider` and read from context, so no page
+ * or card subscribes to a store on its own.
+ */
 function App() {
-  const [profiles] = useStore<Profile>("profile");
-  const profile = profiles.find((item) => item.id === "current");
-  const [plans] = useStore<SchedulePlan>("schedulePlans");
-  const [schedulePreferences] = useStore<ActiveSchedulePreference>("recommendationPreferences");
-  const activePreference = schedulePreferences.find((item) => item.id === ACTIVE_SCHEDULE_PREFERENCE_ID);
-  const activePlan = resolveActiveSchedulePlan(plans, activePreference?.planId);
-  const selectPlan = useCallback(async (planId: string) => {
-    await putRecord("recommendationPreferences", {
-      id: ACTIVE_SCHEDULE_PREFERENCE_ID,
-      planId,
-      updatedAt: new Date().toISOString(),
-    } satisfies ActiveSchedulePreference);
-  }, []);
-  useEffect(() => {
-    if (activePlan && activePreference?.planId !== activePlan.id) void selectPlan(activePlan.id);
-  }, [activePlan, activePreference?.planId, selectPlan]);
-
+  const [queryClient] = useState(createQueryClient);
   return (
-    <SchedulePlanContext.Provider value={{ plans, activePlan, selectPlan }}>
-      <AppShell profile={profile}>
-        <AppRoutes profile={profile} plans={plans} activePlan={activePlan} selectPlan={selectPlan} />
-      </AppShell>
-    </SchedulePlanContext.Provider>
+    <QueryClientProvider client={queryClient}>
+      <LocalDataProvider>
+        <SchedulePlanProvider>
+          <AppShell>
+            <AppRoutes />
+          </AppShell>
+        </SchedulePlanProvider>
+      </LocalDataProvider>
+    </QueryClientProvider>
   );
 }
 

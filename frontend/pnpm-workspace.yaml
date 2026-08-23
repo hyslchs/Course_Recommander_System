@@ -12,6 +12,9 @@
 allowBuilds:
   esbuild: true
   "@tailwindcss/oxide": true
+minimumReleaseAgeExclude:
+  - '@tanstack/query-core@5.102.2'
+  - '@tanstack/react-query@5.102.2'
 onlyBuiltDependencies:
   - esbuild
   - "@tailwindcss/oxide"

@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { lookupCourses } from "@/data/api";
+import { useLookupCourses } from "@/data/queries";
 import {
   clearPersonalData,
   createBackup,
@@ -8,15 +8,16 @@ import {
   putRecord,
   validateBackup,
 } from "@/data/db";
+import { useLocalRecords } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
-import { useStore } from "@/hooks/useStore";
 import { ConfirmDialog, Modal, useFeedback } from "@/components/ui";
 import type { CompletedCourse } from "@/domain/types";
 
 export function DataPage() {
-  const [completed] = useStore<CompletedCourse & { id: string }>("completedCourses");
-  const [favorites] = useStore<{ id: string }>("favorites");
+  const completed = useLocalRecords<CompletedCourse & { id: string }>("completedCourses");
+  const favorites = useLocalRecords<{ id: string }>("favorites");
   const { plans } = useSchedulePlans();
+  const lookup = useLookupCourses();
   const { notify } = useFeedback();
   const [codes, setCodes] = useState("");
   const [busy, setBusy] = useState<"recognize" | "export" | "import" | "clear" | "">("");
@@ -31,7 +32,7 @@ export function DataPage() {
     setBusy("recognize");
     try {
       const values = codes.split(/[\s,，;；]+/).map((item) => item.trim().toLowerCase()).filter(Boolean);
-      const result = await lookupCourses(values);
+      const result = await lookup.mutateAsync(values);
       for (const course of result.items) await putRecord("completedCourses", { id: course.course_id, courseId: course.course_id, courseName: course.name_zh, continueLearning: false, addedAt: new Date().toISOString() });
       setCodes("");
       notify("已加入 " + result.items.length + " 門；" + result.unmatched_values.length + " 筆未找到");

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Heart } from "@phosphor-icons/react";
-import { getCoursesByIds } from "@/data/api";
+import { useFetchCoursesByIds } from "@/data/queries";
 import { deleteRecord, putRecord } from "@/data/db";
 import {
   courseConflicts,
@@ -13,10 +13,10 @@ import {
 } from "@/domain/eligibility";
 import { classifyRecommendationCategory, recommendationCategoryLabels } from "@/domain/recommendation";
 import { formatMeetings } from "@/domain/schedule";
+import { useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
-import { useStore } from "@/hooks/useStore";
 import { ConfirmDialog, useFeedback } from "@/components/ui";
-import type { CompletedCourse, Course, Profile, Recommendation, SchedulePlan } from "@/domain/types";
+import type { CompletedCourse, Course, Recommendation, SchedulePlan } from "@/domain/types";
 
 /** Syllabus field names the assistant may cite, as shown on a recommendation card. */
 const assistantFieldLabels: Record<string, string> = {
@@ -29,10 +29,14 @@ const assistantFieldLabels: Record<string, string> = {
   history: "最近對話課程",
 };
 
-export function CourseCard({ course, alternatives, profile, rank, reasons, cautions, matchedFields, recommendationCategory }: { course: Course; alternatives?: Course[]; profile?: Profile; rank?: number; reasons?: string[]; cautions?: string[]; matchedFields?: string[]; recommendationCategory?: Recommendation["category"] }) {
-  const [completed] = useStore<CompletedCourse & { id: string }>("completedCourses");
-  const [favorites] = useStore<{ id: string }>("favorites");
+export function CourseCard({ course, alternatives, rank, reasons, cautions, matchedFields, recommendationCategory }: { course: Course; alternatives?: Course[]; rank?: number; reasons?: string[]; cautions?: string[]; matchedFields?: string[]; recommendationCategory?: Recommendation["category"] }) {
+  // Context, not props: 25 cards used to mean 25 IndexedDB reads of each store
+  // and a three-level `profile` prop drill (plan §6.3-1 and §6.3-2).
+  const completed = useLocalRecords<CompletedCourse & { id: string }>("completedCourses");
+  const favorites = useLocalRecords<{ id: string }>("favorites");
+  const profile = useProfile();
   const { activePlan, selectPlan } = useSchedulePlans();
+  const fetchCoursesByIds = useFetchCoursesByIds();
   const { notify } = useFeedback();
   const [pending, setPending] = useState<"favorite" | "completed" | "schedule" | "dismiss" | "">("");
   const [conflictRequest, setConflictRequest] = useState<{ plan: SchedulePlan; message: string }>();
@@ -99,7 +103,7 @@ export function CourseCard({ course, alternatives, profile, rank, reasons, cauti
     if (!plan) plan = { id: crypto.randomUUID(), name: "我的課表", entries: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     let scheduledCourses: Course[];
     try {
-      scheduledCourses = await getCoursesByIds(plan.entries.map((entry) => entry.courseId));
+      scheduledCourses = await fetchCoursesByIds(plan.entries.map((entry) => entry.courseId));
     } catch (error) {
       notify("無法檢查目前課表：" + (error as Error).message, "error");
       return;

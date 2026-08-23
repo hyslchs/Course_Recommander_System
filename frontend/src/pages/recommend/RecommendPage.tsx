@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { embedQuery, getCatalog, getEmbeddingBundle, getFacets } from "@/data/api";
+import { useFacets, useRecommendationSources, type FacetMap } from "@/data/queries";
 import { putRecord } from "@/data/db";
 import { formatCreditFilterSummary, getHighCreditOptions, isHighCreditFilterSelected, toggleHighCreditFilter } from "@/domain/creditFilter";
 import { inferProfileStudyLevel } from "@/domain/eligibility";
@@ -15,18 +15,20 @@ import { weekdayLabels } from "@/domain/schedule";
 import { coursesInPlan, meetingsInPlan } from "@/domain/scheduleUtils";
 import { buildSearchIndex } from "@/domain/search";
 import { sanitizeSubjectQuery, type DetectedFilterPhrase } from "@/domain/subjectQuery";
+import { useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
-import { useStore } from "@/hooks/useStore";
 import { CourseCard } from "@/components/CourseCard";
 import { EmptyState } from "@/components/EmptyState";
 import type {
   CompletedCourse,
   Course,
-  Profile,
   Recommendation,
   RecommendationCategory,
   RecommendationCategoryFilters,
 } from "@/domain/types";
+
+/** Stable identity so the `useMemo`s below do not rerun while facets are loading. */
+const emptyFacets: FacetMap = {};
 
 type RecommendationEmbedding = {
   query: Float32Array;
@@ -38,13 +40,14 @@ type RecommendationEmbedding = {
   dimension: number;
 };
 
-export function RecommendPage({ profile }: { profile?: Profile }) {
+export function RecommendPage() {
+  const profile = useProfile();
   const [catalog, setCatalog] = useState<Course[]>([]);
   const searchIndex = useMemo(() => buildSearchIndex(catalog), [catalog]);
-  const [facets, setFacets] = useState<Record<string, { value: string; label: string }[]>>({});
-  useEffect(() => { void getFacets().then(setFacets).catch(() => undefined); }, []);
-  const [completed] = useStore<CompletedCourse & { id: string }>("completedCourses");
-  const [dismissed] = useStore<{ id: string }>("dismissedCourses");
+  // Same cache entry as ExplorePage's — the facet list is fetched once per session.
+  const facets = useFacets().data ?? emptyFacets;
+  const completed = useLocalRecords<CompletedCourse & { id: string }>("completedCourses");
+  const dismissed = useLocalRecords<{ id: string }>("dismissedCourses");
   const { activePlan } = useSchedulePlans();
   const [interest, setInterest] = useState(profile?.interests ?? "");
   const [preferredWeekdays, setPreferredWeekdays] = useState<number[]>(
@@ -63,8 +66,11 @@ export function RecommendPage({ profile }: { profile?: Profile }) {
   const [courseTagFilters, setCourseTagFilters] = useState<string[]>([]);
   const [lastEmbedding, setLastEmbedding] = useState<RecommendationEmbedding>();
   const [results, setResults] = useState<Recommendation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  // A mutation, so only the newest run drives `loading`/`error` and a superseded
+  // response can no longer overwrite fresher results.
+  const sources = useRecommendationSources();
+  const loading = sources.isPending;
+  const error = sources.error ? (sources.error as Error).message : "";
   const [validationError, setValidationError] = useState("");
   useEffect(() => setInterest(profile?.interests ?? ""), [profile?.interests]);
   useEffect(() => {
@@ -161,34 +167,29 @@ export function RecommendPage({ profile }: { profile?: Profile }) {
       return;
     }
     setValidationError("");
-    setLoading(true); setError("");
-    try {
-      if (profile) {
-        await putRecord("profile", {
-          ...profile,
-          interests: interest.trim(),
-          preferredWeekdays,
-          studyLevel: inferProfileStudyLevel(profile),
-          updatedAt: new Date().toISOString(),
-        });
-      }
-      const [courseCatalog, bundle, query] = await Promise.all([
-        getCatalog(),
-        getEmbeddingBundle(),
-        embedQuery(sanitizedPreview.subjectQuery),
-      ]);
-      setCatalog(courseCatalog);
-      setLastEmbedding({
-        query,
-        queryText: sanitizedPreview.subjectQuery,
-        rawQuery: sanitizedPreview.rawQuery,
-        detectedFilterPhrases: sanitizedPreview.detectedFilterPhrases,
-        courseIds: bundle.index.course_ids,
-        vectors: bundle.vectors,
-        dimension: bundle.index.dimension,
+    if (profile) {
+      await putRecord("profile", {
+        ...profile,
+        interests: interest.trim(),
+        preferredWeekdays,
+        studyLevel: inferProfileStudyLevel(profile),
+        updatedAt: new Date().toISOString(),
       });
-    } catch (caught) { setError((caught as Error).message); }
-    finally { setLoading(false); }
+    }
+    sources.mutate(sanitizedPreview.subjectQuery, {
+      onSuccess: (loaded) => {
+        setCatalog(loaded.catalog);
+        setLastEmbedding({
+          query: loaded.query,
+          queryText: sanitizedPreview.subjectQuery,
+          rawQuery: sanitizedPreview.rawQuery,
+          detectedFilterPhrases: sanitizedPreview.detectedFilterPhrases,
+          courseIds: loaded.courseIds,
+          vectors: loaded.vectors,
+          dimension: loaded.dimension,
+        });
+      },
+    });
   };
   const togglePreferredWeekday = (day: number) => {
     setPreferredWeekdays((current) => {
@@ -246,7 +247,7 @@ export function RecommendPage({ profile }: { profile?: Profile }) {
       {loading && <div className="empty-panel" role="status"><h2>正在產生推薦…</h2><p>正在比對課程內容與你設定的修課條件。</p></div>}
       {!lastEmbedding && !loading && !error && <div className="empty-panel"><h2>輸入主題，開始找適合的課</h2><div className="feature-grid"><span>明確篩選</span><span>語意檢索</span><span>關鍵字檢索</span><span>RRF 融合排名</span></div></div>}
       {lastEmbedding && !results.length && !loading && !error && <div className="empty-panel"><h2>沒有符合全部條件的課程</h2><p>可以放寬條件，或換一個更廣泛的主題。</p><div className="empty-actions"><button type="button" onClick={clearFilters}>清除全部條件</button><button type="button" onClick={() => document.getElementById("subject-query")?.focus()}>修改主題</button></div></div>}
-      <div className="course-grid">{results.map((item, index) => <CourseCard key={item.course.course_id} course={item.course} alternatives={item.alternatives} profile={profile} rank={index + 1} reasons={item.reasons} recommendationCategory={item.category} />)}</div>
+      <div className="course-grid">{results.map((item, index) => <CourseCard key={item.course.course_id} course={item.course} alternatives={item.alternatives} rank={index + 1} reasons={item.reasons} recommendationCategory={item.category} />)}</div>
     </section>
   );
 }

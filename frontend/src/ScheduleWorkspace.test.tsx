@@ -1,8 +1,13 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { formatMeetings, ScheduleWorkspace } from "./ScheduleWorkspace";
-import type { Course, Meeting, SchedulePlan } from "./types";
+import type { Course, Meeting, Profile, SchedulePlan } from "./types";
+
+const apiMocks = vi.hoisted(() => ({ getEmbeddingBundle: vi.fn() }));
+const dbMocks = vi.hoisted(() => ({ getAllRecords: vi.fn(), putRecord: vi.fn() }));
+vi.mock("./api", () => apiMocks);
+vi.mock("./db", () => dbMocks);
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -30,14 +35,23 @@ describe("schedule workspace", () => {
   const catalog = [
     course("day", "日間課程", [{ weekday: 1, sections: ["D2", "D3"], room: "A101", week_pattern: "A" }]),
     course("night", "週末夜間課程", [{ weekday: 6, sections: ["E1", "E2"], room: "B202", week_pattern: "S" }]),
+    course("candidate", "資料分析實務", [{ weekday: 3, sections: ["D5", "D6"], room: "C303", week_pattern: "A" }]),
   ];
   const plan: SchedulePlan = { id: "plan", name: "測試方案", entries: [{ courseId: "day", locked: false }, { courseId: "night", locked: false }], createdAt: "now", updatedAt: "now" };
+  const profile: Profile = { id: "current", division: "日間部", department: "測試系", grade: 1, admissionYear: 115, interests: "", preferredWeekdays: [1, 2, 3, 4, 5], updatedAt: "now" };
 
   beforeEach(async () => {
+    vi.clearAllMocks();
+    apiMocks.getEmbeddingBundle.mockResolvedValue({
+      index: { course_ids: catalog.map((item) => item.course_id), dimension: 2 },
+      vectors: new Float32Array([1, 0, 0, 1, 0.95, 0.05]),
+    });
+    dbMocks.getAllRecords.mockResolvedValue([]);
+    dbMocks.putRecord.mockResolvedValue(undefined);
     container = document.createElement("div");
     document.body.append(container);
     root = createRoot(container);
-    await act(async () => { root.render(<ScheduleWorkspace catalog={catalog} plans={[plan]} active={plan} selectPlan={async () => undefined} />); });
+    await act(async () => { root.render(<ScheduleWorkspace catalog={catalog} plans={[plan]} active={plan} profile={profile} selectPlan={async () => undefined} />); });
   });
 
   afterEach(async () => {
@@ -71,6 +85,47 @@ describe("schedule workspace", () => {
     await act(async () => compact?.click());
     expect(container.querySelector(".schedule-hidden-notice")?.textContent).toContain("1 門課");
     expect(container.querySelector(".schedule-grid")?.textContent).not.toContain("星期六");
+  });
+
+  it("opens timetable-based recommendations from an empty keyboard-accessible slot", async () => {
+    expect(container.querySelector('[aria-label="推薦星期一 D2 可以排入的課程"]')).toBeNull();
+    const slot = container.querySelector<HTMLButtonElement>('[aria-label="推薦星期三 D5 可以排入的課程"]');
+    expect(slot?.tabIndex).toBeGreaterThanOrEqual(-1);
+    await act(async () => {
+      slot?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const dialog = document.querySelector('.slot-recommendation-dialog[role="dialog"]');
+    expect(dialog?.textContent).toContain("星期三 D5 的課程推薦");
+    expect(dialog?.textContent).toContain("資料分析實務");
+    expect(dialog?.textContent).toContain("本系選修");
+    expect(dialog?.textContent).toContain("完整上課時間不與目前課表衝堂");
+    expect(dialog?.querySelectorAll(".slot-category-filter")).toHaveLength(4);
+    const homeElectiveFilter = dialog?.querySelector<HTMLButtonElement>(".slot-category-filter.home_elective");
+    expect(homeElectiveFilter?.getAttribute("aria-pressed")).toBe("true");
+    await act(async () => homeElectiveFilter?.click());
+    expect(dialog?.querySelector<HTMLButtonElement>(".slot-category-filter.home_elective")?.getAttribute("aria-pressed")).toBe("false");
+    expect(dialog?.textContent).not.toContain("資料分析實務");
+    await act(async () => dialog?.querySelector<HTMLButtonElement>(".slot-category-filter.home_elective")?.click());
+    expect(dialog?.textContent).toContain("資料分析實務");
+  });
+
+  it("adds a recommended course to the active plan", async () => {
+    const slot = container.querySelector<HTMLButtonElement>('[aria-label="推薦星期三 D5 可以排入的課程"]');
+    await act(async () => {
+      slot?.click();
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+    const add = document.querySelector<HTMLButtonElement>(".slot-recommendation-actions button");
+    await act(async () => {
+      add?.click();
+      await Promise.resolve();
+    });
+    expect(dbMocks.putRecord).toHaveBeenCalledWith("schedulePlans", expect.objectContaining({
+      entries: expect.arrayContaining([expect.objectContaining({ courseId: "candidate", locked: false })]),
+    }));
   });
 });
 

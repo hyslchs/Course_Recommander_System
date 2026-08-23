@@ -216,7 +216,7 @@ function App() {
             <Route path="/recommend" element={<RecommendPage catalog={catalog} profile={profile} searchIndex={searchIndex} />} />
             <Route path="/assistant" element={<AssistantPage catalog={catalog} profile={profile} />} />
             <Route path="/explore" element={<ExplorePage catalog={catalog} profile={profile} />} />
-            <Route path="/schedule" element={<ScheduleWorkspace catalog={catalog} plans={plans} active={activePlan} selectPlan={selectPlan} />} />
+            <Route path="/schedule" element={<ScheduleWorkspace catalog={catalog} plans={plans} active={activePlan} profile={profile} selectPlan={selectPlan} />} />
             <Route path="/data" element={<DataPage catalog={catalog} />} />
           </Routes>
         </main>

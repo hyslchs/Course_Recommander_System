@@ -57,6 +57,7 @@ import type {
 const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
 const ACTIVE_SCHEDULE_PREFERENCE_ID = "active-schedule-plan-v1";
 const HIGH_CREDIT_THRESHOLD = 4;
+const AI_ASSISTANT_VISIBLE = false;
 
 function getHighCreditOptions(creditOptions: number[]): number[] {
   return creditOptions.filter((credits) => credits >= HIGH_CREDIT_THRESHOLD);
@@ -150,7 +151,7 @@ function useStore<T>(store: StoreName): [T[], () => Promise<void>] {
 
 const navigationItems = [
   { to: "/recommend", label: "為你推薦" },
-  { to: "/assistant", label: "AI 小幫手" },
+  ...(AI_ASSISTANT_VISIBLE ? [{ to: "/assistant", label: "AI 小幫手" }] : []),
   { to: "/explore", label: "探索課程" },
   { to: "/schedule", label: "我的課表" },
   { to: "/data", label: "資料管理" },
@@ -214,7 +215,7 @@ function App() {
             <Route path="/" element={<Navigate to={profile ? "/recommend" : "/onboarding"} replace />} />
             <Route path="/onboarding" element={<Onboarding profile={profile} />} />
             <Route path="/recommend" element={<RecommendPage profile={profile} />} />
-            <Route path="/assistant" element={<AssistantPage profile={profile} />} />
+            <Route path="/assistant" element={AI_ASSISTANT_VISIBLE ? <AssistantPage profile={profile} /> : <Navigate to="/recommend" replace />} />
             <Route path="/explore" element={<ExplorePage profile={profile} />} />
             <Route path="/schedule" element={<SchedulePage plans={plans} active={activePlan} profile={profile} selectPlan={selectPlan} />} />
             <Route path="/data" element={<DataPage />} />
@@ -467,7 +468,7 @@ function Onboarding({ profile }: { profile?: Profile }) {
     <section className="narrow-page">
       <div className="eyebrow">只存在這台裝置</div>
       <h1>先設定你的基本資料</h1>
-      <p className="lead">一般推薦所需的系級與修課紀錄只保存在這個瀏覽器，不會建立帳號。AI 小幫手只有在你另行同意後，才會傳送畫面上說明的必要資料。</p>
+      <p className="lead">一般推薦所需的系級與修課紀錄只保存在這個瀏覽器，不會建立帳號。</p>
       {departmentCatalogError && <div className="notice danger" role="alert">無法載入系所選項：{departmentCatalogError}</div>}
       {!departmentCatalog && !departmentCatalogError && <div className="notice" role="status">正在載入系所選項…</div>}
       <form className="card form-grid profile-form" onSubmit={save} aria-busy={saving}><fieldset className="contents-fieldset" disabled={saving}>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coursesInPlan, meetingsInPlan, resolveActiveSchedulePlan } from "./scheduleUtils";
+import { ACTIVE_SCHEDULE_PREFERENCE_ID, coursesInPlan, meetingsInPlan, resolveActiveSchedulePlan, type ActiveSchedulePreference } from "./scheduleUtils";
 import type { Course, SchedulePlan } from "./types";
 
 const course: Course = {
@@ -57,5 +57,11 @@ describe("active schedule plan resolution", () => {
 
   it("falls back to the first available plan when the preference is stale", () => {
     expect(resolveActiveSchedulePlan(plans, "missing")?.id).toBe("a");
+  });
+
+  it("keeps the persisted preference key stable so saved plans survive an upgrade", () => {
+    expect(ACTIVE_SCHEDULE_PREFERENCE_ID).toBe("active-schedule-plan-v1");
+    const preference: ActiveSchedulePreference = { id: ACTIVE_SCHEDULE_PREFERENCE_ID, planId: "b", updatedAt: "now" };
+    expect(resolveActiveSchedulePlan(plans, preference.planId)?.id).toBe("b");
   });
 });

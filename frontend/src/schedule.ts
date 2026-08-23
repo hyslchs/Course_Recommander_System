@@ -11,6 +11,13 @@ export const EXTENDED_SCHEDULE_SECTIONS = ["D0", "DN", "E0", "E1", "E2", "E3", "
 const SECTION_INDEX = new Map<string, number>(SCHEDULE_SECTIONS.map((section, index) => [section, index]));
 const SECTION_NUMBER_PATTERN = /^([A-Z]+)(\d+)$/;
 
+/** Sections a student may type by hand, e.g. "D5,D6" or "DN". */
+const MANUAL_SECTION_PATTERN = /^(?:D(?:N|[0-8])|E[0-4])$/;
+const MANUAL_SECTION_SEPARATOR = /[,\s、，；;]+/;
+
+/** Weekday labels indexed by `weekday - 1`, matching the 1..7 weekday numbering used by `Meeting`. */
+export const weekdayLabels = ["一", "二", "三", "四", "五", "六", "日"];
+
 export type ScheduleBlockSource = "course" | "fixed";
 
 export interface ScheduleBlock {
@@ -217,6 +224,41 @@ export function buildScheduleBlocks(courses: Course[], fixedEntries: FixedSchedu
     ));
   }
   return assignLanes(mergeAdjacentBlocks(blocks));
+}
+
+/** Human label for the alternating-week marker; empty when the course runs every week or is unknown. */
+export function weekPatternLabel(pattern: string | null): string {
+  if (pattern?.toUpperCase() === "S") return "單週";
+  if (pattern?.toUpperCase() === "D") return "雙週";
+  return "";
+}
+
+/** One-line summary of every meeting time, used in lists, dialogs and option labels. */
+export function formatMeetings(item: { meetings: Meeting[] }): string {
+  if (!item.meetings.length) return "時間未定";
+  return item.meetings.map((meeting) => {
+    const day = meeting.weekday && meeting.weekday >= 1 && meeting.weekday <= 7
+      ? `星期${weekdayLabels[meeting.weekday - 1]}` : "星期未定";
+    const sections = meeting.sections.length ? meeting.sections.join("、") : "節次未定";
+    const details = [meeting.room, weekPatternLabel(meeting.week_pattern)].filter(Boolean).join(" · ");
+    return `${day} ${sections}${details ? ` ${details}` : ""}`;
+  }).join("；");
+}
+
+/** Parse a hand typed section list into unique canonical sections, dropping anything unrecognised. */
+export function parseManualSections(value: string): string[] {
+  return [...new Set(
+    value
+      .toUpperCase()
+      .split(MANUAL_SECTION_SEPARATOR)
+      .map((section) => section.trim())
+      .filter((section) => MANUAL_SECTION_PATTERN.test(section)),
+  )];
+}
+
+/** Placeholder block for a course with no usable meeting time, so it can reuse the block detail dialog. */
+export function unplacedBlock(course: Course): ScheduleBlock {
+  return { id: `unplaced-${course.course_id}`, source: "course", sourceId: course.course_id, name: course.name_zh, teacher: course.teacher || "教師未定", weekday: 1, sections: [], startSection: "D1", endSection: "D1", room: null, weekPattern: null, meetingIndex: 0, lane: 0, laneCount: 1, conflict: false };
 }
 
 export function sectionGridSpan(block: ScheduleBlock, visibleSections: readonly string[]): { start: number; span: number } | null {

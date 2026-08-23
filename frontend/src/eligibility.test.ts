@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { evaluateEligibility, formatCourseStudyLevelLabel, inferAudienceDepartment, inferAudienceGrade, inferCourseStudyLevel, inferProfileStudyLevel, meetingsConflict, studyLevelsMatch } from "./eligibility";
-import type { Course, Profile } from "./types";
+import { eligibilityStatusLabels, eligibilityStatusShortLabels, evaluateEligibility, formatCourseStudyLevelLabel, inferAudienceDepartment, inferAudienceGrade, inferCourseStudyLevel, inferProfileStudyLevel, meetingsConflict, studyLevelsMatch } from "./eligibility";
+import type { Course, EligibilityStatus, Profile } from "./types";
 
 const profile: Profile = { id: "current", division: "日間部", department: "資訊工程學系", grade: 2, admissionYear: 115, interests: "AI", preferredWeekdays: [], updatedAt: "now" };
 const course = { eligibility_rules: [{ kind: "minimum_grade", reason_code: "minimum_grade", message: "限三年級", source_field: "note", evidence: "三年級以上可選修", value: { grade: 3 } }] } as unknown as Course;
@@ -45,5 +45,36 @@ describe("eligibility", () => {
       [{ weekday: 1, sections: ["D1"], room: null, week_pattern: "A" }],
       [{ weekday: 1, sections: ["D1"], room: null, week_pattern: "A" }],
     ).conflict).toBe(true);
+  });
+});
+
+describe("eligibility status labels", () => {
+  const statuses: EligibilityStatus[] = ["no_known_restriction", "eligible_confirmed", "blocked_confirmed", "needs_confirmation"];
+
+  it("keeps the long course-card wording", () => {
+    expect(eligibilityStatusLabels).toEqual({
+      no_known_restriction: "尚未判定出明確限制",
+      eligible_confirmed: "條件已符合",
+      blocked_confirmed: "目前不可修",
+      needs_confirmation: "需要確認",
+    });
+  });
+
+  it("keeps the short schedule-slot wording", () => {
+    expect(eligibilityStatusShortLabels).toEqual({
+      no_known_restriction: "未見限制",
+      eligible_confirmed: "資格符合",
+      blocked_confirmed: "資格不符",
+      needs_confirmation: "資格待確認",
+    });
+  });
+
+  it("covers every status in both wordings, with no empty label", () => {
+    for (const status of statuses) {
+      expect(eligibilityStatusLabels[status]).toBeTruthy();
+      expect(eligibilityStatusShortLabels[status]).toBeTruthy();
+    }
+    expect(Object.keys(eligibilityStatusLabels).sort()).toEqual([...statuses].sort());
+    expect(Object.keys(eligibilityStatusShortLabels).sort()).toEqual([...statuses].sort());
   });
 });

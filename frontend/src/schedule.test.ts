@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { buildScheduleBlocks, compareSections, hasUnscheduledMeeting, SCHEDULE_SECTIONS, sortSections } from "./schedule";
+import {
+  buildScheduleBlocks,
+  compareSections,
+  formatMeetings,
+  hasUnscheduledMeeting,
+  parseManualSections,
+  SCHEDULE_SECTIONS,
+  sortSections,
+  unplacedBlock,
+  weekdayLabels,
+  weekPatternLabel,
+} from "./schedule";
 import type { Course, Meeting } from "./types";
 
 function scheduledCourse(id: string, meetings: Meeting[]): Course {
@@ -71,5 +82,109 @@ describe("schedule section ordering", () => {
   it("recognizes unknown weekdays and unsupported sections as unplaced", () => {
     expect(hasUnscheduledMeeting(scheduledCourse("unknown", [{ weekday: null, sections: ["D3"], room: null, week_pattern: null }]))).toBe(true);
     expect(hasUnscheduledMeeting(scheduledCourse("unsupported", [{ weekday: 1, sections: ["X1"], room: null, week_pattern: "A" }]))).toBe(true);
+  });
+});
+
+describe("weekPatternLabel", () => {
+  it("labels the alternating week markers case-insensitively", () => {
+    expect(weekPatternLabel("S")).toBe("單週");
+    expect(weekPatternLabel("s")).toBe("單週");
+    expect(weekPatternLabel("D")).toBe("雙週");
+    expect(weekPatternLabel("d")).toBe("雙週");
+  });
+
+  it("stays empty for every-week, unknown and missing patterns", () => {
+    expect(weekPatternLabel("A")).toBe("");
+    expect(weekPatternLabel("")).toBe("");
+    expect(weekPatternLabel(null)).toBe("");
+  });
+});
+
+describe("formatMeetings", () => {
+  it("reports an empty meeting list as undecided", () => {
+    expect(formatMeetings({ meetings: [] })).toBe("時間未定");
+  });
+
+  it("does not mislabel an unknown weekday as Monday", () => {
+    expect(formatMeetings({ meetings: [{ weekday: null, sections: ["D3"], room: null, week_pattern: null }] })).toBe("星期未定 D3");
+  });
+
+  it("names every weekday from its 1-based number", () => {
+    expect(weekdayLabels).toHaveLength(7);
+    expect(formatMeetings({ meetings: [{ weekday: 7, sections: ["D1"], room: null, week_pattern: null }] })).toBe("星期日 D1");
+    expect(formatMeetings({ meetings: [{ weekday: 8, sections: ["D1"], room: null, week_pattern: null }] })).toBe("星期未定 D1");
+  });
+
+  it("marks missing sections as undecided", () => {
+    expect(formatMeetings({ meetings: [{ weekday: 2, sections: [], room: null, week_pattern: null }] })).toBe("星期二 節次未定");
+  });
+
+  it("appends the room and the week pattern when they are known", () => {
+    expect(formatMeetings({ meetings: [{ weekday: 3, sections: ["D5", "D6"], room: "LM101", week_pattern: "S" }] }))
+      .toBe("星期三 D5、D6 LM101 · 單週");
+    expect(formatMeetings({ meetings: [{ weekday: 3, sections: ["D5"], room: null, week_pattern: "D" }] }))
+      .toBe("星期三 D5 雙週");
+    expect(formatMeetings({ meetings: [{ weekday: 3, sections: ["D5"], room: "LM101", week_pattern: "A" }] }))
+      .toBe("星期三 D5 LM101");
+  });
+
+  it("joins several meetings with a full-width semicolon", () => {
+    expect(formatMeetings({ meetings: [
+      { weekday: 1, sections: ["D1"], room: null, week_pattern: "A" },
+      { weekday: 4, sections: ["E1"], room: null, week_pattern: "A" },
+    ] })).toBe("星期一 D1；星期四 E1");
+  });
+});
+
+describe("parseManualSections", () => {
+  it("accepts the separators a student is likely to type", () => {
+    expect(parseManualSections("D5,D6")).toEqual(["D5", "D6"]);
+    expect(parseManualSections("D5 D6")).toEqual(["D5", "D6"]);
+    expect(parseManualSections("D5、D6")).toEqual(["D5", "D6"]);
+    expect(parseManualSections("D5，D6；D7;D8")).toEqual(["D5", "D6", "D7", "D8"]);
+  });
+
+  it("upper-cases lowercase input", () => {
+    expect(parseManualSections("d5,dn,e0")).toEqual(["D5", "DN", "E0"]);
+  });
+
+  it("drops duplicates while keeping first-seen order", () => {
+    expect(parseManualSections("D6,D5,d6")).toEqual(["D6", "D5"]);
+  });
+
+  it("drops anything outside D0-D8 / DN / E0-E4", () => {
+    expect(parseManualSections("D9,E5,X1,DD,D,5")).toEqual([]);
+    expect(parseManualSections("D5,D9,E4")).toEqual(["D5", "E4"]);
+  });
+
+  it("returns nothing for blank input", () => {
+    expect(parseManualSections("")).toEqual([]);
+    expect(parseManualSections("   ")).toEqual([]);
+  });
+});
+
+describe("unplacedBlock", () => {
+  it("builds a placeholder block that carries no real timetable position", () => {
+    expect(unplacedBlock({ course_id: "C1", name_zh: "無時間課程", teacher: "王老師" } as Course)).toEqual({
+      id: "unplaced-C1",
+      source: "course",
+      sourceId: "C1",
+      name: "無時間課程",
+      teacher: "王老師",
+      weekday: 1,
+      sections: [],
+      startSection: "D1",
+      endSection: "D1",
+      room: null,
+      weekPattern: null,
+      meetingIndex: 0,
+      lane: 0,
+      laneCount: 1,
+      conflict: false,
+    });
+  });
+
+  it("falls back to a placeholder teacher name", () => {
+    expect(unplacedBlock({ course_id: "C2", name_zh: "課", teacher: "" } as Course).teacher).toBe("教師未定");
   });
 });

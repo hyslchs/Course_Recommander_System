@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { formatMeetings, ScheduleWorkspace } from "./ScheduleWorkspace";
+import { ScheduleWorkspace } from "./ScheduleWorkspace";
 import type { Course, Meeting, Profile, SchedulePlan } from "./types";
 
 const apiMocks = vi.hoisted(() => ({ getCatalog: vi.fn(), getCourses: vi.fn(), getEmbeddingBundle: vi.fn() }));
@@ -126,11 +126,5 @@ describe("schedule workspace", () => {
     await waitFor(() => expect(dbMocks.putRecord).toHaveBeenCalledWith("schedulePlans", expect.objectContaining({
       entries: expect.arrayContaining([expect.objectContaining({ courseId: "candidate", locked: false })]),
     })));
-  });
-});
-
-describe("meeting formatting", () => {
-  it("does not mislabel an unknown weekday as Monday", () => {
-    expect(formatMeetings({ meetings: [{ weekday: null, sections: ["D3"], room: null, week_pattern: null }] })).toBe("星期未定 D3");
   });
 });

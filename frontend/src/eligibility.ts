@@ -8,6 +8,26 @@ export interface EligibilityResult {
   satisfied: EligibilityRule[];
 }
 
+/**
+ * The two wordings for the same status. They are deliberately different, not a
+ * duplication bug: the long form is the explanatory copy on course cards, the short
+ * form fits the dense status tag inside the schedule slot recommendation dialog.
+ * Keep both here so the wording pairs stay visible side by side and cannot drift apart.
+ */
+export const eligibilityStatusLabels: Record<EligibilityStatus, string> = {
+  no_known_restriction: "尚未判定出明確限制",
+  eligible_confirmed: "條件已符合",
+  blocked_confirmed: "目前不可修",
+  needs_confirmation: "需要確認",
+};
+
+export const eligibilityStatusShortLabels: Record<EligibilityStatus, string> = {
+  no_known_restriction: "未見限制",
+  eligible_confirmed: "資格符合",
+  blocked_confirmed: "資格不符",
+  needs_confirmation: "資格待確認",
+};
+
 const noPrerequisiteLabels = new Set([
   "",
   "無",

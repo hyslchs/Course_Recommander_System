@@ -1,5 +1,14 @@
 import type { Course, Meeting, ScheduleEntry, SchedulePlan } from "./types";
 
+/** Record id under which the shared active plan is persisted in the `recommendationPreferences` store. */
+export const ACTIVE_SCHEDULE_PREFERENCE_ID = "active-schedule-plan-v1";
+
+export interface ActiveSchedulePreference {
+  id: typeof ACTIVE_SCHEDULE_PREFERENCE_ID;
+  planId: string;
+  updatedAt: string;
+}
+
 /** Return the course as it is actually scheduled, including a manual time override. */
 export function courseForScheduleEntry(course: Course, entry: ScheduleEntry): Course {
   return entry.meetingsOverride ? { ...course, meetings: entry.meetingsOverride } : course;

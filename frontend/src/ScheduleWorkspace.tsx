@@ -2,51 +2,28 @@ import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, 
 import { Check, Lock, MapPin, Plus, Sparkle, Warning } from "@phosphor-icons/react";
 import { getAllRecords, putRecord } from "./db";
 import { getCatalog, getCourses, getEmbeddingBundle } from "./api";
-import { courseConflicts, meetingsConflict } from "./eligibility";
+import { courseConflicts, eligibilityStatusShortLabels, meetingsConflict } from "./eligibility";
 import {
   buildScheduleBlocks,
   CORE_SCHEDULE_SECTIONS,
   EXTENDED_SCHEDULE_SECTIONS,
+  formatMeetings,
   hasUnscheduledMeeting,
+  parseManualSections,
   SCHEDULE_SECTIONS,
   sectionGridSpan,
+  unplacedBlock,
+  weekdayLabels,
+  weekPatternLabel,
   type ScheduleBlock,
 } from "./schedule";
 import { coursesInPlan } from "./scheduleUtils";
 import { rankScheduleSlotCourses, type ScheduleSlotRecommendationResult } from "./scheduleRecommendation";
 import { recommendationCategoryLabels } from "./recommendation";
-import type { CompletedCourse, Course, FixedScheduleEntry, Meeting, Profile, RecommendationCategory, ScheduleEntry, SchedulePlan } from "./types";
+import type { CompletedCourse, Course, FixedScheduleEntry, Profile, RecommendationCategory, ScheduleEntry, SchedulePlan } from "./types";
 import { ConfirmDialog, Modal, useFeedback } from "./ui";
 
-const weekdays = ["一", "二", "三", "四", "五", "六", "日"];
 const scheduleRecommendationCategories = Object.keys(recommendationCategoryLabels) as RecommendationCategory[];
-
-function weekPatternLabel(pattern: string | null): string {
-  if (pattern?.toUpperCase() === "S") return "單週";
-  if (pattern?.toUpperCase() === "D") return "雙週";
-  return "";
-}
-
-export function formatMeetings(item: { meetings: Meeting[] }): string {
-  if (!item.meetings.length) return "時間未定";
-  return item.meetings.map((meeting) => {
-    const day = meeting.weekday && meeting.weekday >= 1 && meeting.weekday <= 7
-      ? `星期${weekdays[meeting.weekday - 1]}` : "星期未定";
-    const sections = meeting.sections.length ? meeting.sections.join("、") : "節次未定";
-    const details = [meeting.room, weekPatternLabel(meeting.week_pattern)].filter(Boolean).join(" · ");
-    return `${day} ${sections}${details ? ` ${details}` : ""}`;
-  }).join("；");
-}
-
-function parseManualSections(value: string): string[] {
-  return [...new Set(
-    value
-      .toUpperCase()
-      .split(/[,\s、，；;]+/)
-      .map((section) => section.trim())
-      .filter((section) => /^(?:D(?:N|[0-8])|E[0-4])$/.test(section)),
-  )];
-}
 
 function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: SchedulePlan }) {
   const [query, setQuery] = useState("");
@@ -126,7 +103,7 @@ function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: Schedul
     {selectedCourse && <>
       <p className="muted">課程資料時間：{formatMeetings(selectedCourse)}</p>
       <label className="check"><input type="checkbox" checked={customTimeActive} disabled={customTimeRequired} onChange={(event) => setUseCustomTime(event.target.checked)} />使用指定時間加入{customTimeRequired ? "（此課程沒有完整時間）" : ""}</label>
-      {customTimeActive && <div className="schedule-add-grid"><label>星期<select value={customWeekday} onChange={(event) => setCustomWeekday(Number(event.target.value))}>{weekdays.map((day, index) => <option key={index + 1} value={index + 1}>星期{day}</option>)}</select></label><label>節次<input value={customSections} onChange={(event) => setCustomSections(event.target.value)} placeholder="例如 D5,D6 或 DN" /></label></div>}
+      {customTimeActive && <div className="schedule-add-grid"><label>星期<select value={customWeekday} onChange={(event) => setCustomWeekday(Number(event.target.value))}>{weekdayLabels.map((day, index) => <option key={index + 1} value={index + 1}>星期{day}</option>)}</select></label><label>節次<input value={customSections} onChange={(event) => setCustomSections(event.target.value)} placeholder="例如 D5,D6 或 DN" /></label></div>}
     </>}
     {message && <p className={"notice " + (messageKind === "error" ? "danger" : "")} role={messageKind === "error" ? "alert" : "status"}>{message}</p>}
     <button className="primary" type="button" onClick={() => void addCourse()} disabled={!selectedCourse || adding} aria-busy={adding}>{adding ? "加入中…" : "加入「" + plan.name + "」"}</button>
@@ -166,15 +143,6 @@ interface LoadedSlotRecommendationData {
   dismissedIds: string[];
 }
 
-function eligibilityLabel(status: ScheduleSlotRecommendationResult["recommendations"][number]["eligibility"]): string {
-  return {
-    eligible_confirmed: "資格符合",
-    no_known_restriction: "未見限制",
-    needs_confirmation: "資格待確認",
-    blocked_confirmed: "資格不符",
-  }[status];
-}
-
 function SlotRecommendationDialog({
   slot,
   result,
@@ -200,7 +168,7 @@ function SlotRecommendationDialog({
   onToggleCategory: (category: RecommendationCategory) => void;
   onSelectAllCategories: () => void;
 }) {
-  const slotLabel = slot ? `星期${weekdays[slot.weekday - 1]} ${slot.section}` : "空白時段";
+  const slotLabel = slot ? `星期${weekdayLabels[slot.weekday - 1]} ${slot.section}` : "空白時段";
   return <Modal open={Boolean(slot)} title={`${slotLabel} 的課程推薦`} onClose={onClose} className="schedule-dialog slot-recommendation-dialog">
     <div className="slot-recommendation-intro">
       <span className="eyebrow"><Sparkle aria-hidden="true" />依目前課表推測</span>
@@ -229,7 +197,7 @@ function SlotRecommendationDialog({
         {result.recommendations.map((recommendation, index) => <article key={recommendation.course.course_id}>
           <div className="slot-recommendation-rank" aria-label={`推薦順位 ${index + 1}`}>{index + 1}</div>
           <div className="slot-recommendation-content">
-            <div className="slot-recommendation-heading"><div><h3>{recommendation.course.name_zh}</h3><p>{recommendation.course.name_en}</p></div><div className="slot-recommendation-tags"><span className={`category-tag ${recommendation.category}`}>{recommendationCategoryLabels[recommendation.category]}</span><span className={`status ${recommendation.eligibility}`}>{eligibilityLabel(recommendation.eligibility)}</span></div></div>
+            <div className="slot-recommendation-heading"><div><h3>{recommendation.course.name_zh}</h3><p>{recommendation.course.name_en}</p></div><div className="slot-recommendation-tags"><span className={`category-tag ${recommendation.category}`}>{recommendationCategoryLabels[recommendation.category]}</span><span className={`status ${recommendation.eligibility}`}>{eligibilityStatusShortLabels[recommendation.eligibility]}</span></div></div>
             <div className="slot-recommendation-meta"><span>{recommendation.course.credits === null ? "學分未定" : `${recommendation.course.credits} 學分`}</span><span>{recommendation.course.teacher || "教師未定"}</span><span>{recommendation.course.required_elective_name || "類別未定"}</span></div>
             <p className="meeting">{formatMeetings(recommendation.course)}</p>
             <ul className="reasons">{recommendation.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
@@ -240,10 +208,6 @@ function SlotRecommendationDialog({
       </div>}
     </>}
   </Modal>;
-}
-
-function unplacedBlock(course: Course): ScheduleBlock {
-  return { id: `unplaced-${course.course_id}`, source: "course", sourceId: course.course_id, name: course.name_zh, teacher: course.teacher || "教師未定", weekday: 1, sections: [], startSection: "D1", endSection: "D1", room: null, weekPattern: null, meetingIndex: 0, lane: 0, laneCount: 1, conflict: false };
 }
 
 export function ScheduleWorkspace({ catalog, plans, active, profile, selectPlan }: { catalog: Course[]; plans: SchedulePlan[]; active?: SchedulePlan; profile?: Profile; selectPlan: (planId: string) => Promise<void> }) {
@@ -504,16 +468,16 @@ export function ScheduleWorkspace({ catalog, plans, active, profile, selectPlan 
       <div className="schedule-summary"><strong>{courses.length} 門課</strong><span>{credits} 學分</span>{fixedEntries.length > 0 && <span>{fixedEntries.length} 個固定時段</span>}{conflictCount > 0 && <span className="schedule-conflict-summary"><Warning aria-hidden="true" />{conflictCount} 門課衝堂</span>}{unplacedCourses.length > 0 && <span>待安排 {unplacedCourses.length} 門</span>}</div>
       <div className="schedule-view-toolbar"><div><strong>點空白時段找適合的課</strong><span>系統會依目前課表推測興趣，並檢查課程的所有上課節次。</span></div><div className="segmented-control" role="group" aria-label="課表顯示範圍"><button className={viewMode === "auto" ? "active" : ""} aria-pressed={viewMode === "auto"} onClick={() => setViewMode("auto")}>智慧</button><button className={viewMode === "core" ? "active" : ""} aria-pressed={viewMode === "core"} onClick={() => setViewMode("core")}>核心時段{viewMode === "core" && hiddenSourceIds.size > 0 ? `（隱藏 ${hiddenSourceIds.size} 門）` : ""}</button><button className={viewMode === "full" ? "active" : ""} aria-pressed={viewMode === "full"} onClick={() => setViewMode("full")}>完整課表</button></div></div>
       {viewMode === "core" && hiddenSourceIds.size > 0 && <div className="notice schedule-hidden-notice">目前折疊範圍內有 {hiddenSourceIds.size} 門課。<button onClick={() => setViewMode("auto")}>顯示有課時段</button></div>}
-      <div className="mobile-day-picker"><label>查看星期<select value={mobileDay} onChange={(event) => setMobileDay(Number(event.target.value))}>{visibleDays.map((day) => <option value={day} key={day}>星期{weekdays[day - 1]}</option>)}</select></label></div>
-      <div className="timetable" aria-label={`${active.name}課表`}><div className="schedule-grid" style={gridStyle} role="grid"><div className="schedule-corner" role="columnheader">節次</div>{visibleDays.map((day, dayIndex) => <div className="schedule-day-header" role="columnheader" key={day} style={{ gridColumn: dayIndex + 2, gridRow: 1 }}>星期{weekdays[day - 1]}</div>)}{visibleSections.map((section, sectionIndex) => <div className={`schedule-section-label ${EXTENDED_SCHEDULE_SECTIONS.includes(section as typeof EXTENDED_SCHEDULE_SECTIONS[number]) ? "extended" : ""}`} role="rowheader" key={section} style={{ gridColumn: 1, gridRow: sectionIndex + 2 }}>{section}</div>)}{visibleSections.flatMap((section, sectionIndex) => visibleDays.map((day, dayIndex) => {
+      <div className="mobile-day-picker"><label>查看星期<select value={mobileDay} onChange={(event) => setMobileDay(Number(event.target.value))}>{visibleDays.map((day) => <option value={day} key={day}>星期{weekdayLabels[day - 1]}</option>)}</select></label></div>
+      <div className="timetable" aria-label={`${active.name}課表`}><div className="schedule-grid" style={gridStyle} role="grid"><div className="schedule-corner" role="columnheader">節次</div>{visibleDays.map((day, dayIndex) => <div className="schedule-day-header" role="columnheader" key={day} style={{ gridColumn: dayIndex + 2, gridRow: 1 }}>星期{weekdayLabels[day - 1]}</div>)}{visibleSections.map((section, sectionIndex) => <div className={`schedule-section-label ${EXTENDED_SCHEDULE_SECTIONS.includes(section as typeof EXTENDED_SCHEDULE_SECTIONS[number]) ? "extended" : ""}`} role="rowheader" key={section} style={{ gridColumn: 1, gridRow: sectionIndex + 2 }}>{section}</div>)}{visibleSections.flatMap((section, sectionIndex) => visibleDays.map((day, dayIndex) => {
         const key = `${day}-${section}`;
         const occupied = occupiedSlotKeys.has(key);
-        return <div className={`schedule-cell ${occupied ? "occupied" : ""}`} role="gridcell" aria-label={`星期${weekdays[day - 1]} ${section}`} key={key} style={{ gridColumn: dayIndex + 2, gridRow: sectionIndex + 2 }}>{!occupied && <button ref={(element) => { if (element) slotButtonRefs.current.set(key, element); else slotButtonRefs.current.delete(key); }} type="button" className="schedule-slot-button" tabIndex={resolvedActiveSlotKey === key ? 0 : -1} aria-label={`推薦星期${weekdays[day - 1]} ${section} 可以排入的課程`} onFocus={() => setActiveSlotKey(key)} onKeyDown={(event) => onSlotKeyDown(event, dayIndex, sectionIndex)} onClick={() => void loadSlotRecommendations({ weekday: day, section })}><Sparkle aria-hidden="true" /><span>找課</span></button>}</div>;
+        return <div className={`schedule-cell ${occupied ? "occupied" : ""}`} role="gridcell" aria-label={`星期${weekdayLabels[day - 1]} ${section}`} key={key} style={{ gridColumn: dayIndex + 2, gridRow: sectionIndex + 2 }}>{!occupied && <button ref={(element) => { if (element) slotButtonRefs.current.set(key, element); else slotButtonRefs.current.delete(key); }} type="button" className="schedule-slot-button" tabIndex={resolvedActiveSlotKey === key ? 0 : -1} aria-label={`推薦星期${weekdayLabels[day - 1]} ${section} 可以排入的課程`} onFocus={() => setActiveSlotKey(key)} onKeyDown={(event) => onSlotKeyDown(event, dayIndex, sectionIndex)} onClick={() => void loadSlotRecommendations({ weekday: day, section })}><Sparkle aria-hidden="true" /><span>找課</span></button>}</div>;
       }))}{blocks.map((block) => {
         const dayIndex = visibleDays.indexOf(block.weekday); const span = sectionGridSpan(block, visibleSections); if (dayIndex === -1 || !span) return null;
         const blockStyle = { gridColumn: dayIndex + 2, gridRow: `${span.start + 2} / span ${span.span}`, width: `calc(${100 / block.laneCount}% - 6px)`, marginLeft: `calc(${block.lane * 100 / block.laneCount}% + 3px)` } as CSSProperties;
-        return <button type="button" className={`class-block ${block.source === "fixed" ? "fixed" : ""} ${block.conflict ? "conflict" : ""}`} style={blockStyle} data-course-name={block.name} key={block.id} onClick={(event) => openDetails(block, event.currentTarget)} aria-label={`${block.name}，星期${weekdays[block.weekday - 1]} ${block.sections.join("到")}${block.conflict ? "，有衝堂" : ""}`}><strong>{block.name}</strong><small>{block.teacher}</small>{block.room && <small><MapPin aria-hidden="true" />{block.room}</small>}<span className="class-block-tags">{weekPatternLabel(block.weekPattern) && <em>{weekPatternLabel(block.weekPattern)}</em>}{block.conflict && <em className="conflict-tag"><Warning aria-hidden="true" />衝堂</em>}</span></button>;
-      })}</div><div className="mobile-schedule-list">{!mobileBlocks.length && <p className="muted">星期{weekdays[mobileDay - 1]}目前沒有課程。</p>}{mobileBlocks.map((block) => <button key={block.id} className={`mobile-schedule-block ${block.source === "fixed" ? "fixed" : ""} ${block.conflict ? "conflict" : ""}`} onClick={(event) => openDetails(block, event.currentTarget)}><span><strong>{block.sections.join("–")}　{block.name}</strong><small>{block.teacher}{block.room ? ` · ${block.room}` : ""}</small></span><span>{weekPatternLabel(block.weekPattern)}{block.conflict ? <Warning aria-label="有衝堂" /> : null}</span></button>)}<div className="mobile-open-slots"><strong>點空堂找課</strong><div>{mobileOpenSections.map((section) => <button type="button" key={section} onClick={() => void loadSlotRecommendations({ weekday: mobileDay, section })}><Sparkle aria-hidden="true" />{section}</button>)}</div></div></div></div>
+        return <button type="button" className={`class-block ${block.source === "fixed" ? "fixed" : ""} ${block.conflict ? "conflict" : ""}`} style={blockStyle} data-course-name={block.name} key={block.id} onClick={(event) => openDetails(block, event.currentTarget)} aria-label={`${block.name}，星期${weekdayLabels[block.weekday - 1]} ${block.sections.join("到")}${block.conflict ? "，有衝堂" : ""}`}><strong>{block.name}</strong><small>{block.teacher}</small>{block.room && <small><MapPin aria-hidden="true" />{block.room}</small>}<span className="class-block-tags">{weekPatternLabel(block.weekPattern) && <em>{weekPatternLabel(block.weekPattern)}</em>}{block.conflict && <em className="conflict-tag"><Warning aria-hidden="true" />衝堂</em>}</span></button>;
+      })}</div><div className="mobile-schedule-list">{!mobileBlocks.length && <p className="muted">星期{weekdayLabels[mobileDay - 1]}目前沒有課程。</p>}{mobileBlocks.map((block) => <button key={block.id} className={`mobile-schedule-block ${block.source === "fixed" ? "fixed" : ""} ${block.conflict ? "conflict" : ""}`} onClick={(event) => openDetails(block, event.currentTarget)}><span><strong>{block.sections.join("–")}　{block.name}</strong><small>{block.teacher}{block.room ? ` · ${block.room}` : ""}</small></span><span>{weekPatternLabel(block.weekPattern)}{block.conflict ? <Warning aria-label="有衝堂" /> : null}</span></button>)}<div className="mobile-open-slots"><strong>點空堂找課</strong><div>{mobileOpenSections.map((section) => <button type="button" key={section} onClick={() => void loadSlotRecommendations({ weekday: mobileDay, section })}><Sparkle aria-hidden="true" />{section}</button>)}</div></div></div></div>
       {unplacedCourses.length > 0 && <section className="unplaced-courses"><div><h2>時間未定／待安排</h2><p>這些課程不會被誤放進星期一；指定時間後才會出現在格狀課表。</p></div>{unplacedCourses.map((course) => <button key={course.course_id} onClick={(event) => openDetails(unplacedBlock(course), event.currentTarget)}><strong>{course.name_zh}</strong><span>{formatMeetings(course)}</span></button>)}</section>}
       {lastRemoved && <div className="undo-toast" role="status"><span>已從課表移除課程。</span><button onClick={() => void undoRemove()}>復原</button><button aria-label="關閉" onClick={() => setLastRemoved(undefined)}>×</button></div>}
       <div className="schedule-list">{fixedEntries.map((entry) => <div key={entry.id} className="fixed-schedule-entry"><span><strong>{entry.name}</strong><small>{formatMeetings(entry)} · {entry.teacher ?? "固定時段"}</small></span><span>固定時段</span></div>)}{courses.map((course) => { const entry = active.entries.find((item) => item.courseId === course.course_id)!; return <div key={course.course_id}><span><strong>{course.name_zh}{entry.meetingsOverride && <em className="manual-time-tag">手動時間</em>}</strong><small>{formatMeetings(course)}</small></span><button onClick={() => void toggleLock(course.course_id)}>{entry.locked ? <><Lock aria-hidden="true" />已鎖定</> : "鎖定"}</button><button onClick={() => void removeEntry(course.course_id)}>移除</button></div>; })}</div>

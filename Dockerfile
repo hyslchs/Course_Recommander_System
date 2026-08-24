@@ -4,6 +4,11 @@ COPY frontend/package.json frontend/pnpm-lock.yaml frontend/pnpm-workspace.yaml 
 RUN corepack enable && pnpm install --frozen-lockfile
 COPY frontend/ ./
 RUN pnpm run build
+# `build.sourcemap` is "hidden": no `sourceMappingURL` is emitted, so nothing in
+# the runtime image can consume these, but they are still 4.6 MB of the 16 MB
+# dist and the COPY below takes dist wholesale. Dropping them here keeps local
+# builds map-enabled for debugging while leaving them out of the image.
+RUN find dist -name '*.map' -delete
 
 FROM python:3.11-slim AS runtime
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 HF_HOME=/app/model-cache FJU_RECOMMENDER_ARTIFACTS_DIR=/app/data/artifacts/1151 FJU_FRONTEND_DIST=/app/frontend/dist

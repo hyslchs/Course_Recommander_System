@@ -18,7 +18,7 @@ import { useLocalRecords, useProfile } from "@/hooks/localData";
 import { CourseCard } from "@/components/CourseCard";
 import { EmptyState, LoadingSkeleton, StateAlert } from "@/components/ui";
 import { CourseTable, CourseTableSkeleton, type CourseRow } from "./CourseTable";
-import { useIsDesktop } from "./useIsDesktop";
+import { useIsDesktop } from "@/hooks/useIsDesktop";
 import type { CompletedCourse } from "@/domain/types";
 
 const PAGE_SIZE = 25;

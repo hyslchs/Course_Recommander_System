@@ -7,7 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ExplorePage, pageNumbers } from "./ExplorePage";
 import { sortCourseRows, type CourseRow } from "./CourseTable";
-import { DESKTOP_QUERY } from "./useIsDesktop";
+import { DESKTOP_QUERY } from "@/hooks/useIsDesktop";
 import { FeedbackProvider } from "@/components/ui";
 import { LocalDataProvider } from "@/hooks/localData";
 import { SchedulePlanProvider } from "@/hooks/useSchedulePlans";

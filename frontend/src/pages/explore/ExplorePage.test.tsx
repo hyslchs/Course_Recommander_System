@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ExplorePage, pageNumbers } from "./ExplorePage";
 import { sortCourseRows, type CourseRow } from "./CourseTable";
+import { CARD_LAYOUT_ANNOUNCEMENT, TABLE_LAYOUT_ANNOUNCEMENT } from "./useLayoutSwitchFocus";
 import { DESKTOP_QUERY } from "@/hooks/useIsDesktop";
 import { FeedbackProvider } from "@/components/ui";
 import { LocalDataProvider } from "@/hooks/localData";
@@ -75,18 +76,39 @@ const row = (overrides: Partial<Course>, status: CourseRow["status"] = "no_known
  * is the `<lg` (card) branch. Swapping in a stub that answers `true` for the one
  * query `useIsDesktop` asks is what drives the table branch — the same switch a
  * real 1024px viewport flips.
+ *
+ * Unlike the original stub this one is *live*: `matches` is a getter over a
+ * module-level flag and the change listeners are really registered, so
+ * `flipViewport` can move the breakpoint mid-test the way dragging a window edge
+ * — or enlarging the browser's default text size, since the query is `64rem` —
+ * moves it for a real user. A stub with a no-op `addEventListener` can only ever
+ * assert the two layouts in isolation, never the transition between them, and
+ * the transition is where the state and the focus were being lost.
  */
+let desktopMatches = false;
+const mediaListeners = new Set<() => void>();
+
 function setViewport(desktop: boolean) {
+  desktopMatches = desktop;
+  mediaListeners.clear();
   window.matchMedia = ((query: string) => ({
-    addEventListener: () => {},
+    addEventListener: (_type: string, listener: () => void) => {
+      if (query === DESKTOP_QUERY) mediaListeners.add(listener);
+    },
     addListener: () => {},
     dispatchEvent: () => false,
-    matches: desktop && query === DESKTOP_QUERY,
+    get matches() { return desktopMatches && query === DESKTOP_QUERY; },
     media: query,
     onchange: null,
-    removeEventListener: () => {},
+    removeEventListener: (_type: string, listener: () => void) => { mediaListeners.delete(listener); },
     removeListener: () => {},
   })) as unknown as typeof window.matchMedia;
+}
+
+/** Crosses the `lg` breakpoint on a rendered page and lets React settle. */
+async function flipViewport(desktop: boolean) {
+  desktopMatches = desktop;
+  await act(async () => { for (const listener of [...mediaListeners]) listener(); });
 }
 
 function renderPage() {
@@ -141,8 +163,12 @@ describe("ExplorePage — layout switches at lg", () => {
 
     expect(await screen.findByRole("heading", { level: 2, name: "機器學習概論" })).toBeInTheDocument();
     expect(screen.queryByRole("grid")).not.toBeInTheDocument();
-    // The card's own action, which the table deliberately does not carry.
+    // The card's own action. FIX53: the table now carries this too, in its 操作
+    // column — the previous version of this assertion said it deliberately did
+    // not, which was the gap FIX53 closed, not a property worth pinning.
     expect(screen.getByRole("button", { name: /加入/ })).toBeInTheDocument();
+    // ...and there is no table column to be found at this width.
+    expect(screen.queryByRole("columnheader", { name: "操作" })).not.toBeInTheDocument();
   });
 
   it("renders the sortable table, not cards, at lg and above", async () => {
@@ -151,8 +177,8 @@ describe("ExplorePage — layout switches at lg", () => {
     renderPage();
 
     const table = await screen.findByRole("grid", { name: "課程查詢結果" });
-    // Every one of the seven comparison axes plan T34 names.
-    for (const label of ["課號", "課名", "教師", "時間", "學分", "系所", "資格"]) {
+    // Every one of the seven comparison axes plan T34 names, plus FIX53's 操作.
+    for (const label of ["課號", "課名", "教師", "時間", "學分", "系所", "資格", "操作"]) {
       expect(within(table).getByRole("columnheader", { name: new RegExp(label) })).toBeInTheDocument();
     }
     expect(screen.queryByRole("heading", { level: 2, name: "機器學習概論" })).not.toBeInTheDocument();
@@ -178,7 +204,7 @@ describe("ExplorePage — layout switches at lg", () => {
     // and `aria-hidden`, so eight rows of bones are not read out.
     const bones = status.querySelector("table");
     expect(bones).toHaveAttribute("aria-hidden", "true");
-    expect(bones?.querySelectorAll("thead th")).toHaveLength(7);
+    expect(bones?.querySelectorAll("thead th")).toHaveLength(8);
     expect(bones?.querySelectorAll("tbody tr")).toHaveLength(8);
     // Not focusable, which is what makes hiding it from the a11y tree legitimate.
     expect(status.querySelectorAll("[tabindex]")).toHaveLength(0);
@@ -263,6 +289,199 @@ describe("ExplorePage — sorting", () => {
 
     await screen.findByRole("grid", { name: "課程查詢結果" });
     expect(screen.getByText(/排序套用於目前這一頁的 1 筆結果/)).toBeInTheDocument();
+  });
+});
+
+/**
+ * FIX53 work item A. Seven read-only columns meant a desktop student could
+ * compare the whole catalogue and act on none of it, because every action lived
+ * on a `CourseCard` that is not mounted at `lg`.
+ */
+describe("ExplorePage — the table's 操作 column", () => {
+  const tableAt = () => screen.findByRole("grid", { name: "課程查詢結果" });
+
+  it("offers the card's two course actions on every row, named after the course", async () => {
+    setViewport(true);
+    respondWith([course(), course({ course_id: "CS102", name_zh: "資料結構" })]);
+    renderPage();
+
+    const table = await tableAt();
+    // Icon-only controls, so the name has to come from `aria-label` — and it
+    // names the row, because focus moving cell to cell re-announces neither.
+    expect(within(table).getByRole("button", { name: "將機器學習概論加入我的課表" })).toBeInTheDocument();
+    expect(within(table).getByRole("button", { name: "收藏機器學習概論" })).toBeInTheDocument();
+    expect(within(table).getByRole("button", { name: "將資料結構加入我的課表" })).toBeInTheDocument();
+    expect(within(table).getByRole("button", { name: "收藏資料結構" })).toBeInTheDocument();
+  });
+
+  it("writes the course into the schedule plan when 加入 is pressed", async () => {
+    const user = userEvent.setup();
+    setViewport(true);
+    respondWith([course()]);
+    renderPage();
+
+    const table = await tableAt();
+    await user.click(within(table).getByRole("button", { name: "將機器學習概論加入我的課表" }));
+
+    // The whole point of the column: a real mutation of the real store, through
+    // the same `putRecord("schedulePlans", …)` shape the card writes.
+    await waitFor(() => expect(dbMocks.putRecord).toHaveBeenCalledWith(
+      "schedulePlans",
+      expect.objectContaining({ entries: [{ courseId: "CS101", locked: false }], name: "我的課表" }),
+    ));
+  });
+
+  it("writes a favourite, and flips the toggle's name once it is one", async () => {
+    const user = userEvent.setup();
+    setViewport(true);
+    respondWith([course()]);
+    renderPage();
+
+    const table = await tableAt();
+    const heart = within(table).getByRole("button", { name: "收藏機器學習概論" });
+    expect(heart).toHaveAttribute("aria-pressed", "false");
+    await user.click(heart);
+
+    await waitFor(() => expect(dbMocks.putRecord).toHaveBeenCalledWith(
+      "favorites",
+      expect.objectContaining({ id: "CS101" }),
+    ));
+
+    // The store is mocked, so mirror what a real write would broadcast and check
+    // the row reads back as favourited rather than silently staying "收藏".
+    dbMocks.getAllRecords.mockImplementation(async (store: string) => (
+      store === "favorites" ? [{ id: "CS101", addedAt: "2026-01-01T00:00:00.000Z" }] : []
+    ));
+    await act(async () => { window.dispatchEvent(new CustomEvent("fju-local-data", { detail: "favorites" })); });
+    await waitFor(() => expect(
+      within(screen.getByRole("grid")).getByRole("button", { name: "取消收藏機器學習概論" }),
+    ).toHaveAttribute("aria-pressed", "true"));
+  });
+
+  it("leaves 操作 unsortable while the other seven columns stay sortable", async () => {
+    const user = userEvent.setup();
+    setViewport(true);
+    respondWith([
+      course({ course_id: "b", name_zh: "乙課", credits: 1 }),
+      course({ course_id: "a", name_zh: "甲課", credits: 3 }),
+    ]);
+    renderPage();
+
+    const table = await tableAt();
+    const actions = within(table).getByRole("columnheader", { name: "操作" });
+    const credits = within(table).getByRole("columnheader", { name: /學分/ });
+    // React Aria only puts `aria-sort` on columns that `allowsSorting`.
+    expect(credits).toHaveAttribute("aria-sort");
+    expect(actions).not.toHaveAttribute("aria-sort");
+
+    // And activating it is inert — there is no ordering of two buttons.
+    const names = () => within(screen.getByRole("grid")).getAllByRole("rowheader").map((cell) => cell.textContent ?? "");
+    const before = names();
+    await user.click(actions);
+    expect(names()).toEqual(before);
+  });
+});
+
+/**
+ * FIX53 work item B. `CourseTable` used to own `sortDescriptor`, and
+ * `ExplorePage` unmounts `CourseTable` below `lg` — so the order a student chose
+ * vanished on any trip across the breakpoint, including one caused by nothing
+ * more than a browser text-size change.
+ */
+describe("ExplorePage — crossing the lg breakpoint", () => {
+  const rowNames = () => within(screen.getByRole("grid")).getAllByRole("rowheader").map((cell) => cell.textContent ?? "");
+
+  async function renderSortedDescending() {
+    const user = userEvent.setup();
+    setViewport(true);
+    respondWith([
+      course({ course_id: "b", name_zh: "乙課", credits: 1 }),
+      course({ course_id: "a", name_zh: "甲課", credits: 3 }),
+    ]);
+    renderPage();
+
+    const table = await screen.findByRole("grid", { name: "課程查詢結果" });
+    expect(rowNames()[0]).toContain("乙課");
+    await user.click(within(table).getByRole("columnheader", { name: /學分/ }));
+    await user.click(within(table).getByRole("columnheader", { name: /學分/ }));
+    await waitFor(() => expect(rowNames()[0]).toContain("甲課"));
+  }
+
+  it("keeps the chosen sort when the layout drops to cards and comes back", async () => {
+    await renderSortedDescending();
+
+    await flipViewport(false);
+    await waitFor(() => expect(screen.queryByRole("grid")).not.toBeInTheDocument());
+    expect(screen.getByRole("heading", { level: 2, name: "甲課" })).toBeInTheDocument();
+
+    await flipViewport(true);
+    const table = await screen.findByRole("grid", { name: "課程查詢結果" });
+    // Both halves matter: the rows are still in the chosen order, and the header
+    // still says so — a sort the table applies but cannot report is its own bug.
+    expect(rowNames()[0]).toContain("甲課");
+    expect(within(table).getByRole("columnheader", { name: /學分/ })).toHaveAttribute("aria-sort", "descending");
+  });
+
+  it("hands focus to the results region and announces the new layout", async () => {
+    setViewport(true);
+    respondWith([course()]);
+    renderPage();
+
+    const table = await screen.findByRole("grid", { name: "課程查詢結果" });
+    const link = within(table).getByRole("link", { name: "機器學習概論" });
+    await act(async () => { link.focus(); });
+    expect(document.activeElement).toBe(link);
+
+    await flipViewport(false);
+
+    // Without the handoff `activeElement` is `<body>` here and the next Tab
+    // restarts at the top of the document with nothing said about why.
+    const region = screen.getByRole("region", { name: "課程結果" });
+    expect(document.activeElement).toBe(region);
+    expect(screen.getByText(CARD_LAYOUT_ANNOUNCEMENT)).toBeInTheDocument();
+
+    await flipViewport(true);
+    expect(screen.getByText(TABLE_LAYOUT_ANNOUNCEMENT)).toBeInTheDocument();
+  });
+
+  /**
+   * Regression from the headless-Chrome run of this change: Chrome dispatches no
+   * focus events while `document.hasFocus()` is false, so a gate that waits for
+   * a `focusin` before it will act is disarmed for the whole session whenever the
+   * window is in the background — which is exactly the OS-driven resize this
+   * feature exists for. "No evidence" must therefore mean "go ahead", not "stop".
+   */
+  it("still hands focus over when no focus event was ever observed", async () => {
+    setViewport(true);
+    respondWith([course()]);
+    renderPage();
+
+    await screen.findByRole("grid", { name: "課程查詢結果" });
+    // Nothing has been focused, so nothing has been recorded.
+    expect(document.activeElement).toBe(document.body);
+
+    await flipViewport(false);
+    expect(document.activeElement).toBe(screen.getByRole("region", { name: "課程結果" }));
+  });
+
+  it("does not steal focus that was never in the results, and says nothing on first paint", async () => {
+    setViewport(true);
+    respondWith([course()]);
+    renderPage();
+
+    await screen.findByRole("grid", { name: "課程查詢結果" });
+    // Nothing announced merely for having rendered a layout.
+    expect(screen.queryByText(CARD_LAYOUT_ANNOUNCEMENT)).not.toBeInTheDocument();
+    expect(screen.queryByText(TABLE_LAYOUT_ANNOUNCEMENT)).not.toBeInTheDocument();
+
+    const search = screen.getByRole("searchbox", { name: "搜尋課程" });
+    await act(async () => { search.focus(); });
+    await flipViewport(false);
+
+    // The switch is still announced, but a caret mid-word is not yanked out of
+    // the search field to a region the user was not in.
+    expect(document.activeElement).toBe(search);
+    expect(screen.getByText(CARD_LAYOUT_ANNOUNCEMENT)).toBeInTheDocument();
   });
 });
 

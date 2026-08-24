@@ -1,6 +1,7 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Skeleton, Table, type SortDescriptor } from "@heroui/react";
 import { EligibilityChip } from "@/components/CourseCard";
+import { CourseRowActions } from "./CourseRowActions";
 import { inferAudienceDepartment } from "@/domain/eligibility";
 import { formatMeetings, SCHEDULE_SECTIONS } from "@/domain/schedule";
 import type { Course, EligibilityStatus } from "@/domain/types";
@@ -11,14 +12,23 @@ export interface CourseRow {
   status: EligibilityStatus;
 }
 
+/** The sortable columns. `actions` is deliberately not one of them. */
 export type CourseColumnId =
   | "ava_no" | "name_zh" | "teacher" | "meeting" | "credits" | "department" | "eligibility";
 
 interface ColumnSpec {
-  id: CourseColumnId;
+  id: CourseColumnId | "actions";
   label: string;
   /** Width and alignment. Widths are caps, not floors — the table still shrinks. */
   className: string;
+  /**
+   * `false` only for 操作. A sortable header is a control that promises an
+   * ordering, and there is no ordering of two buttons — React Aria would still
+   * hand it a `role="button"`, Enter, and an `aria-sort` slot, all of which
+   * would do nothing. `sortCourseRows` therefore never sees this id, which is
+   * also why `CourseColumnId` stays narrow enough to index `Course`.
+   */
+  sortable: boolean;
 }
 
 /**
@@ -34,13 +44,23 @@ interface ColumnSpec {
  * them aligned if T41 ever does ship Inter. See the T41 note in the report.
  */
 export const courseTableColumns: ColumnSpec[] = [
-  { id: "ava_no", label: "課號", className: "w-28 tabular-nums" },
-  { id: "name_zh", label: "課名", className: "min-w-52" },
-  { id: "teacher", label: "教師", className: "w-28" },
-  { id: "meeting", label: "時間", className: "w-56" },
-  { id: "credits", label: "學分", className: "w-20 text-end tabular-nums" },
-  { id: "department", label: "系所", className: "w-44" },
-  { id: "eligibility", label: "資格", className: "w-36" },
+  { id: "ava_no", label: "課號", className: "w-28 tabular-nums", sortable: true },
+  { id: "name_zh", label: "課名", className: "min-w-52", sortable: true },
+  { id: "teacher", label: "教師", className: "w-28", sortable: true },
+  { id: "meeting", label: "時間", className: "w-56", sortable: true },
+  { id: "credits", label: "學分", className: "w-20 text-end tabular-nums", sortable: true },
+  { id: "department", label: "系所", className: "w-44", sortable: true },
+  { id: "eligibility", label: "資格", className: "w-36", sortable: true },
+  /*
+    The eighth column, and the one the seven above made necessary. At `lg` the
+    table replaced the card grid outright, so a desktop student could compare
+    twenty-five courses and then act on none of them — every action lived on a
+    `CourseCard` that is not mounted at this width. 操作 is a visible header, not
+    an `aria-label` on an empty `<th>`: its cells are icons, so the column needs
+    a name in the a11y tree, and sighted users need to know what the two glyphs
+    at the end of every row are for before they hover one.
+  */
+  { id: "actions", label: "操作", className: "w-28", sortable: false },
 ];
 
 const SECTION_ORDER = new Map<string, number>(SCHEDULE_SECTIONS.map((section, index) => [section, index]));
@@ -156,8 +176,23 @@ const CELL_CLASS = "text-[0.9375rem]";
  */
 const TABLE_MIN_WIDTH = "min-w-[55rem]";
 
-export function CourseTable({ rows }: { rows: CourseRow[] }) {
-  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>();
+export interface CourseTableProps {
+  rows: CourseRow[];
+  /**
+   * Controlled, and that is the fix, not a preference.
+   *
+   * This component used to own the descriptor in `useState`. `ExplorePage`
+   * unmounts the whole table below `lg`, so the state went with it: sort by
+   * 學分, narrow the window (or just enlarge the browser's default text size —
+   * the breakpoint is `64rem`, so a text-size change alone crosses it), widen
+   * again, and the table came back in server order with no indication anything
+   * had been dropped. The page outlives the breakpoint, so the page holds it.
+   */
+  sortDescriptor: SortDescriptor | undefined;
+  onSortChange: (descriptor: SortDescriptor) => void;
+}
+
+export function CourseTable({ rows, sortDescriptor, onSortChange }: CourseTableProps) {
   const sorted = useMemo(() => sortCourseRows(rows, sortDescriptor), [rows, sortDescriptor]);
   return (
     <Table>
@@ -166,22 +201,24 @@ export function CourseTable({ rows }: { rows: CourseRow[] }) {
           aria-label="課程查詢結果"
           className={TABLE_MIN_WIDTH}
           sortDescriptor={sortDescriptor}
-          onSortChange={setSortDescriptor}
+          onSortChange={onSortChange}
         >
           <Table.Header>
             {courseTableColumns.map((column) => (
               <Table.Column
-                allowsSorting
+                allowsSorting={column.sortable}
                 className={`${HEADER_CLASS} ${column.className}`}
                 id={column.id}
                 isRowHeader={column.id === "name_zh"}
                 key={column.id}
               >
-                {({ sortDirection }) => (
-                  <Table.SortableColumnHeader sortDirection={sortDirection}>
-                    {column.label}
-                  </Table.SortableColumnHeader>
-                )}
+                {({ sortDirection }) => (column.sortable
+                  ? (
+                    <Table.SortableColumnHeader sortDirection={sortDirection}>
+                      {column.label}
+                    </Table.SortableColumnHeader>
+                  )
+                  : column.label)}
               </Table.Column>
             ))}
           </Table.Header>
@@ -217,6 +254,9 @@ export function CourseTable({ rows }: { rows: CourseRow[] }) {
                 <Table.Cell className={CELL_CLASS}>{courseDepartmentLabel(course)}</Table.Cell>
                 <Table.Cell className={CELL_CLASS}>
                   <EligibilityChip labels="short" status={status} />
+                </Table.Cell>
+                <Table.Cell className={CELL_CLASS}>
+                  <CourseRowActions course={course} />
                 </Table.Cell>
               </Table.Row>
             ))}

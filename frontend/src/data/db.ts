@@ -1,7 +1,12 @@
 import type { CompletedCourse, Profile, SchedulePlan } from "@/domain/types";
 
 export const DB_NAME = "fju-course-recommender";
-export const DB_VERSION = 1;
+/**
+ * Bumped to 2 by T40 to add the `preferences` store. `onupgradeneeded` only
+ * creates the stores that are missing, so an existing v1 database gains the new
+ * store and keeps every row in the other six.
+ */
+export const DB_VERSION = 2;
 export const STORE_NAMES = [
   "profile",
   "completedCourses",
@@ -10,6 +15,7 @@ export const STORE_NAMES = [
   "schedulePlans",
   "recommendationPreferences",
   "catalogCache",
+  "preferences",
 ] as const;
 export type StoreName = (typeof STORE_NAMES)[number];
 
@@ -121,10 +127,21 @@ export async function deleteRecord(store: StoreName, id: string): Promise<void> 
   notifyLocalDataChanged(store);
 }
 
+/**
+ * Stores that "清除本機資料" leaves alone.
+ *
+ * `catalogCache` is a re-fetchable server artifact, not the user's data.
+ * `preferences` holds display settings (currently the theme, T40): wiping course
+ * data should not also repaint the whole UI, which reads as a bug rather than as
+ * the reset the button promised. Neither is part of `BackupV1` for the same
+ * reason — a backup restores what the student typed, not how it was rendered.
+ */
+const NON_PERSONAL_STORES: readonly StoreName[] = ["catalogCache", "preferences"];
+
 export async function clearPersonalData(): Promise<void> {
   const db = await openDatabase();
   await Promise.all(
-    STORE_NAMES.filter((name) => name !== "catalogCache").map(
+    STORE_NAMES.filter((name) => !NON_PERSONAL_STORES.includes(name)).map(
       (name) =>
         new Promise<void>((resolve, reject) => {
           const transaction = db.transaction(name, "readwrite");

@@ -17,6 +17,7 @@ import { filterDepartmentOptions, type DepartmentOption } from "@/domain/departm
 import { weekdayLabels } from "@/domain/schedule";
 import { useLocalRecords, useProfile } from "@/hooks/localData";
 import { CourseCard } from "@/components/CourseCard";
+import { NumberTicker } from "@/components/motion/NumberTicker";
 import { EmptyState, LoadingSkeleton, StateAlert } from "@/components/ui";
 import { CourseTable, CourseTableSkeleton, type CourseRow } from "./CourseTable";
 import { useLayoutSwitchFocus } from "./useLayoutSwitchFocus";
@@ -185,7 +186,10 @@ export function ExplorePage() {
           <p className="text-[0.9375rem] font-semibold text-muted">探索全部課程</p>
           <h1>課程資料庫</h1>
         </div>
-        <strong>{total.toLocaleString()} 門結果</strong>
+        {/* One of the two places §4.6 allows a ticker: a total that settles
+            after a fetch, not a live filter count that would re-run on every
+            keystroke. */}
+        <strong><NumberTicker value={total} /> 門結果</strong>
       </div>
 
       {/*

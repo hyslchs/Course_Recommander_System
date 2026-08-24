@@ -1,11 +1,22 @@
 /*
  * FJU typography tokens (plan §4.4)
  *
- * Latin-first is deliberate: browsers resolve font-family per codepoint, so
- * Inter takes the alphanumerics and punctuation (real tabular figures) while
- * every CJK codepoint falls through to Noto Sans TC. Noto Sans TC (not SC/HK)
- * because it uses the Taiwanese Ministry of Education standard glyph skeleton
- * — the shapes students already see in textbooks and university systems.
+ * ONE font, Noto Sans TC (not SC/HK): it uses the Taiwanese Ministry of
+ * Education standard glyph skeleton — the shapes students already see in
+ * textbooks and university systems — and its own Latin is a Source Sans
+ * derivative, so it sets the whole UI without a second family.
+ *
+ * INTER IS GONE (T41b). T11 planned a Latin-first stack with Inter in front
+ * for "real tabular figures". Three measurements killed it: `--font-sans`
+ * resolved to the empty string so nothing ever consumed the token; Inter was
+ * never installed, and a probe set in "Inter var","Inter" measured exactly the
+ * same width as a nonexistent family; and the justification is wrong at the
+ * binary level — all ten of Noto Sans TC's digits are 555/1000 em already, and
+ * the shipped Latin GSUB has no `tnum` feature for `tabular-nums` to enable.
+ *
+ * The three tiers below are one typeface, split for transfer only — see
+ * ./fonts.css. They are listed in tier order because that fallback chain IS
+ * the subsetting mechanism.
  *
  * CJK hard rules encoded here (§4.4):
  *   1. letter-spacing 0 everywhere. Negative tracking collides Han strokes.
@@ -18,20 +29,15 @@
  *      CJK still wraps freely but English course titles are not sliced.
  *   6. font-synthesis: none is kept.
  *
- * Noto Sans TC IS now self-hosted — see ./fonts.css. Still no CDN.
- *
- * This file defines tokens only. Nothing consumes them yet, by design: T11
- * must not change the rendered output.
+ * The faces are self-hosted — see ./fonts.css. Still no CDN.
  */
 
 @layer base {
   :root {
-    /* Font stacks */
-    --font-latin: "Inter var", "Inter", ui-sans-serif, system-ui, sans-serif;
-    --font-cjk:
-      "Noto Sans TC", "PingFang TC", "Microsoft JhengHei UI", "Noto Sans CJK TC", "Heiti TC",
-      sans-serif;
-    --font-mono-latin: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+    /* The stacks themselves are declared in styles.css's `@theme` block, which
+       is the only place Tailwind will both emit `--font-sans` into :root AND
+       point the `font-sans` utility at it. Declaring them here as well would
+       give two sources of truth for one token. */
 
     /* Weights — 400/500/600/700 only (rule 2) */
     --font-weight-normal: 400;
@@ -47,20 +53,3 @@
   }
 }
 
-/*
- * Self-hosting status — RESOLVED by T12, see ./fonts.css.
- *
- * T11 left this deferred because styles.css already declares
- * `font-family: "Noto Sans TC"` at :root, so adding @font-face would
- * immediately repaint every Han glyph — a visual change T11 was forbidden to
- * make. T12 owns that repaint: @fontsource/noto-sans-tc@5.3.0 (OFL-1.1) is a
- * plain npm dependency, weights 400/500/600/700, unicode-range-sliced,
- * font-display: swap. Still no CDN — a local-first app must not depend on one.
- *
- * STILL OPEN: `--font-latin` above names "Inter var"/"Inter", which is not
- * self-hosted and not installed. Latin therefore renders in Noto Sans TC's
- * own Latin (the :root stack in styles.css puts Noto Sans TC first, so
- * --font-latin is not consumed yet anyway). Whoever wires --font-sans into
- * the cascade owns adding @fontsource-variable/inter or dropping Inter from
- * the token.
- */

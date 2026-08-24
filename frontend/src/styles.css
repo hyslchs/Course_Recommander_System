@@ -614,25 +614,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    gives them and the shim itself stays untouched. */
 .fieldset[data-slot="fieldset"]{border:0;padding:0;margin:0;min-inline-size:0}
 
-/* Legacy `button{background:#fff;border:1px solid var(--line);border-radius:10px;
-   padding:.68rem 1rem;color:var(--ink)}` repainted HeroUI's primary CTA as a
-   white outline button — measured, `background-color: rgb(255,255,255)` on an
-   element carrying `.button--primary`. Scoped to this page rather than repaired
-   globally because the other page migrations are in flight on their own
-   branches, and a bare `.button` rule here would silently restyle them
-   mid-review. The same repair is needed app-wide; T41 removes the cause. */
-[data-page="onboarding"] .button[data-slot="button"]{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;font-weight:revert-layer}
-
-/* Same shadowing, different victim: legacy
-   `input,select,textarea{border:1px solid #cdd5ce;border-radius:9px;background:#fff;
-   padding:.78rem .85rem;color:var(--ink);width:100%}` pins every field to a white
-   box with near-black text. In light mode that merely ignores --field-*; in DARK
-   mode it leaves white fields sitting inside the dark card — measured on
-   [data-theme="fju-dark"]: input background rgb(255,255,255), colour
-   rgb(24,34,29), while --field-background resolves to oklch(24.4% .0113 260.7).
-   Reverting by layer hands the fields back to HeroUI's `.input` /
-   `.select__trigger`, which read the theme tokens and so track both schemes. */
-[data-page="onboarding"] .input[data-slot="input"],[data-page="onboarding"] .select__trigger{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;width:revert-layer}
+/* The button and input/select repairs this block used to carry are now in the
+   single global `HEROUI CONTROL REPAIR` rule at the end of this file (FIX50). */
 
 /* === T33 recommend page — begin ============================================
    One contiguous appended block; nothing above is reformatted (plan R4).
@@ -694,30 +677,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    specificity, so source order is what decides and `display:flex` would
    otherwise win at every width. Measured at 1024px before the move. */
 @media (min-width:1024px){.recommend-filter-launcher{display:none}}
-/* Reset the unlayered legacy `button{...}` so HeroUI's own variants win. Same
-   `revert-layer` shape T32 used for the onboarding CTA; T41 removes the cause.
-   Wider than T32's single selector because this page is built out of five more
-   button-backed HeroUI parts, and the legacy rule repainted every one of them:
-   measured, a *selected* weekday ToggleButton and an unselected one both came
-   back `rgb(255,255,255)` with the same `1px solid rgb(135,149,139)` border —
-   i.e. multi-select state was invisible, not merely off-palette.
-   The `.recommend-filter-sheet` half is not redundant: `Drawer` portals to
-   `<body>`, outside `[data-page="recommend"]`. */
-[data-page="recommend"] .button[data-slot="button"],
-[data-page="recommend"] .toggle-button[data-slot="toggle-button"],
-[data-page="recommend"] .accordion__trigger,
-[data-page="recommend"] .disclosure__trigger,
-[data-page="recommend"] .close-button,
-.recommend-filter-sheet .button[data-slot="button"],
-.recommend-filter-sheet .toggle-button[data-slot="toggle-button"],
-.recommend-filter-sheet .accordion__trigger,
-.recommend-filter-sheet .disclosure__trigger,
-.recommend-filter-sheet .close-button,
-.recommend-filter-sheet .drawer__close-trigger{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;font-weight:revert-layer}
-/* Legacy `input,select,textarea{border;border-radius;background:#fff;padding;
-   color;width}` pins the query box to a white field with near-black text —
-   invisible-in-dark exactly as T32 measured for the onboarding inputs. */
-[data-page="recommend"] .textarea{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;width:revert-layer}
+/* The button / toggle-button / accordion / disclosure / close-button /
+   drawer-close and textarea repairs this block used to carry — including the
+   duplicated `.recommend-filter-sheet` half that existed only because `Drawer`
+   portals to `<body>` — are now in the single global `HEROUI CONTROL REPAIR`
+   rule at the end of this file (FIX50), which is portal-proof by construction. */
 
 /* --- Applied filters. Always on the page, never only in the sheet. ------- */
 /* Column, not a row: at 375px a row left the TagGroup 216px of the 343px
@@ -728,12 +692,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .recommend-page .tag-group__list{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;min-width:0}
 /* §4.4-4: no content text below 15px. HeroUI's `.tag` is text-xs (14px) and
    the chip wording is content, not chrome. §5.3: the *remove button* is the
-   tap target, so it carries the 44px floor and the tag follows it. */
+   tap target, so it carries the 44px floor (now applied globally, see FIX50 at
+   the end of this file) and the tag follows it. */
 .recommend-page .tag{flex:0 1 auto;max-width:100%;min-height:2.75rem;padding-inline-end:.25rem;font-size:.9375rem;overflow-wrap:break-word;line-break:strict;word-break:normal;white-space:normal}
-.recommend-page .tag__remove-button{width:2.75rem;height:2.75rem;flex:none;padding:0}
-/* The glyph is not the target: without this the icon inherits the 44px box and
-   the chip reads as a giant X. */
-.recommend-page .tag__remove-button svg{width:1rem;height:1rem}
 .recommend-page .applied-filters>.button{align-self:flex-start}
 .applied-filter-note{color:var(--muted);font-size:.9375rem}
 
@@ -784,17 +745,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    migrations are in flight on their own branches and a bare `.button` /
    `.toggle-button` rule here would silently restyle them mid-review. */
 
-/* Same shadowing T30/T32 already documented: legacy
-   `button{background:#fff;border:1px solid var(--line);border-radius:10px;
-   padding:.68rem 1rem;color:var(--ink)}` is unlayered, so it beats every HeroUI
-   `components`-layer rule regardless of specificity. On a ToggleButtonGroup that
-   is not cosmetic — it repaints the *selected* segment white, which erases the
-   only visual difference between selected and unselected and leaves the control
-   conveying its state through nothing at all. `.segmented-control button` (from
-   the legacy sheet) compounds it with `background:transparent`, hence the page
-   scope here, which outranks both. `revert-layer` rather than fixed values rolls
-   each property back to HeroUI's own rule instead of guessing at one. */
-[data-page="schedule"] .button,[data-page="schedule"] .toggle-button,[data-page="schedule"] .tabs__tab{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;font-weight:revert-layer}
+/* The button / toggle-button / tabs__tab repair this block used to carry — the
+   one that restored the *selected* ToggleButtonGroup segment against both the
+   legacy `button{...}` rule and `.segmented-control button{background:transparent}`
+   — is now in the single global `HEROUI CONTROL REPAIR` rule at the end of this
+   file (FIX50). It keeps the same (0,2,0) specificity, so it still outranks
+   `.segmented-control button` (0,1,1). */
 
 /* Empty-slot affordance contrast. Was `color:#456a52;opacity:.42`, which
    composites to roughly 2.6:1 on the white cell — under the 4.5:1 floor, on the
@@ -818,10 +774,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    the T30 rule stays. */
 .drawer__dialog.schedule-dialog{width:revert-layer;height:revert-layer;max-height:revert-layer;margin:revert-layer;padding:revert-layer;background:revert-layer;box-shadow:revert-layer;border-radius:revert-layer;overflow:revert-layer}
 
-/* Plan §5.3: 44x44 minimum touch target. HeroUI's `md` controls are 40px and its
-   tabs 32px, so the three control families this page adopts all need the floor
-   raised. Measured at 375px before the fix: 13 targets under 44px. */
-[data-page="schedule"] .tabs__tab,[data-page="schedule"] .schedule-plan-actions .button,[data-page="schedule"] .toggle-button{min-height:44px}
+/* Plan §5.3's 44x44 floor for `.tabs__tab` / `.button` / `.toggle-button` moved
+   into the one global expression of it (FIX50, end of file). */
 
 /* HeroUI's `.toolbar` is `width: fit-content`, which the legacy rules for these
    two strips never had to override because they were plain divs. Measured: the
@@ -873,16 +827,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    dark `--surface` card, 1.07:1. Binding to --surface-foreground makes the two
    halves of the card flip together. */
 
-/* Legacy `button{background:#fff;border:1px solid var(--line);border-radius:10px;
-   padding:.68rem 1rem;color:var(--ink)}` repaints every HeroUI button as a white
-   outline box — including `variant="danger"`, which is the one control on this
-   page that must not look optional. */
-[data-page="data"] .button[data-slot="button"],[data-page="assistant"] .button[data-slot="button"],[data-rac][role="alertdialog"] .button[data-slot="button"]{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;font-weight:revert-layer}
-
-/* Legacy `input,select,textarea{border:1px solid #cdd5ce;background:#fff;
-   padding:.78rem .85rem;color:var(--ink);width:100%}` pins both composers to a
-   white box with near-black text, which is unreadable inside a dark card. */
-[data-page="data"] .textarea[data-slot="textarea"],[data-page="assistant"] .textarea[data-slot="textarea"]{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;width:revert-layer}
+/* The button and textarea repairs this block used to carry — including the
+   `[data-rac][role="alertdialog"]` arm that reached the ConfirmDialog portal but
+   NOT the plain `role="dialog"` import Modal next to it — are now in the single
+   global `HEROUI CONTROL REPAIR` rule at the end of this file (FIX50). */
 
 /* T30 handoff #3 — measured, not quoted from the plan.
    `--danger` and `--muted` are still shadowed by the legacy unlayered
@@ -966,22 +914,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @import "@heroui/styles/components/pagination.css" layer(components);
 @import "@heroui/styles/components/search-field.css" layer(components);
 
-/* Same legacy shadowing T32 documented on onboarding, same repair, new page.
-   The unlayered legacy `button{background:#fff;border:1px solid var(--line);
-   border-radius:10px;padding:.68rem 1rem;color:var(--ink)}` outranks every
-   layered HeroUI rule whatever its specificity, so without this the Select
-   trigger, the SearchField clear button, the ComboBox trigger and all eleven
-   pagination controls render as white outline boxes — and under fju-dark they
-   stay white inside a dark page. Scoped to this page rather than repaired
-   globally because the other page migrations are in flight on their own
-   branches; T41 deletes the cause and this block with it. */
-[data-page="explore"] .button[data-slot="button"],[data-page="explore"] .pagination__link,[data-page="explore"] .search-field__clear-button,[data-page="explore"] .combo-box__trigger{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;font-weight:revert-layer}
-
-/* And the `input,select,textarea{border:1px solid #cdd5ce;border-radius:9px;
-   background:#fff;padding:.78rem .85rem;color:var(--ink);width:100%}` half,
-   which pins the search box and the department ComboBox input to a white field
-   with near-black text in both themes. */
-[data-page="explore"] .input[data-slot="input"],[data-page="explore"] .search-field__input,[data-page="explore"] .select__trigger{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;width:revert-layer}
+/* The button / pagination / clear-button / combo-box-trigger and the
+   input / search-field-input / select-trigger repairs this block used to carry
+   are now in the single global `HEROUI CONTROL REPAIR` rule at the end of this
+   file (FIX50). */
 
 /* MISSING DARK TOKENS, found by measurement — belongs in `theme/fju.css` §4.2,
    parked here so T34 does not edit a file three sibling migrations also touch.
@@ -1011,3 +947,148 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    `overflow:visible` on either would reintroduce document-level horizontal
    scroll silently, which §5.5 forbids at every width. */
 /* === T34 explore page — end === */
+
+/* ===========================================================================
+   HEROUI CONTROL REPAIR (FIX50) — one global unlayered block.
+
+   WHY IT EXISTS
+   The legacy sheet near the top of this file is UNLAYERED. An unlayered
+   declaration beats a layered one unconditionally, whatever the layered
+   selector's specificity, so these two legacy rules win against every
+   `layer(components)` rule HeroUI ships:
+
+     button{cursor:pointer;border:1px solid var(--line);border-radius:10px;
+            background:#fff;padding:.68rem 1rem;color:var(--ink)}
+     input,select,textarea{border:1px solid #cdd5ce;border-radius:9px;
+            background:#fff;padding:.78rem .85rem;color:var(--ink);width:100%}
+
+   T32/T33/T34/T35/T36 each wrote their own page-scoped copy of the repair
+   (`[data-page="onboarding"] ...`, `[data-page="recommend"] ...`, and so on).
+   Five near-identical blocks, three different portal work-arounds and three
+   different spellings of the 44px floor. Two portals still fell through:
+   `DataPage`'s import Modal (role="dialog", portalled to <body>, so outside
+   every `[data-page]` scope) and the schedule Drawer/Modal controls. And
+   `Tag.RemoveButton` — which is a `CloseButton`, so `close-button
+   close-button--default tag__remove-button` — was never covered at all: its
+   own rule is only `@apply size-3 text-inherit` and it leans on preflight
+   (layer(base)) for the background reset, which the legacy rule outranks. The
+   result was a 44x44 white bordered rounded-rect where the glyph belongs.
+
+   This block replaces all five. It is scoped by HeroUI's OWN class and
+   data-slot names, never by element, so the app's remaining legacy
+   `<button>`s (`.icon-button`, `.schedule-slot-button`, `.slot-category-filter`,
+   `.unplaced-courses>button`, ErrorBoundary's pair, ...) keep the legacy
+   styling they still rely on. Being global it reaches portals for free.
+
+   SPECIFICITY is deliberately (0,2,0) — `:is()` takes its most specific arm,
+   `.button[data-slot="button"]`. That is exactly what the five page-scoped
+   blocks resolved to, so nothing that used to win/lose against them changes.
+   It has to stay at least that high to outrank the legacy `.segmented-control
+   button` and `.assistant-examples button` (0,1,1), which the schedule
+   ToggleButtonGroup and the assistant example Buttons still sit inside.
+
+   `revert-layer` rather than fixed values, as T30 established: it rolls each
+   property back to whatever the `components` layer — HeroUI's own rule — would
+   have set, instead of guessing at a value. Deleting the legacy declarations
+   outright is T41's job; nothing above is reformatted (plan R4).
+   =========================================================================== */
+
+/* --- 1. Controls HeroUI renders as a native <button>. `width` is deliberately
+   NOT reverted here: page rules such as `.filter-accordion-trigger{width:100%}`
+   depend on it and reverting would collapse them. --- */
+:is(.button[data-slot="button"],
+    .close-button,
+    .tag__remove-button,
+    .toggle-button[data-slot="toggle-button"],
+    .tabs__tab,
+    .accordion__trigger,
+    /* `.filter-advanced-trigger` (recommend) and `.course-disclosure-trigger`
+       (explore) already declare a COMPLETE box of their own —
+       `border:0;border-radius:0;background:none;color:var(--accent);
+       font-weight:700` — so they need no repair, and reverting over them costs
+       them their accent colour. Measured on /explore: the four
+       「查看課綱與判斷依據」 triggers went from the accent (26,78,138 light /
+       140,184,240 dark) to plain ink. `.filter-accordion-trigger` is NOT
+       excluded: it declares only layout, so it still needs the repair. */
+    .disclosure__trigger:not(.filter-advanced-trigger, .course-disclosure-trigger),
+    .pagination__link,
+    .search-field__clear-button,
+    .autocomplete__clear-button,
+    .autocomplete__trigger,
+    .combo-box__trigger,
+    .calendar__nav-button,
+    .range-calendar__nav-button,
+    .number-field__increment-button,
+    .number-field__decrement-button,
+    .toast__close-button,
+    .toast__action){border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;font-weight:revert-layer}
+
+/* --- 2. Fields hit by the `input,select,textarea{...width:100%}` half. These
+   DO revert `width`, because `width:100%` is the legacy declaration doing the
+   damage. `.select__trigger` is a <button> but belongs here: it is the arm the
+   legacy `select` selector used to reach, and it wants HeroUI's own width. --- */
+:is(.input[data-slot="input"],
+    .textarea[data-slot="textarea"],
+    .select__trigger,
+    .search-field__input,
+    .input-group__input,
+    .date-input-group__input,
+    .number-field__input,
+    .color-input-group__input){border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;width:revert-layer}
+
+/* --- 3. Plan §5.3's 44x44 touch floor, expressed ONCE. Previously written
+   three ways: `min-h-11` utilities in TSX, `min-height:44px` (T35) and
+   `width/height:2.75rem` (T33's tag remove button). HeroUI's `md` controls are
+   40px, its tabs 32px and its close button 24px, so every family here needs it
+   raised. `min-*` rather than `width`/`height` so a control is still free to
+   grow. The TSX `min-h-11`/`min-w-11` classes are now redundant but harmless —
+   same 2.75rem — and are left in place so this stays a CSS-only change. --- */
+:is(.button[data-slot="button"],
+    .close-button,
+    .tag__remove-button,
+    .toggle-button[data-slot="toggle-button"],
+    .tabs__tab,
+    .accordion__trigger,
+    .disclosure__trigger,
+    .pagination__link,
+    .search-field__clear-button,
+    .autocomplete__clear-button,
+    .combo-box__trigger,
+    .select__trigger,
+    .number-field__increment-button,
+    .number-field__decrement-button){min-height:2.75rem}
+
+/* The WIDTH half of the floor is only for controls whose content is a glyph, so
+   it cannot supply 44px on its own. It must NOT go on text controls: `min-width`
+   also replaces a flex item's `min-width:auto`, and `.segmented-control button`
+   is `flex:1`. Measured at 375px with the floor applied to every control: the
+   schedule view toggles went from 64/96/96 (each at least its min-content) to a
+   flat 85.3/85.4/85.3, i.e. the two four-character labels were forced narrower
+   than their own text under `white-space:nowrap`. --- */
+:is(.close-button,
+    .tag__remove-button,
+    .button--icon-only,
+    .toggle-button--icon-only,
+    .pagination__link,
+    .search-field__clear-button,
+    .autocomplete__clear-button,
+    .combo-box__trigger,
+    .calendar__nav-button,
+    .range-calendar__nav-button,
+    .number-field__increment-button,
+    .number-field__decrement-button){min-width:2.75rem}
+
+/* --- 4. `Tag.RemoveButton` inherits `.close-button--default`'s `bg-default`,
+   which is right at HeroUI's own 12px but reads as a filled slab once the box is
+   raised to the 44px touch floor. Measured before this rule: an opaque 44x44
+   rounded rect, rgb(243,242,240) light / rgb(36,39,45) dark. (Review reported it
+   as a *white* box; that did not reproduce — T33's `[data-page="recommend"]
+   .close-button` arm already reverted the legacy `background:#fff`, because a
+   RemoveButton IS a CloseButton. The box was real, the colour was not.)
+   The tap target is the button, the *visual* is the glyph — so the paint is
+   dropped and the icon is pinned.
+   Without the svg rule the icon inherits the 44px box (HeroUI's own
+   `.tag__remove-button svg{@apply size-[inherit]}`) and the chip reads as one
+   giant X. (0,2,0) to match rule 1, and after it in source order. --- */
+.tag .tag__remove-button{background:transparent;flex:none}
+.tag .tag__remove-button svg{width:1rem;height:1rem}

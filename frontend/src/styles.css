@@ -365,6 +365,25 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .course-skeleton span{animation:none}
+  /* T40, layer 1 of §4.6. Two things the `*` rule above cannot reach:
+
+     1. HeroUI's `Skeleton` picks its animation from the `--skeleton-animation`
+        token (`shimmer` | `pulse` | `none`) rather than from an `animation`
+        shorthand the `*` selector could shorten. It is declared per theme in
+        `theme/fju.css` inside `@layer base`; this block is UNLAYERED, so it
+        wins outright — no `!important` needed, and none used.
+     2. View transitions animate PSEUDO-ELEMENTS. `::view-transition-*` are not
+        descendants of anything, so `*,*::before,*::after` never matches them.
+        `ThemeToggle` also skips `startViewTransition` under reduced motion, and
+        that skip is the part that actually matters, because its reveal is
+        driven by `Element.animate()` whose duration is a JS number — CSS
+        cannot slow it down at all. This rule is the belt to that braces, and
+        covers any future CSS-declared transition. */
+  [data-theme="fju"],[data-theme="fju-dark"]{--skeleton-animation:none}
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*){animation:none!important}
 }
 /* T35 deleted the `.class-block[data-course-name]::after` popup that lived here:
    a `content: attr()` string is not in the accessibility tree, so it existed for
@@ -1176,3 +1195,47 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .search-execution-summary>span{background:var(--surface)}
 .heart{color:var(--muted)}
 /* === T41a legacy CSS teardown — end ======================================== */
+
+/* === T40 dark mode + motion — begin ========================================
+   Three small things: the theme reveal, where the toggle sits, and the box the
+   result-card entrance wrapper needs. */
+
+/* --- Theme reveal (ThemeToggle) -------------------------------------------
+   The default root view transition is a cross-fade of the old and new
+   snapshots. That is exactly wrong here: both snapshots are full-page, so a
+   cross-fade is a whole-screen flash, and it would fight the clip-path reveal
+   the component animates on top of it. Cancelling the built-in animation
+   leaves the new snapshot painted over the old one and lets the clip-path be
+   the entire effect. (This rule is the one piece of CSS Magic UI does ship in
+   the registry item; the clip-path pin below is not — the component sets the
+   custom property but expects the consumer to consume it.) */
+::view-transition-old(root),
+::view-transition-new(root){animation:none;mix-blend-mode:normal}
+/* Hold the new snapshot at its collapsed clip from the very first frame.
+   Without this there is a gap between the snapshot being taken and the
+   `ready.then()` callback starting the animation, and in that gap Firefox
+   paints the incoming theme unclipped — a flash of the destination theme
+   immediately before it wipes in. `ThemeToggle` sets both custom properties on
+   <html> for the life of the transition and removes them on cleanup. */
+html[data-fju-theme-vt="active"]::view-transition-new(root){clip-path:var(--fju-theme-vt-clip-from)}
+
+/* --- Toggle placement ------------------------------------------------------ */
+.theme-toggle{color:var(--foreground);background:transparent;border-color:transparent}
+.theme-toggle:not(:disabled):hover{background:var(--default-hover);border-color:var(--border-strong)}
+@media (max-width:800px){
+  /* `.menu-button` already carries `margin-left:auto`. With two of them the
+     free space would be split and the toggle would float mid-row, so the
+     toggle takes the auto margin and the menu button gives it up. Equal
+     specificity, later in source order — no `!important`. */
+  .theme-toggle{margin-left:auto}
+  .menu-button{margin-left:0}
+}
+
+/* --- Result-card entrance wrapper -----------------------------------------
+   `BlurFade` inserts a div between `.course-grid` and `.course-card`, so the
+   grid item is now the wrapper. `.course-card` is `display:flex` and used to
+   stretch to the row height as a grid item itself; without these two rules the
+   cards in a row stop matching heights. */
+.course-grid>.result-reveal{display:flex;min-width:0}
+.result-reveal>.course-card{flex:1}
+/* === T40 dark mode + motion — end ========================================== */

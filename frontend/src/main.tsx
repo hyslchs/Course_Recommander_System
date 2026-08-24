@@ -5,6 +5,7 @@ import { I18nProvider } from "@heroui/react";
 import App from "./app/App";
 import "./styles.css";
 import { FeedbackProvider } from "./components/ui";
+import { ThemeProvider } from "./hooks/theme";
 
 // React Aria's built-in announcements ("N results available", date/number
 // formatting, collator-based filtering) default to English. HeroUI v3 needs no
@@ -23,11 +24,16 @@ import { FeedbackProvider } from "./components/ui";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <I18nProvider locale="zh-TW">
-      <FeedbackProvider>
-        <BrowserRouter>
-          <App />
-        </BrowserRouter>
-      </FeedbackProvider>
+      {/* Outside FeedbackProvider: the theme is document-level state that every
+          overlay portal inherits through `data-theme` on <html>, and it must
+          resolve whether or not anything below it renders. */}
+      <ThemeProvider>
+        <FeedbackProvider>
+          <BrowserRouter>
+            <App />
+          </BrowserRouter>
+        </FeedbackProvider>
+      </ThemeProvider>
     </I18nProvider>
   </React.StrictMode>,
 );

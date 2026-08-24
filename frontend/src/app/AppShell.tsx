@@ -3,6 +3,11 @@ import { NavLink } from "react-router";
 import { List } from "@phosphor-icons/react";
 import { RouteFocusManager } from "./RouteFocusManager";
 import { navigationItems } from "./navigation";
+// Deliberately the module, not a `@/components/motion` barrel. AppShell is in
+// the entry graph; a barrel that also re-exported `BlurFade`/`NumberTicker`
+// would drag `motion` (~44 kB gzip) into the entry chunk and load it on
+// /onboarding and /schedule, which have no motion at all. Measured: it did.
+import { ThemeToggle } from "@/components/motion/ThemeToggle";
 import { SideDrawer } from "@/components/ui";
 import { useProfile } from "@/hooks/localData";
 
@@ -33,6 +38,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="profile-full">{profileLabel}</span>
             <span className="profile-compact">{profile ? "個人設定 · " + profile.grade + " 年級" : "開始設定"}</span>
           </NavLink>
+          {/* Before the menu button so the tab order is …導覽 → 個人設定 →
+              外觀 → 選單, matching the visual order at every width. */}
+          <ThemeToggle />
           <button type="button" className="icon-button menu-button" aria-label="開啟選單" aria-expanded={menuOpen} onClick={() => setMenuOpen(true)}>
             <List aria-hidden="true" />
           </button>

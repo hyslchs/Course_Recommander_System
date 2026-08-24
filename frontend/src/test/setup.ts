@@ -32,6 +32,40 @@ if (!("ResizeObserver" in globalThis)) {
 }
 
 /**
+ * jsdom ships no `IntersectionObserver` either, and `motion/react`'s `useInView`
+ * — used by `NumberTicker` to hold the count until the element is on screen —
+ * constructs one in a passive effect. Without this the /explore and /data suites
+ * throw at mount.
+ *
+ * The stub reports "intersecting" once, asynchronously, rather than staying
+ * inert: jsdom has no layout, so an honest observer would never fire and the
+ * ticker would sit at 0 forever, turning "0 門結果" into an assertion that
+ * describes a jsdom artifact instead of the product. Firing once is what a real
+ * browser does for an element that is already in the viewport, which is where
+ * both ticker call sites are.
+ */
+if (!("IntersectionObserver" in globalThis)) {
+  class IntersectionObserverStub {
+    readonly root = null;
+    readonly rootMargin = "0px";
+    readonly thresholds: readonly number[] = [0];
+    #callback: (entries: unknown[], observer: unknown) => void;
+    constructor(callback: (entries: unknown[], observer: unknown) => void) {
+      this.#callback = callback;
+    }
+    observe(target: Element) {
+      queueMicrotask(() => {
+        this.#callback([{ intersectionRatio: 1, isIntersecting: true, target }], this);
+      });
+    }
+    unobserve() {}
+    disconnect() {}
+    takeRecords() { return []; }
+  }
+  (globalThis as unknown as { IntersectionObserver: unknown }).IntersectionObserver = IntersectionObserverStub;
+}
+
+/**
  * jsdom 30 still ships no `window.matchMedia`. HeroUI's `Toast.Provider` calls
  * it during render to decide whether the action button belongs inside the
  * content column (its mobile layout). Reporting "no match" keeps the desktop

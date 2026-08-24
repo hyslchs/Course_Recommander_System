@@ -13,6 +13,7 @@ import { sanitizeSubjectQuery, type DetectedFilterPhrase } from "@/domain/subjec
 import { useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { CourseCard } from "@/components/CourseCard";
+import { BlurFade } from "@/components/motion/BlurFade";
 import { EmptyState, LoadingSkeleton, SideDrawer, StateAlert } from "@/components/ui";
 import { FilterPanel } from "./FilterPanel";
 import {
@@ -294,7 +295,10 @@ export function RecommendPage() {
           {loading && <LoadingSkeleton count={4} label="正在產生推薦，正在比對課程內容與你設定的修課條件。" variant="card-grid" />}
           {!lastEmbedding && !loading && !error && <EmptyState headingLevel={2} title="輸入主題，開始找適合的課" variant="first-run"><div className="feature-grid"><span>明確篩選</span><span>語意檢索</span><span>關鍵字檢索</span><span>RRF 融合排名</span></div></EmptyState>}
           {lastEmbedding && !results.length && !loading && !error && <EmptyState action="清除全部條件" body="可以放寬條件，或換一個更廣泛的主題。" headingLevel={2} live title="沒有符合全部條件的課程" variant="over-filtered" onAction={() => applyFilters(clearFilters(filters))}><div className="empty-actions"><button type="button" onClick={() => document.getElementById("subject-query")?.focus()}>修改主題</button></div></EmptyState>}
-          <div className="course-grid">{results.map((item, index) => <CourseCard key={item.course.course_id} course={item.course} alternatives={item.alternatives} rank={index + 1} reasons={item.reasons} recommendationCategory={item.category} />)}</div>
+          {/* The only place §4.6 allows `blur-fade`. `index` is the stagger
+              step and BlurFade clamps it at 6, so the grid finishes inside
+              ~460ms however many results came back. */}
+          <div className="course-grid">{results.map((item, index) => <BlurFade className="result-reveal" key={item.course.course_id} index={index}><CourseCard course={item.course} alternatives={item.alternatives} rank={index + 1} reasons={item.reasons} recommendationCategory={item.category} /></BlurFade>)}</div>
         </div>
       </div>
 

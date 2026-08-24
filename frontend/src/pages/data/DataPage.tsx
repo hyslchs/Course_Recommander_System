@@ -12,6 +12,7 @@ import {
 } from "@/data/db";
 import { useLocalRecords } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
+import { NumberTicker } from "@/components/motion/NumberTicker";
 import { ConfirmDialog, EmptyState, Modal, StateAlert, useFeedback } from "@/components/ui";
 import { formatBytes, useStorageEstimate } from "./useStorageEstimate";
 import type { CompletedCourse } from "@/domain/types";
@@ -153,9 +154,12 @@ export function DataPage() {
           </Card.Header>
           <Card.Content className="flex flex-col gap-4">
             <dl className="data-stats">
-              <div><dt>已修課程</dt><dd>{completed.length}</dd></div>
-              <div><dt>收藏</dt><dd>{favorites.length}</dd></div>
-              <div><dt>課表方案</dt><dd>{plans.length}</dd></div>
+              {/* The second of the two ticker sites §4.6 allows. These settle
+                  once when the local stores load and then only change on an
+                  explicit add/remove, so nothing here animates while typing. */}
+              <div><dt>已修課程</dt><dd><NumberTicker value={completed.length} /></dd></div>
+              <div><dt>收藏</dt><dd><NumberTicker value={favorites.length} /></dd></div>
+              <div><dt>課表方案</dt><dd><NumberTicker value={plans.length} /></dd></div>
             </dl>
             {storage ? (
               <Meter

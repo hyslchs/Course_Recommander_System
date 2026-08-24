@@ -384,7 +384,7 @@ Skeleton 高度對齊 Table row（避免版面跳動）。
 > - **T41b（最後）**：壓到 ≤120 行、`forced-colors`、列印重新稽核（含下方列印裁切修正）、字體決策結案。
 
 ### `40-dark-mode-and-motion`
-**Status**: pending · **Depends**: `31`–`36` 全部完成
+**Status**: done ✅ · **Depends**: `31`–`36` 全部完成
 
 - 暗色切換：**controlled** `animated-theme-toggler`，寫 `data-theme` 屬性（**不是 `classList`**），圖示用既有 `@phosphor-icons/react`（**不引入第二套圖示庫**），偏好存進 IndexedDB
 - `blur-fade`：僅推薦結果卡片，**stagger index 上限 6**，參數 `0.22s / 3px / 4px`
@@ -431,7 +431,7 @@ pnpm add motion
 ---
 
 ### `41-css-teardown`
-**Status**: pending · **Depends**: `40-dark-mode-and-motion`
+**Status**: done ✅ · **Depends**: `40-dark-mode-and-motion`
 
 把 `styles.css` 從 43KB 壓縮碼縮到目標 ≤120 行，**只留 HeroUI 蓋不到的部分**：skip link · 課表格線與 class block · `@media print` · `@media (forced-colors: active)` · reduced-motion · 類別色階。
 
@@ -479,7 +479,7 @@ pnpm add motion
 ---
 
 ### `42-final-verification`
-**Status**: pending · **Depends**: `41-css-teardown`
+**Status**: done ✅ · **Depends**: `41-css-teardown`
 
 - ~~🔴 **T30 發現的真 i18n bug，必修**：React Aria 的 toast region 播報簡體「1 个通知。」~~
   ✅ **已解決，wave 3 審查實測不再重現。** 瀏覽器實際擷取到的是 `aria-label="1 個通知。"`（繁體「個」U+500B）。原因是 **T32 把 `I18nProvider` 的 locale 從 `zh-Hant-TW` 改成 `zh-TW`** —— React Aria 只 bundle `zh-CN` 與 `zh-TW` 兩包，`zh-Hant-TW` 的 fallback 鏈會掉到 `zh-CN`，改成 `zh-TW` 就正確命中繁體。**T42 不需要再做這項**，也不需要自訂 `LocalizedStringProvider`。

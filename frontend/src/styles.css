@@ -123,6 +123,19 @@
    are likewise already imported and are re-used, not re-added. */
 @import "@heroui/styles/components/tabs.css" layer(components);
 @import "@heroui/styles/components/toolbar.css" layer(components);
+/* FIX51: `Tabs.ListContainer` renders its scroller as a `ScrollShadow`
+   (@heroui/react 3.2.4, components/tabs/tabs.js:137) — a *transitive* dependency
+   no `src/**` file imports by name, which is how it was missed. Unstyled, the
+   scroller's `overflow-x` stayed `visible`, so `.tabs__list` (`w-max`, 476px
+   with four plans) painted outside its 343px container and pushed the document
+   to 492px at a 375px viewport: 117px of page-level horizontal scroll in both
+   themes. `.scroll-shadow--horizontal{overflow-x:auto}` is the whole fix.
+   Audited the rest of the adopted set for the same class of miss: `surface`,
+   `textfield` and `combo-box` are imported by other components for their React
+   *context* only and emit no class; `spinner` only renders inside a Toast with
+   `isLoading` (unused); `button-group`/`separator` only via `ButtonGroup` /
+   `*.Separator` (unused). This is the only one that was actually rendering. */
+@import "@heroui/styles/components/scroll-shadow.css" layer(components);
 /* === T35 schedule workspace imports — end ================================== */
 /* === T36 data + assistant — begin (imports) ================================
    `@import` is only legal before other rules, so the T36 block is split: the
@@ -1011,3 +1024,91 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    `overflow:visible` on either would reintroduce document-level horizontal
    scroll silently, which §5.5 forbids at every width. */
 /* === T34 explore page — end === */
+/* === FIX51 schedule — begin ================================================
+   Wave-3 review defects on /schedule, all measured in a real browser. Appended,
+   never edited in place: everything above is either minified legacy source
+   (plan R4) or another agent's fence. Unlayered and page-scoped for the same
+   reason T35 gave — sibling migrations are in flight and a bare
+   `.toggle-button` rule here would restyle their pages mid-review. The one
+   `@import` this task needs is up in the import region, where CSS requires it. */
+
+/* P1-c. The new `role="row"` wrappers must not become grid items, or the whole
+   `gridColumn`/`gridRow` placement collapses into a single-column stack and the
+   multi-row `.class-block` spans stop resolving. `display:contents` hoists their
+   children back into `.schedule-grid`'s own grid formatting context, so the
+   rendered geometry is identical to T35's. Same for the per-block gridcell
+   wrapper: the `.class-block` button stays the grid item and keeps carrying its
+   inline `grid-row: N / span M`. */
+[data-page="schedule"] .schedule-row,[data-page="schedule"] .schedule-block-cell{display:contents}
+
+/* P1-b. Seven day buttons, not five. The plan (§5.4) sized this control for
+   一~五 and put the "查看星期" label on the same row; the catalog has real
+   weekend sessions (微積分 meets 星期六 D7–D8), so `visibleDays` is 7 and the
+   group needed 7 x 48px = 336px inside a 327px box with `flex-wrap:nowrap`.
+   Measured right edge 426px against a 375px viewport: 六 and 日 were simply off
+   screen and unreachable. Stacking the label gives the group the full content
+   width, which is ~49px per button — over the 44px floor with the group still
+   one unbroken row. `flex-wrap` is the belt and braces for the 320px
+   `body{min-width}` floor, where 7 x 44 no longer fits: it wraps to two rows
+   rather than overflowing, and the target size survives either way. */
+[data-page="schedule"] .mobile-day-picker{display:flex;flex-direction:column;align-items:stretch;gap:.4rem}
+[data-page="schedule"] .mobile-day-picker .toggle-button-group{flex-wrap:wrap}
+[data-page="schedule"] .mobile-day-picker .toggle-button{flex:1 1 auto;min-width:44px;padding-inline:.3rem}
+
+/* P2-d. T35 raised the *button* to `--muted` at full opacity but the legacy
+   `.schedule-slot-button span{opacity:0}` still hid the 找課 label itself, so 97
+   interactive cells had no resting affordance beyond a faint icon — sighted
+   users got no cue at all (screen-reader users were always fine, `aria-label` is
+   untouched). The label now rests visible at the same colour as the icon, and at
+   13px rather than 12px, which was under the §4.4-4 floor.
+   The hover/focus reveal was legacy `var(--green)` (#0d5238) on a hard-coded
+   #edf6ee, measured at 4.44:1 — under the floor on the one state that is
+   supposed to be the *clearest*. Darkened to clear 4.5:1 with margin.
+   The reveal is deliberately NOT re-pointed at `var(--accent)`: under fju-dark
+   `--accent` is a light blue (#8CB8F0) and this cell is still white, because the
+   legacy unlayered `.schedule-grid{background:#fff}` paints the whole timetable
+   white in both themes. That is a real defect, but repainting the timetable is
+   the CSS teardown's job (T41) and explicitly outside this task's boundary; a
+   token here would have swapped a contrast failure in one theme for a worse one
+   in the other. Fixed values, matched to the surface that actually renders. */
+[data-page="schedule"] .schedule-slot-button span{opacity:1;font-size:.8125rem}
+[data-page="schedule"] .schedule-slot-button:hover,[data-page="schedule"] .schedule-slot-button:focus-visible{background:#e8f2ea;color:#1b4d33}
+
+/* P2-e. `.class-block{font-size:.85rem}` x the UA's `small{font-size:smaller}`
+   landed the teacher and room at 11.33px, under the same floor T31 already
+   applied to `.course-card .meta span` — the legacy `.meta span{font-size:.78rem}`
+   still catches everything outside a course card. The colour goes with it: the
+   inherited pair measured 4.25:1, and the tile also renders over the `fixed`
+   (#fff5ce) and conflict-hatch (#feeaea/#fff5f5) backgrounds, so the value below
+   is the one that clears 4.5:1 on all three rather than only on #dcecdf. */
+[data-page="schedule"] .schedule-grid .class-block small,[data-page="schedule"] .mobile-schedule-block small{font-size:.8125rem;color:#3f5347}
+
+/* P3-h. The two overflow chevrons `Tabs.ListContainer` renders are hit by the
+   legacy unlayered `button{border:1px solid var(--line);background:#fff;
+   padding:.68rem 1rem;border-radius:10px}`, which beats their layered `size-4
+   border-0 bg-transparent p-0` and left them at a measured 34 x 23.8px. Reverted
+   by layer as T30/T32/T35 did elsewhere, then given the 44px target §5.3 asks
+   for; the opaque puck matches `.tabs__list-container`'s own `bg-default` so the
+   tab text they overlap does not read through them. Their aria-labels are fixed
+   in ScheduleWorkspace.tsx — HeroUI hard-codes those in English. */
+[data-page="schedule"] .tabs__list-container__scroll-prev,[data-page="schedule"] .tabs__list-container__scroll-next{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;padding:revert-layer;width:44px;height:44px;border-radius:999px;background:var(--default)}
+
+/* P3-i. 12.48px, under the floor. */
+[data-page="schedule"] .eyebrow{font-size:.8125rem}
+
+/* P2-g. The grid's seven day tracks have a 150px floor, so they totalled
+   72 + 7x150 = 1122px against a 778px print box: 星期六 sat at x=833–977, off
+   the page entirely, and even the five-day case needed 822px against 794px.
+   `.unplaced-courses` is in the legacy print hide-list, so nothing caught the
+   dropped columns — the printed sheet lost data silently. Landscape supplies the
+   room; dropping the track floor to 0 (the inline
+   `minmax(var(--schedule-col-min,150px),1fr)` in ScheduleWorkspace.tsx exists
+   for exactly this) makes the day columns divide whatever width the page has, so
+   it cannot clip at any day count or paper size. `!important` because the track
+   list and `min-width` are competing with an inline style and the legacy sheet. */
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  [data-page="schedule"] .schedule-grid{--schedule-col-min:0px;min-width:0!important;width:100%}
+  [data-page="schedule"] .schedule-grid .class-block strong{-webkit-line-clamp:3}
+}
+/* === FIX51 schedule — end ================================================== */

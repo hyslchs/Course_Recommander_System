@@ -71,6 +71,7 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
   const slotButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const [activeSlotKey, setActiveSlotKey] = useState("");
   const [mobileDay, setMobileDay] = useState(1);
+  const planTabsRef = useRef<HTMLDivElement>(null);
   const [planDialog, setPlanDialog] = useState<"create" | "rename" | "">("");
   const [planName, setPlanName] = useState("");
   const planNameRef = useRef<HTMLInputElement>(null);
@@ -91,8 +92,26 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
   const emptySlotKeys = visibleSections.flatMap((section) => visibleDays.map((day) => `${day}-${section}`)).filter((key) => !occupiedSlotKeys.has(key));
   const resolvedActiveSlotKey = emptySlotKeys.includes(activeSlotKey) ? activeSlotKey : (emptySlotKeys[0] ?? "");
   const mobileOpenSections = visibleSections.filter((section) => !occupiedSlotKeys.has(`${mobileDay}-${section}`));
-  const gridStyle = { gridTemplateColumns: `72px repeat(${visibleDays.length}, minmax(150px, 1fr))`, gridTemplateRows: `44px repeat(${visibleSections.length}, 72px)` } satisfies CSSProperties;
+  // The day-column floor is a custom property rather than a literal so that the
+  // print sheet can drop it to 0 without knowing how many days are visible
+  // (FIX51 P2-g). With `minmax(150px,1fr)` the seven tracks total 1122px against
+  // a 778px print box and 星期六/日 fell off the page entirely — and
+  // `.unplaced-courses` is print-hidden, so nothing caught the dropped courses.
+  const gridStyle = { gridTemplateColumns: `72px repeat(${visibleDays.length}, minmax(var(--schedule-col-min, 150px), 1fr))`, gridTemplateRows: `44px repeat(${visibleSections.length}, 72px)` } satisfies CSSProperties;
 
+  // FIX51 P3-h. `Tabs.ListContainer` hard-codes its two overflow chevrons'
+  // accessible names as the English "Scroll tabs left"/"Scroll tabs right"
+  // (@heroui/react 3.2.4, components/tabs/tabs.js:152,159) — string literals, not
+  // `useLocalizedStringFormatter` lookups, so the app's `I18nProvider` cannot
+  // reach them and there is no prop to override them. Relabelling the two nodes
+  // after mount is the only route that does not fork the component. They are
+  // `tabIndex={-1}` mouse affordances, so nothing here affects focus order.
+  useEffect(() => {
+    const container = planTabsRef.current;
+    if (!container) return;
+    container.querySelector(".tabs__list-container__scroll-prev")?.setAttribute("aria-label", "向左捲動方案標籤");
+    container.querySelector(".tabs__list-container__scroll-next")?.setAttribute("aria-label", "向右捲動方案標籤");
+  }, [plans.length]);
   useEffect(() => { if (!visibleDays.includes(mobileDay)) setMobileDay(visibleDays[0]); }, [mobileDay, visibleDays]);
   useEffect(() => { if (resolvedActiveSlotKey !== activeSlotKey) setActiveSlotKey(resolvedActiveSlotKey); }, [activeSlotKey, resolvedActiveSlotKey]);
 
@@ -320,7 +339,7 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
          the tab/panel wiring and the automatic activation. Only the selected
          plan's panel is rendered, which is exactly what `Tabs.Panel` mounts. */
       <Tabs selectedKey={active.id} onSelectionChange={(key) => void selectPlan(String(key))}>
-      <Tabs.ListContainer><Tabs.List aria-label="課表方案" className="schedule-plan-tabs">{plans.map((plan) => <Tabs.Tab id={plan.id} key={plan.id}>{plan.name}<Tabs.Indicator /></Tabs.Tab>)}</Tabs.List></Tabs.ListContainer>
+      <Tabs.ListContainer ref={planTabsRef}><Tabs.List aria-label="課表方案" className="schedule-plan-tabs">{plans.map((plan) => <Tabs.Tab id={plan.id} key={plan.id}>{plan.name}<Tabs.Indicator /></Tabs.Tab>)}</Tabs.List></Tabs.ListContainer>
       <Tabs.Panel id={active.id}>
       <Toolbar aria-label="課表方案操作" className="schedule-plan-actions"><strong>目前方案：{active.name}</strong><Button variant="secondary" onPress={renamePlan}>重新命名</Button><Button variant="secondary" onPress={() => void duplicatePlan()}>建立副本</Button><Button variant="secondary" onPress={printSchedule}>列印／另存 PDF</Button></Toolbar>
       <ManualCoursePanel catalog={catalog} plan={active} />
@@ -341,19 +360,54 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
       {viewMode === "core" && hiddenSourceIds.size > 0 && <StateAlert action={<Button className="mt-2 min-h-11" variant="secondary" onPress={() => setViewMode("auto")}>顯示有課時段</Button>} className="schedule-hidden-notice" tone="info">目前折疊範圍內有 {hiddenSourceIds.size} 門課。</StateAlert>}
       <div className="mobile-day-picker"><strong id="mobile-day-picker-label">查看星期</strong><ToggleButtonGroup aria-labelledby="mobile-day-picker-label" disallowEmptySelection fullWidth selectedKeys={[String(mobileDay)]} selectionMode="single" onSelectionChange={(keys) => { const next = [...keys][0]; if (next) setMobileDay(Number(next)); }}>{visibleDays.map((day) => <ToggleButton aria-label={`星期${weekdayLabels[day - 1]}`} id={String(day)} key={day}>{weekdayLabels[day - 1]}</ToggleButton>)}</ToggleButtonGroup></div>
       {/* `aria-rowcount`/`aria-colcount` count the header row and the section-label
-          column, so the indices below are 1-based over the whole grid. They sit on
-          the four `grid`-family roles only; the class blocks are absolutely placed
-          siblings rather than gridcells, and `aria-rowindex` is not valid on a
-          `button`. */}
-      <div className="timetable" aria-label={`${active.name}課表`}><div className="schedule-grid" style={gridStyle} role="grid" aria-colcount={visibleDays.length + 1} aria-rowcount={visibleSections.length + 1}><div className="schedule-corner" role="columnheader" aria-colindex={1} aria-rowindex={1}>節次</div>{visibleDays.map((day, dayIndex) => <div className="schedule-day-header" role="columnheader" aria-colindex={dayIndex + 2} aria-rowindex={1} key={day} style={{ gridColumn: dayIndex + 2, gridRow: 1 }}>星期{weekdayLabels[day - 1]}</div>)}{visibleSections.map((section, sectionIndex) => <div className={`schedule-section-label ${EXTENDED_SCHEDULE_SECTIONS.includes(section as typeof EXTENDED_SCHEDULE_SECTIONS[number]) ? "extended" : ""}`} role="rowheader" aria-colindex={1} aria-rowindex={sectionIndex + 2} key={section} style={{ gridColumn: 1, gridRow: sectionIndex + 2 }}>{section}</div>)}{visibleSections.flatMap((section, sectionIndex) => visibleDays.map((day, dayIndex) => {
-        const key = `${day}-${section}`;
-        const occupied = occupiedSlotKeys.has(key);
-        return <div className={`schedule-cell ${occupied ? "occupied" : ""}`} role="gridcell" aria-colindex={dayIndex + 2} aria-label={`星期${weekdayLabels[day - 1]} ${section}`} aria-rowindex={sectionIndex + 2} key={key} style={{ gridColumn: dayIndex + 2, gridRow: sectionIndex + 2 }}>{!occupied && <button ref={(element) => { if (element) slotButtonRefs.current.set(key, element); else slotButtonRefs.current.delete(key); }} type="button" className="schedule-slot-button" tabIndex={resolvedActiveSlotKey === key ? 0 : -1} aria-label={`推薦星期${weekdayLabels[day - 1]} ${section} 可以排入的課程`} onFocus={() => setActiveSlotKey(key)} onKeyDown={(event) => onSlotKeyDown(event, dayIndex, sectionIndex)} onClick={() => void loadSlotRecommendations({ weekday: day, section })}><Sparkle aria-hidden="true" /><span>找課</span></button>}</div>;
-      }))}{blocks.map((block) => {
-        const dayIndex = visibleDays.indexOf(block.weekday); const span = sectionGridSpan(block, visibleSections); if (dayIndex === -1 || !span) return null;
-        const blockStyle = { gridColumn: dayIndex + 2, gridRow: `${span.start + 2} / span ${span.span}`, width: `calc(${100 / block.laneCount}% - 6px)`, marginLeft: `calc(${block.lane * 100 / block.laneCount}% + 3px)` } as CSSProperties;
-        return <ClassBlock block={block} key={block.id} style={blockStyle} variant="grid" onSelect={openDetails} />;
-      })}</div><div className="mobile-schedule-list">{!mobileBlocks.length && <p className="muted">星期{weekdayLabels[mobileDay - 1]}目前沒有課程。</p>}{mobileBlocks.map((block) => <ClassBlock block={block} key={block.id} variant="list" onSelect={openDetails} />)}<div className="mobile-open-slots"><strong>點空堂找課</strong><div>{mobileOpenSections.map((section) => <button type="button" key={section} onClick={() => void loadSlotRecommendations({ weekday: mobileDay, section })}><Sparkle aria-hidden="true" />{section}</button>)}</div></div></div></div>
+          column, so the indices below are 1-based over the whole grid.
+
+          FIX51 P1-c: `role="grid"` requires `role="row"` children, and T35 shipped
+          the index counts without them — 54 cells hanging directly off the grid,
+          which failed axe's `aria-required-children` *and* `aria-required-parent`
+          and held /schedule desktop at Lighthouse 90 while every other route was
+          100. The rows are `display:contents` (see the CSS fence), so every
+          header/cell/block stays a direct grid item and the explicit `gridColumn`
+          /`gridRow` placement — including `.class-block`'s multi-row span — is
+          byte-for-byte what it was. axe reads the DOM, not the layout tree, so it
+          sees the rows either way; Chrome has exposed semantic `display:contents`
+          elements to AT since 89.
+
+          The blocks moved *into* the row that holds their first section, each in
+          a `role="gridcell"` wrapper (also `display:contents`), because a bare
+          `button` child would fail the row's required-children just as it failed
+          the grid's. Their DOM order relative to the cells now matches the visual
+          reading order, which is also a better tab order.
+
+          Two label changes come with FIX51 P2-d, which un-hides the 找課 text in
+          every empty cell. axe's `label-content-name-mismatch` (WCAG 2.5.3)
+          compares an element's on-screen text against its accessible name and,
+          verified in the bundled source, evaluates visibility with
+          `screenReader = false` — so `aria-hidden` does not exempt anything and
+          the newly visible 找課 would have put 190 fresh findings on this page.
+          So: the slot button's name now *starts* with the word a speech-input
+          user can read, and `.schedule-cell` drops the `aria-label` that
+          duplicated its own row/column headers — with `rowheader`,
+          `columnheader` and the index counts all present, the cell's coordinates
+          are what the grid structure is for, and the label was the only reason
+          the cell had a name that could mismatch its content. Measured: 196
+          findings -> 6. */}
+      <div className="timetable" aria-label={`${active.name}課表`}><div className="schedule-grid" style={gridStyle} role="grid" aria-colcount={visibleDays.length + 1} aria-rowcount={visibleSections.length + 1}>
+        <div className="schedule-row" role="row" aria-rowindex={1}><div className="schedule-corner" role="columnheader" aria-colindex={1} aria-rowindex={1}>節次</div>{visibleDays.map((day, dayIndex) => <div className="schedule-day-header" role="columnheader" aria-colindex={dayIndex + 2} aria-rowindex={1} key={day} style={{ gridColumn: dayIndex + 2, gridRow: 1 }}>星期{weekdayLabels[day - 1]}</div>)}</div>
+        {visibleSections.map((section, sectionIndex) => <div className="schedule-row" role="row" aria-rowindex={sectionIndex + 2} key={section}>
+          <div className={`schedule-section-label ${EXTENDED_SCHEDULE_SECTIONS.includes(section as typeof EXTENDED_SCHEDULE_SECTIONS[number]) ? "extended" : ""}`} role="rowheader" aria-colindex={1} aria-rowindex={sectionIndex + 2} style={{ gridColumn: 1, gridRow: sectionIndex + 2 }}>{section}</div>
+          {visibleDays.map((day, dayIndex) => {
+            const key = `${day}-${section}`;
+            const occupied = occupiedSlotKeys.has(key);
+            return <div className={`schedule-cell ${occupied ? "occupied" : ""}`} role="gridcell" aria-colindex={dayIndex + 2} aria-rowindex={sectionIndex + 2} key={key} style={{ gridColumn: dayIndex + 2, gridRow: sectionIndex + 2 }}>{!occupied && <button ref={(element) => { if (element) slotButtonRefs.current.set(key, element); else slotButtonRefs.current.delete(key); }} type="button" className="schedule-slot-button" tabIndex={resolvedActiveSlotKey === key ? 0 : -1} aria-label={`找課：星期${weekdayLabels[day - 1]} ${section} 可以排入的課程`} onFocus={() => setActiveSlotKey(key)} onKeyDown={(event) => onSlotKeyDown(event, dayIndex, sectionIndex)} onClick={() => void loadSlotRecommendations({ weekday: day, section })}><Sparkle aria-hidden="true" /><span>找課</span></button>}</div>;
+          })}
+          {blocks.map((block) => {
+            const dayIndex = visibleDays.indexOf(block.weekday); const span = sectionGridSpan(block, visibleSections); if (dayIndex === -1 || !span || span.start !== sectionIndex) return null;
+            const blockStyle = { gridColumn: dayIndex + 2, gridRow: `${span.start + 2} / span ${span.span}`, width: `calc(${100 / block.laneCount}% - 6px)`, marginLeft: `calc(${block.lane * 100 / block.laneCount}% + 3px)` } as CSSProperties;
+            return <div className="schedule-block-cell" role="gridcell" aria-colindex={dayIndex + 2} key={block.id}><ClassBlock block={block} style={blockStyle} variant="grid" onSelect={openDetails} /></div>;
+          })}
+        </div>)}
+      </div><div className="mobile-schedule-list">{!mobileBlocks.length && <p className="muted">星期{weekdayLabels[mobileDay - 1]}目前沒有課程。</p>}{mobileBlocks.map((block) => <ClassBlock block={block} key={block.id} variant="list" onSelect={openDetails} />)}<div className="mobile-open-slots"><strong>點空堂找課</strong><div>{mobileOpenSections.map((section) => <button type="button" key={section} onClick={() => void loadSlotRecommendations({ weekday: mobileDay, section })}><Sparkle aria-hidden="true" />{section}</button>)}</div></div></div></div>
       {unplacedCourses.length > 0 && <section className="unplaced-courses"><h2>時間未定／待安排</h2><StateAlert live="polite" tone="warning">{unplacedCourses.length} 門課的上課時間未定。它們不會被誤放進星期一，指定時間後才會出現在格狀課表。</StateAlert>{unplacedCourses.map((course) => <button key={course.course_id} onClick={(event) => openDetails(unplacedBlock(course), event.currentTarget)}><strong>{course.name_zh}</strong><span>{formatMeetings(course)}</span></button>)}</section>}
       <div className="schedule-list">{fixedEntries.map((entry) => <div key={entry.id} className="fixed-schedule-entry"><span><strong>{entry.name}</strong><small>{formatMeetings(entry)} · {entry.teacher ?? "固定時段"}</small></span><span>固定時段</span></div>)}{courses.map((course) => { const entry = active.entries.find((item) => item.courseId === course.course_id)!; return <div key={course.course_id}><span><strong>{course.name_zh}{entry.meetingsOverride && <em className="manual-time-tag">手動時間</em>}</strong><small>{formatMeetings(course)}</small></span><button onClick={() => void toggleLock(course.course_id)}>{entry.locked ? <><Lock aria-hidden="true" />已鎖定</> : "鎖定"}</button><button onClick={() => void removeEntry(course.course_id)}>移除</button></div>; })}</div>
       {selectedBlock && <CourseDetails block={selectedBlock} catalog={catalog} scheduledCourses={courses} plan={active} onClose={closeDetails} />}

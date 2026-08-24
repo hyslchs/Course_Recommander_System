@@ -31,7 +31,14 @@ function course(id: string, name: string, meetings: Meeting[]): Course {
   } as unknown as Course;
 }
 
-/** Accessible name of a `.class-block` button: `課名，星期X 節次…`. Slot buttons never contain the comma. */
+/**
+ * Accessible name of a `.class-block` button: `課名,教師,教室…，星期X 節次…`.
+ * FIX51 P2-f moved the tile's own metadata into the middle of the name and made
+ * the separator after the course name an ASCII comma — see `classBlockLabel` for
+ * the WCAG 2.5.3 measurement that forced it, and the `/^…課程,/` matchers below.
+ * Slot buttons use `找課：`, so they still never contain the full-width comma
+ * this matcher looks for.
+ */
 const classBlockName = /，星期/;
 
 describe("schedule workspace", () => {
@@ -82,13 +89,13 @@ describe("schedule workspace", () => {
     expect(grid.getByRole("columnheader", { name: "星期六" })).toBeInTheDocument();
     expect(grid.getByRole("rowheader", { name: "E1" })).toBeInTheDocument();
     expect(grid.getAllByRole("button", { name: classBlockName })).toHaveLength(2);
-    expect(grid.getByRole("button", { name: /^日間課程，/ })).toBeInTheDocument();
-    expect(grid.getByRole("button", { name: /^週末夜間課程，/ })).toBeInTheDocument();
+    expect(grid.getByRole("button", { name: /^日間課程,/ })).toBeInTheDocument();
+    expect(grid.getByRole("button", { name: /^週末夜間課程,/ })).toBeInTheDocument();
   });
 
   it("opens an accessible detail drawer with the official outline link", async () => {
     const user = userEvent.setup();
-    const block = within(screen.getByRole("grid")).getByRole("button", { name: /^日間課程，/ });
+    const block = within(screen.getByRole("grid")).getByRole("button", { name: /^日間課程,/ });
     await user.click(block);
     const dialog = within(await screen.findByRole("dialog", { name: "日間課程" }));
     expect(dialog.getByText("測試課程目標")).toBeInTheDocument();
@@ -117,8 +124,11 @@ describe("schedule workspace", () => {
 
   it("opens timetable-based recommendations from an empty keyboard-accessible slot", async () => {
     const user = userEvent.setup();
-    expect(screen.queryByRole("button", { name: "推薦星期一 D2 可以排入的課程" })).not.toBeInTheDocument();
-    const slot = screen.getByRole("button", { name: "推薦星期三 D5 可以排入的課程" });
+    // FIX51 P2-f: the name now leads with 找課, the tile's visible text, so that
+    // un-hiding that label (P2-d) does not put the control in breach of WCAG
+    // 2.5.3 Label in Name. `星期X 節次 可以排入的課程` is unchanged after it.
+    expect(screen.queryByRole("button", { name: "找課：星期一 D2 可以排入的課程" })).not.toBeInTheDocument();
+    const slot = screen.getByRole("button", { name: "找課：星期三 D5 可以排入的課程" });
     expect(slot.tabIndex).toBeGreaterThanOrEqual(-1);
 
     await user.click(slot);
@@ -143,7 +153,7 @@ describe("schedule workspace", () => {
 
   it("adds a recommended course to the active plan", async () => {
     const user = userEvent.setup();
-    const dialog = within(await openSlotRecommendations(user, "推薦星期三 D5 可以排入的課程", "星期三 D5 的課程推薦"));
+    const dialog = within(await openSlotRecommendations(user, "找課：星期三 D5 可以排入的課程", "星期三 D5 的課程推薦"));
     const recommendation = within(await dialog.findByRole("article"));
     await user.click(recommendation.getByRole("button", { name: "加入課表" }));
     await waitFor(() => expect(dbMocks.putRecord).toHaveBeenCalledWith("schedulePlans", expect.objectContaining({

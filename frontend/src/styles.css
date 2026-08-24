@@ -99,6 +99,18 @@
 @import "@heroui/styles/components/radio-group.css" layer(components);
 @import "@heroui/styles/components/switch.css" layer(components);
 /* --- end T32 --------------------------------------------------------------- */
+/* === T36 data + assistant — begin (imports) ================================
+   `@import` is only legal before other rules, so the T36 block is split: the
+   three newly adopted component stylesheets live here with T30/T31/T32's, and
+   T36's actual rules are appended at the very bottom of this file behind the
+   same fence markers. Duplicate @import of an already-listed URL is a no-op in
+   Tailwind's resolver, so overlapping with a sibling page migration is safe.
+   meter -> storage usage; textarea -> the two composers; checkbox -> the
+   "想繼續深入" row toggle and the import-overwrite opt-in. */
+@import "@heroui/styles/components/meter.css" layer(components);
+@import "@heroui/styles/components/textarea.css" layer(components);
+@import "@heroui/styles/components/checkbox.css" layer(components);
+/* === T36 data + assistant — end (imports) ================================== */
 
 @import "./theme/fju.css" layer(theme);
 @import "./theme/typography.css" layer(theme);
@@ -600,3 +612,103 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    Reverting by layer hands the fields back to HeroUI's `.input` /
    `.select__trigger`, which read the theme tokens and so track both schemes. */
 [data-page="onboarding"] .input[data-slot="input"],[data-page="onboarding"] .select__trigger{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;width:revert-layer}
+
+/* === T36 data + assistant — begin ==========================================
+   Same shape as T32's block: the legacy sheet above is UNLAYERED, so it beats
+   HeroUI's `components` layer on every property it names, no matter how
+   specific the layered selector is. Each repair below reverts BY LAYER rather
+   than to hard-coded values, so the property lands on whatever HeroUI's own
+   rule would have given it, and the legacy declarations stay untouched until
+   T41 deletes them. Scoped to these two pages because the sibling page
+   migrations are in flight on their own branches. */
+
+/* Legacy `.card{background:var(--paper);border:1px solid var(--line);padding:1.4rem;
+   box-shadow:...}` collides by name with HeroUI's `.card`. `--paper` is `#fff`
+   in BOTH themes, so under [data-theme="fju-dark"] every card here rendered
+   white with the dark card foreground inside it. Reverting by layer hands the
+   box back to `.card--default`, which reads --surface and tracks the theme. */
+[data-page="data"] .card[data-slot="card"],[data-page="assistant"] .card[data-slot="card"]{background:revert-layer;border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;padding:revert-layer;box-shadow:revert-layer;color:var(--surface-foreground)}
+/* `color` is set outright rather than reverted, exactly as T31 did for
+   `.course-card`: HeroUI's `.card` sets no colour of its own, so `revert-layer`
+   drops the text back to the legacy unlayered `:root{color:#18221d}`, which is
+   light-only. Measured on [data-theme="fju-dark"]: near-black body text on the
+   dark `--surface` card, 1.07:1. Binding to --surface-foreground makes the two
+   halves of the card flip together. */
+
+/* Legacy `button{background:#fff;border:1px solid var(--line);border-radius:10px;
+   padding:.68rem 1rem;color:var(--ink)}` repaints every HeroUI button as a white
+   outline box — including `variant="danger"`, which is the one control on this
+   page that must not look optional. */
+[data-page="data"] .button[data-slot="button"],[data-page="assistant"] .button[data-slot="button"],[data-rac][role="alertdialog"] .button[data-slot="button"]{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;font-weight:revert-layer}
+
+/* Legacy `input,select,textarea{border:1px solid #cdd5ce;background:#fff;
+   padding:.78rem .85rem;color:var(--ink);width:100%}` pins both composers to a
+   white box with near-black text, which is unreadable inside a dark card. */
+[data-page="data"] .textarea[data-slot="textarea"],[data-page="assistant"] .textarea[data-slot="textarea"]{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;width:revert-layer}
+
+/* T30 handoff #3 — measured, not quoted from the plan.
+   `--danger` and `--muted` are still shadowed by the legacy unlayered
+   `:root{--danger:#a93232;--muted:#667069}` in BOTH themes. That was harmless
+   while they were only ever text colours on a white page; this migration puts
+   both to new work:
+
+     - `.button--danger` uses `--danger` as a BACKGROUND under
+       `--danger-foreground`, and `--danger-foreground` IS theme-aware. In light
+       that pairs white on #a93232 = 6.58:1 (fine); in dark it pairs the dark
+       ink (oklch 17.68%) on the same #a93232 = 2.1:1, a failure.
+     - `--muted` colours the new `<dl>` labels and the card descriptions.
+       #667069 on the dark `--surface` measures 3.39:1, also a failure.
+
+   Both are restored to the design-system values for this subtree only, per
+   theme, rather than un-shadowed globally — un-shadowing repaints every error
+   string and focus ring app-wide, which T11 deliberately deferred to T41.
+   Measured after, in Chrome at all four widths: danger 6.58 light / 9.26 dark,
+   muted-on-surface 5.14 light / 7.55 dark.
+   `[role="alertdialog"]` is in the list because React Aria portals the confirm
+   dialog to `document.body`, outside `[data-page]`, so it would otherwise miss
+   both repairs. Delete with the legacy `:root` block in T41. */
+[data-page="data"],[data-page="assistant"],[data-rac][role="alertdialog"]{--danger:oklch(50.13% 0.1783 28.7);--muted:oklch(48.54% 0.0083 268.47)}
+[data-theme="fju-dark"] :is([data-page="data"],[data-page="assistant"],[data-rac][role="alertdialog"]){--danger:oklch(78.85% 0.1223 25.05);--muted:oklch(73.92% 0.0146 258.35)}
+
+/* `.big-stats` replaced by a `<dl>` (the old span/strong pair carried no
+   relationship between label and number). Three across from `sm` up, stacked
+   below so the numbers stay readable at 375px. */
+.data-stats{display:grid;gap:.5rem;margin:0}
+/* Bordered rather than filled: `--muted` is still shadowed by the legacy
+   `#667069`, and measured on `--surface-secondary` the label came out 4.47:1 —
+   just under 4.5. On `--surface` the same colour measures 5.14:1, and a 1px
+   rule is the §4.1 "structure, not elevation" treatment anyway. */
+.data-stats>div{display:flex;flex-direction:column-reverse;gap:.15rem;padding:1rem;border:1px solid var(--separator);border-radius:10px;background:var(--surface);text-align:center}
+.data-stats dt{color:var(--muted);font-size:.9375rem}
+.data-stats dd{margin:0;color:var(--accent);font-size:1.8rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+@media (min-width:640px){.data-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* §5.3 touch floor. HeroUI's `md` button is 40px and shrinks to 36px from the
+   `md:` breakpoint up; the page's own buttons carry `min-h-11` in the TSX, but
+   the confirm dialog's two controls come from the shared `ConfirmDialog` and
+   measured 36px. Raised here rather than in the component so the sibling page
+   migrations touching it are not edited from this branch. */
+[data-rac][role="alertdialog"] .button[data-slot="button"]{min-height:2.75rem}
+
+/* HeroUI's `.meter` is a grid of label / output / track; the output holds a byte
+   figure here rather than a bare percent, so it needs room not to wrap. */
+.data-storage-meter{width:100%}
+.data-storage-meter .meter__output{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* §4.4-4: no content text below 15px. HeroUI's `.card__description` is 14px. */
+[data-page="data"] .card__description,[data-page="assistant"] .card__description{font-size:.9375rem;color:var(--muted)}
+[data-page="data"] .card__title,[data-page="assistant"] .card__title{font-size:1.25rem;line-height:1.45;font-weight:600;color:inherit}
+[data-page="data"] .card,[data-page="assistant"] .card{gap:.8rem}
+[data-page="data"] .card__content{display:flex;flex-direction:column;min-width:0}
+/* Legacy `.completed-row{align-items:center}` and its `!important` column flip
+   at <=640px both fight the Tailwind classes the row now carries. */
+[data-page="data"] .completed-row{align-items:revert}
+[data-page="data"] .completed-name{overflow-wrap:break-word;line-break:strict;word-break:normal}
+[data-page="data"] .empty-panel{padding:2rem 1rem}
+
+/* The assistant page keeps its legacy layout classes; only the controls moved
+   to HeroUI. These rules stop the legacy chip/composer styling from flattening
+   the HeroUI buttons that replaced the bare `<button>`s. */
+[data-page="assistant"] .assistant-examples .button,[data-page="assistant"] .assistant-followups .button{min-height:2.75rem;border-radius:999px}
+[data-page="assistant"] .assistant-composer{display:flex;flex-direction:column}
+/* === T36 data + assistant — end ============================================ */

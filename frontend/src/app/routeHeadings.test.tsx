@@ -100,14 +100,27 @@ describe("route heading contract", () => {
   // /schedule renders its heading, drops it for a loading panel while it fetches
   // the plan's courses, then renders it again. Focus has to end up on the final one.
   it("re-takes focus when /schedule swaps its heading around the loading panel", async () => {
-    let releaseCourses = () => undefined as void;
+    // Every call gets its resolver kept, and `releaseCourses` settles all of them.
+    // A single `releaseCourses` variable overwritten per call made this test flaky
+    // (~1 run in 5 of the full suite): when the query fired more than once, only
+    // the last promise was resolved and whichever one the page actually awaited
+    // stayed pending, so it never left the loading panel.
+    // The latch also covers a call that arrives *after* the release, which a
+    // refetch can do — otherwise that fresh promise would hang instead.
+    const pendingCourses: Array<() => void> = [];
+    let released = false;
+    const releaseCourses = () => {
+      released = true;
+      for (const resolve of pendingCourses.splice(0)) resolve();
+    };
     dbMocks.getAllRecords.mockImplementation(async (store: string) => {
       if (store === "profile") return [profile];
       if (store === "schedulePlans") return [{ ...plan, entries: [{ courseId: "day", locked: false }] }];
       return [];
     });
     apiMocks.getCoursesByIds.mockImplementation(() => new Promise((resolve) => {
-      releaseCourses = () => resolve([]);
+      if (released) resolve([]);
+      else pendingCourses.push(() => resolve([]));
     }));
 
     mountRoute("/schedule");

@@ -277,13 +277,18 @@ describe("ExplorePage — pagination boundaries", () => {
     expect(screen.getByRole("button", { name: "下一頁" })).toBeEnabled();
 
     await user.click(screen.getByRole("button", { name: "第 3 頁" }));
-    // The page-3 request has to resolve before the boundary flips, and RTL's
-    // 1s default is not enough for that once the whole suite runs in parallel.
+    // Both boundaries are asserted inside ONE waitFor. Waiting only on 下一頁
+    // being disabled was ambiguous and made this flaky: while the page-3 request
+    // is in flight every nav button is disabled, so that condition goes true
+    // mid-load, at which point 上一頁 has not re-enabled yet and the assertion
+    // after the waitFor failed. The pair is only true together once settled.
     await waitFor(
-      () => expect(screen.getByRole("button", { name: "下一頁" })).toBeDisabled(),
-      { timeout: 4000 },
+      () => {
+        expect(screen.getByRole("button", { name: "下一頁" })).toBeDisabled();
+        expect(screen.getByRole("button", { name: "上一頁" })).toBeEnabled();
+      },
+      { timeout: 15000 },
     );
-    expect(screen.getByRole("button", { name: "上一頁" })).toBeEnabled();
   });
 
   it("summarises the window of results, not just the page number", async () => {

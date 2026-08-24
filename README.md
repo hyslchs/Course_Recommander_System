@@ -6,7 +6,9 @@ course outlines for recommendation-system research.
 The repository now also contains a local-first course recommendation MVP:
 
 - FastAPI catalog and query-embedding API.
-- React/TypeScript course discovery, recommendation, and timetable UI.
+- React 19 / TypeScript course discovery, recommendation, and timetable UI,
+  built with Vite 8, Tailwind v4 and HeroUI v3, with light and dark themes.
+  API reads go through TanStack Query; local data stays in IndexedDB.
 - IndexedDB-only profiles, completed courses, favorites, and schedules.
 - Conservative eligibility rules with source evidence.
 - Versioned catalog and float32 embedding artifacts.
@@ -66,7 +68,9 @@ pytest -q
 
 cd frontend
 pnpm install
-pnpm dev
+pnpm dev        # dev server, proxies /api to the backend
+pnpm test       # vitest
+pnpm build      # tsc -b && vite build -> frontend/dist
 ```
 
 Run the API in another terminal after generating artifacts:
@@ -74,6 +78,12 @@ Run the API in another terminal after generating artifacts:
 ```bash
 fju-outline-web --artifacts-dir data/artifacts/1151 --port 8080
 ```
+
+The backend serves `frontend/dist` for every non-API route. If that directory is
+missing it returns **503 with the build command**, rather than silently serving a
+stale or older UI — so run `pnpm build` before using the API server as the
+frontend host. `/health/ready` keeps answering regardless, so container health
+checks are unaffected.
 
 The v3 artifact build also creates `query-route-index.json` and
 `query-route-embeddings.f32`. Routes describe only reviewed role/context

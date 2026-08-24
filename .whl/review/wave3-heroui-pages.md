@@ -96,3 +96,84 @@ light timetable hex, and the shadowed `--muted` (31 of 48 failures on its own).
 and T40 cannot fix these without duplicating T41. The plan already contains the
 circularity — T41 says to re-measure contrast after the teardown, while T40's
 acceptance needs the tokens that teardown unshadows. Recorded in `tasks.md`.
+
+---
+
+# Re-review after the fix wave — `2b163c8`
+
+All 15 defects fixed across six commits (FIX50–FIX54 plus two orchestrator fixes).
+Independently re-verified in a real browser against the live backend.
+
+| Check | Result |
+|---|---|
+| Frontend tests | **253 / 26 files** — clean across 8 + 3 consecutive runs |
+| Backend tests | 39 / 39 |
+| `tsc -b --force` | 0 errors |
+| `pnpm build` | ok — CSS 792.62 kB / 251.85 kB gz |
+
+**All 11 verification items PASS**, measured: `/schedule` page h-scroll 0px across
+48 width×theme×route combinations · day picker 7 buttons at 46.7×44 in one row,
+right edge 351 in a 375 viewport · **Lighthouse a11y 100 desktop AND mobile** with
+`aria-required-children`/`aria-required-parent`/`label-content-name-mismatch` all
+clean · slot affordance visible at 13px / **5.139:1** · `.class-block small` 13px /
+**6.736:1** · `/data` dialog buttons distinct with accent fill 8.398:1 light,
+9.211:1 dark · drawer discard proven on all five paths with no draft leak · explore
+action column writes to IndexedDB, not sortable, absent below `lg` · sort and focus
+survive the breakpoint · pagination fix **negative-controlled against a rebuilt
+baseline bundle** (baseline snapped back to page 1 at +420ms; fixed stays).
+
+**FIX50's consolidation is clean** — a systematic A/B of 492 control measurements
+(6 routes × 2 themes, new CSS vs baseline CSS over the same DOM) found **zero**
+HeroUI controls rendering as the legacy white box, and legacy non-HeroUI buttons
+byte-identical. It also covers FIX53's newly added buttons, which would otherwise
+have been legacy white boxes.
+
+## Adjudicated: the original "white box" finding was partly wrong
+
+The plan-adherence reviewer reported `/recommend`'s `Tag.RemoveButton` as a white
+box that stayed white in dark mode. Re-measured against a rebuilt `1aa620a` bundle
+(byte-size match): baseline was **rgb(243,242,240) light / rgb(36,39,45) dark** —
+HeroUI's own `bg-default`, which *did* flip with the theme and was identical to the
+chip background, so it was never visible as a box at all. Only the oversized 44×44
+footprint was real. The white-box description belongs to the *other* portalled
+controls (DataPage modal buttons, drawer close), where it reproduced exactly. The
+fixing agent's challenge to its own brief was correct.
+
+## One regression introduced by the fix wave, and fixed
+
+FIX51's `.mobile-day-picker` rule was unscoped and had the same (0,2,0) specificity
+as the `min-width:768px` `display:none` while coming later in source order, so the
+picker rendered above the full 7-day grid at every desktop width. Scoped to
+`max-width:767.98px` in `2b163c8`; verified `display:none` at 1440 with the grid
+intact, and mobile unchanged.
+
+## Corrections to this report's own earlier claims
+
+- **`/data` Lighthouse a11y is 95, not 100** — `aria-allowed-attr` on the storage
+  `Meter` (`role="meter progressbar"`; axe cannot resolve the multi-token role).
+  **Reproduced identically at 95 on the pre-wave baseline**, so it is not a
+  regression — but "100 everywhere else" above was wrong. Real AT resolves `meter`,
+  which permits those attributes, so user impact is likely nil.
+- FIX51 self-reported 1 residual mobile `label-content-name-mismatch` item. It does
+  not reproduce; the audit is clean on both desktop and mobile.
+
+## Verdict
+
+- **Accessibility must not regress — MET.** `/schedule` 90 → **100 desktop and
+  mobile**; `/recommend`, `/explore`, `/onboarding`, 404 all 100; `/data` 95
+  unchanged from baseline. No route regressed.
+- **Mobile-first at four widths — MET.** 0px page h-scroll across all 48
+  combinations; 0 sub-44px focusable targets at 375 on all five app routes.
+- **§4.2 contrast in light — MET.** 565 text elements sampled across 6 routes,
+  **0 failures**.
+- **Dark mode — still broken**, unchanged and pending the legacy teardown: 83
+  failures / 553 sampled, floor 1.09:1, `html` still rgb(243,245,241) under
+  `fju-dark`. (Not comparable to the earlier count of 48 — different page states.)
+
+## Known, pre-existing, not caused by this wave
+
+`--focus` resolves to the legacy green `#0d5238` rather than the plan's accent
+(same shadowing family as `--muted`; add to T41's list) · `/explore` SearchField
+clear button reads "Close" in English on a zh-Hant page · 開啟官方課綱 links are
+96×24 at 375 (passes WCAG 2.5.8 AA, under §5.3's 44px preference) · the `<lg` card
+layout does not reflect the table sort — **worth a product decision**.

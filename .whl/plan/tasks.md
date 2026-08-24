@@ -365,8 +365,9 @@ Skeleton 高度對齊 Table row（避免版面跳動）。
 
 ## 階段 4 — 收尾
 
-> ## 🔴 提案：把 T41 拆成 T41a / T41b，**T41a 必須排在 T40 之前**
-> *依據：wave 3 三位審查者的實測，完整報告見 `.whl/review/wave3-heroui-pages.md`。待使用者確認。*
+> ## ✅ 已採納：T41 拆成 T41a / T41b，**T41a 排在 T40 之前**
+> *依據：wave 3 三位審查者的實測，完整報告見 `.whl/review/wave3-heroui-pages.md`。使用者指示「繼續跑到計畫完成」，由 orchestrator 依實測結果定案。*
+> **新執行順序：T41a → T40 → T41b → T42。**
 >
 > **為什麼**：T40 的驗收條件是「五個頁面 × 亮暗兩色全部檢查」。但實測顯示 `fju-dark` 下各頁**仍然是亮的**（以 luma>200 的畫素佔比計）：`/schedule` **94.5% 亮**、`/onboarding` 65.9%、`/recommend` 68.1%、`/data` 49.8%、`/explore` 34.3%。暗色對比共 **48 項不合格，最低 1.09:1**。
 > 每一個成因都是 T41 本來就要刪的舊 CSS，而且**在 T40 的範圍內無解**：
@@ -394,6 +395,26 @@ Skeleton 高度對齊 Table row（避免版面跳動）。
 ```bash
 pnpm add motion
 ```
+
+> ### ⚠️ Magic UI 原始碼實查（orchestrator 已抓下三個 registry item，以下都是讀原始碼得到的，不是推測）
+>
+> **這三個元件都用 `npx shadcn` 安裝，但本專案沒有 shadcn，也沒有 `@/lib/utils` 的 `cn()`。三個都必須手動 vendor 並改寫。**
+>
+> **1. `animated-theme-toggler` —— 有 controlled 模式，但它「還是」會寫 class。**
+> 它確實支援 `theme` + `onThemeChange` 的 controlled 用法（計畫要的就是這個），**但 `applyTheme()` 裡有一行無條件執行的 `document.documentElement.classList.toggle("dark")`**，原始碼註解說是為了讓 View Transitions 能在 callback 內快照到新主題。
+> 這與計畫「只寫 `data-theme` 屬性、不寫 classList」直接衝突，也會和 T11 建立的 `@custom-variant dark (&:where([data-theme="fju-dark"], …))` 打架 —— 結果會是 class 與屬性各說各話。**vendor 進來時必須把那行改成寫 `data-theme`。**
+> 另：它 `import { Moon, Sun } from "lucide-react"` —— 計畫明訂不引入第二套圖示庫，換成既有的 `@phosphor-icons/react`。
+> 它用 View Transitions API，所以計畫 §4.6 說的 reduced-motion 要涵蓋 `::view-transition-*` 是**必要的，不是可選的**。
+>
+> **2. `number-ticker` —— 計畫列的兩處修補都確認存在，且有第三處。**
+> - `Intl.NumberFormat("en-US", …)` 寫死 → 改 `zh-Hant-TW` ✅（計畫已列）
+> - `className` 寫死 `text-black tabular-nums dark:text-white` → 拿掉 ✅（計畫已列）
+> - **第三處（計畫未列）**：那個 `dark:text-white` 在本專案**本來就不會生效** —— 因為用的是 `data-theme` 而不是 `.dark` class。所以它在暗色下會是黑字。拿掉硬編碼顏色同時解決這點。
+> - 它靠 `useInView` + `useSpring`（JS 驅動），**CSS 的 reduced-motion 擋不住**。
+>
+> **3. `blur-fade` —— `inView` 預設是 `false`，意思是「不等進入視窗、直接動」。** 計畫要的是推薦結果卡片的 stagger，要自己決定是否傳 `inView`。同樣是 JS 驅動的 spring/tween。
+>
+> **共同結論**：`number-ticker` 與 `blur-fade` 都相依 `motion`，且都是 JS 驅動 —— 這正是計畫 §4.6 第 2 層 `useReducedMotion()` hook **必須直接跳過 wrapper**（而不是靠 CSS `!important`）的原因。三個元件的 `cn()` 都要換成本專案既有的寫法。
 
 **驗證**：五個頁面 × 亮暗兩色全部檢查 · 開啟系統「減少動態效果」後**確實**沒有動畫（含 JS 驅動的）· 暗色下所有對比度符合計畫 §4.2
 

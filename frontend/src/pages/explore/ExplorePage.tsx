@@ -9,6 +9,7 @@ import {
   Pagination,
   SearchField,
   Select,
+  type SortDescriptor,
 } from "@heroui/react";
 import { useCourses, useFacets } from "@/data/queries";
 import { evaluateEligibility } from "@/domain/eligibility";
@@ -18,6 +19,7 @@ import { useLocalRecords, useProfile } from "@/hooks/localData";
 import { CourseCard } from "@/components/CourseCard";
 import { EmptyState, LoadingSkeleton, StateAlert } from "@/components/ui";
 import { CourseTable, CourseTableSkeleton, type CourseRow } from "./CourseTable";
+import { useLayoutSwitchFocus } from "./useLayoutSwitchFocus";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
 import type { CompletedCourse } from "@/domain/types";
 
@@ -66,12 +68,23 @@ export function ExplorePage() {
   const profile = useProfile();
   const completed = useLocalRecords<CompletedCourse & { id: string }>("completedCourses");
   const isDesktop = useIsDesktop();
+  const { announcement, regionRef } = useLayoutSwitchFocus(isDesktop);
 
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [department, setDepartment] = useState<string | null>(null);
   const [weekday, setWeekday] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  /*
+    Owned here, not in `CourseTable`, because `CourseTable` does not survive the
+    breakpoint — see `CourseTableProps.sortDescriptor`. The page does, so the
+    order a student chose is still theirs after a resize or a text-size change.
+    It is deliberately *not* reset when the page or the filters change: the
+    descriptor names a column and a direction, both of which stay meaningful over
+    a different set of 25 rows, and silently reverting to server order on every
+    keystroke would be the same disappearance in a different costume.
+  */
+  const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>();
 
   // Unchanged from the pre-migration page: 300ms after the last keystroke, and
   // back to page 1 because the old page's results no longer exist.
@@ -281,11 +294,33 @@ export function ExplorePage() {
         />
       )}
 
+      {/*
+        Mounted unconditionally and outside the `showResults` branch, because a
+        live region only announces text that changes *while it is already in the
+        a11y tree* — one that appears carrying its message is usually read as
+        nothing at all. Empty until the first layout switch.
+      */}
+      <div aria-live="polite" className="sr-only" role="status">{announcement}</div>
+
       {showResults && (
-        <div aria-busy={coursesQuery.isFetching} className="results-region">
+        /*
+          `tabIndex={-1}` so `useLayoutSwitchFocus` has somewhere to put focus
+          when the breakpoint takes the focused widget away, and `role="region"`
+          plus a name so landing here says where "here" is instead of announcing
+          an anonymous group. The global `[tabindex]:focus-visible` rule in
+          `styles.css` already draws the ring, so no new style is needed.
+        */
+        <div
+          aria-busy={coursesQuery.isFetching}
+          aria-label="課程結果"
+          className="results-region"
+          ref={regionRef}
+          role="region"
+          tabIndex={-1}
+        >
           {coursesQuery.isFetching && <div className="updating-indicator" role="status">正在更新結果…</div>}
           {isDesktop
-            ? <CourseTable rows={rows} />
+            ? <CourseTable onSortChange={setSortDescriptor} rows={rows} sortDescriptor={sortDescriptor} />
             : <div className="course-grid">{courses.map((item) => <CourseCard key={item.course_id} course={item} />)}</div>}
         </div>
       )}

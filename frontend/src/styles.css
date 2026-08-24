@@ -824,6 +824,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    migrations touching it are not edited from this branch. */
 [data-rac][role="alertdialog"] .button[data-slot="button"]{min-height:2.75rem}
 
+/* §5.3 touch floor, SearchField. `SearchField.Input` carries `min-h-11` in the
+   TSX, but HeroUI's `.search-field__group` is 36px with `overflow:hidden`, so it
+   clipped the 44px input back down — hit-testing confirmed the real target was
+   36px, the only 44px violation left in the app and visibly inconsistent with
+   the 44px Selects beside it. Raising the group is the fix; the input's own
+   floor was never the problem. Found by the final verification sweep. */
+.search-field__group{min-height:2.75rem}
+
 /* HeroUI's `.meter` is a grid of label / output / track; the output holds a byte
    figure here rather than a bare percent, so it needs room not to wrap. */
 .data-storage-meter{width:100%}
@@ -1327,9 +1335,20 @@ html[data-fju-theme-vt="active"]::view-transition-new(root){clip-path:var(--fju-
    Three things were still wrong, all of them introduced after the legacy
    hide-list was written, which is why none of them were on it. */
 @media print {
+  /* The skip link is `position:fixed`, so it prints on every sheet, landing on
+     top of the DN row of the A4-landscape timetable. It is a keyboard
+     affordance for the live page and has no meaning on paper. Found by the
+     final verification sweep. */
+  .skip-link,
   .recommend-filter-launcher,
   .updating-indicator {
     display: none !important;
+  }
+  /* The route focus manager focuses the h1 on navigation, so the focus ring
+     printed with it. */
+  #main-content :focus,
+  #main-content :focus-visible {
+    outline: none !important;
   }
   /* `position:sticky` resolves against the print box, so the header row and
      the section labels re-pin on every printed page and overlap the rows

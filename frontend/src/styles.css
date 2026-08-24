@@ -1132,9 +1132,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    one unbroken row. `flex-wrap` is the belt and braces for the 320px
    `body{min-width}` floor, where 7 x 44 no longer fits: it wraps to two rows
    rather than overflowing, and the target size survives either way. */
-[data-page="schedule"] .mobile-day-picker{display:flex;flex-direction:column;align-items:stretch;gap:.4rem}
-[data-page="schedule"] .mobile-day-picker .toggle-button-group{flex-wrap:wrap}
-[data-page="schedule"] .mobile-day-picker .toggle-button{flex:1 1 auto;min-width:44px;padding-inline:.3rem}
+/* Confined to the mobile range. Unscoped, this `display:flex` had the same
+   (0,2,0) specificity as the `display:none` in the `min-width:768px` block far
+   above and came later in source order, so it won at every width and the day
+   picker reappeared above the full 7-day desktop grid. */
+@media (max-width:767.98px){
+  [data-page="schedule"] .mobile-day-picker{display:flex;flex-direction:column;align-items:stretch;gap:.4rem}
+  [data-page="schedule"] .mobile-day-picker .toggle-button-group{flex-wrap:wrap}
+  [data-page="schedule"] .mobile-day-picker .toggle-button{flex:1 1 auto;min-width:44px;padding-inline:.3rem}
+}
 
 /* P2-d. T35 raised the *button* to `--muted` at full opacity but the legacy
    `.schedule-slot-button span{opacity:0}` still hid the 找課 label itself, so 97

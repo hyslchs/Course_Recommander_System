@@ -60,17 +60,39 @@ function notifyLocalDataChanged(detail: StoreName | "all"): void {
   window.dispatchEvent(new CustomEvent("fju-local-data", { detail }));
 }
 
-/** Writes rows in a single transaction without announcing them. */
-async function writeRecords<T extends object>(store: StoreName, values: readonly T[]): Promise<void> {
-  if (!values.length) return;
+/**
+ * Writes several stores inside *one* transaction without announcing them.
+ * IndexedDB scopes a transaction to a list of stores, so the whole set commits
+ * or none of it does: a failure halfway through can no longer leave the
+ * database half-written.
+ */
+async function writeBatches(batches: readonly (readonly [StoreName, readonly object[]])[]): Promise<void> {
+  const filled = batches.filter(([, values]) => values.length);
+  if (!filled.length) return;
   const db = await openDatabase();
   await new Promise<void>((resolve, reject) => {
-    const transaction = db.transaction(store, "readwrite");
-    const objectStore = transaction.objectStore(store);
-    for (const value of values) objectStore.put(value);
+    const transaction = db.transaction(filled.map(([store]) => store), "readwrite");
+    const fail = () => reject(transaction.error ?? new Error("寫入資料庫失敗"));
     transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
+    transaction.onerror = fail;
+    transaction.onabort = fail;
+    try {
+      for (const [store, values] of filled) {
+        const objectStore = transaction.objectStore(store);
+        for (const value of values) objectStore.put(value);
+      }
+    } catch (error) {
+      // A synchronous throw (an unclonable row, say) leaves the transaction
+      // live: abort it so nothing it already queued reaches disk.
+      try { transaction.abort(); } catch { /* already aborting */ }
+      reject(error);
+    }
   });
+}
+
+/** Writes rows in a single transaction without announcing them. */
+async function writeRecords<T extends object>(store: StoreName, values: readonly T[]): Promise<void> {
+  await writeBatches([[store, values]]);
 }
 
 export async function putRecord<T extends object>(store: StoreName, value: T): Promise<void> {
@@ -161,28 +183,52 @@ export function validateBackup(value: unknown): BackupV1 {
  * This used to call `putRecord` per row, so a backup with N records dispatched N
  * `fju-local-data` events — N full re-reads of the store plus N re-renders of
  * every component under `LocalDataProvider`, mid-import. Rows are now resolved
- * first, written one transaction per store, and announced exactly once with
- * `"all"` at the end. Callers see the same final state, and the UI sees a single
- * update instead of a storm.
+ * first, written in one transaction covering every store, and announced exactly
+ * once with `"all"` at the end. Callers see the same final state, and the UI
+ * sees a single update instead of a storm.
+ *
+ * Two integrity rules the batching has to keep:
+ * - A schedule plan id counts as taken once *this import* has claimed it, not
+ *   only when the store already holds it. Checking the store alone let two rows
+ *   of one backup share an id, and the second `put` then silently replaced the
+ *   first — a plan lost with no error.
+ * - Every store is written in a single transaction, so a failure partway
+ *   through rolls the whole import back instead of committing a prefix of it.
  */
 export async function importBackup(backup: BackupV1, overwriteProfile: boolean): Promise<void> {
+  const claimedPlanIds = new Set((await getAllRecords<{ id: string }>("schedulePlans")).map((plan) => plan.id));
   const batches: [StoreName, { id: string }[]][] = [];
   for (const [store, rows] of Object.entries(backup.data) as [StoreName, { id: string }[]][]) {
     if (store === "profile" && !overwriteProfile) continue;
     const prepared: { id: string }[] = [];
     for (const original of rows) {
       let row = original;
-      if (store === "schedulePlans" && (await getRecord(store, row.id))) {
-        row = {
-          ...row,
-          id: `${row.id}-import-${crypto.randomUUID().slice(0, 8)}`,
-          name: `${(row as SchedulePlan).name}（匯入）`,
-        } as { id: string };
+      if (store === "schedulePlans") {
+        // Re-key rather than overwrite, and keep re-keying on the (vanishing)
+        // chance the generated id is taken too. The suffixes are always built
+        // from the original row so a second pass cannot double-suffix.
+        while (claimedPlanIds.has(row.id)) {
+          row = {
+            ...original,
+            id: `${original.id}-import-${crypto.randomUUID().slice(0, 8)}`,
+            name: `${(original as SchedulePlan).name}（匯入）`,
+          } as { id: string };
+        }
+        claimedPlanIds.add(row.id);
       }
       prepared.push(row);
     }
     if (prepared.length) batches.push([store, prepared]);
   }
-  for (const [store, rows] of batches) await writeRecords(store, rows);
-  if (batches.length) notifyLocalDataChanged("all");
+  if (!batches.length) return;
+  try {
+    await writeBatches(batches);
+  } catch (error) {
+    // Nothing was committed, but announce anyway: a subscriber that re-reads
+    // the database is guaranteed to be showing what is actually stored, which
+    // is exactly what the old per-store loop could not promise.
+    notifyLocalDataChanged("all");
+    throw error;
+  }
+  notifyLocalDataChanged("all");
 }

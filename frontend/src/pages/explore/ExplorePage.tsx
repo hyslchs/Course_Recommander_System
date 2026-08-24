@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type Key } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Key } from "react";
 import {
   Button,
   ComboBox,
@@ -86,10 +86,28 @@ export function ExplorePage() {
   */
   const [sortDescriptor, setSortDescriptor] = useState<SortDescriptor>();
 
-  // Unchanged from the pre-migration page: 300ms after the last keystroke, and
-  // back to page 1 because the old page's results no longer exist.
+  /*
+    300ms after the last keystroke, and back to page 1 because the old page's
+    results no longer exist.
+
+    The `settledQuery` guard is the fix for a real race, not ceremony. This effect
+    also runs on mount, so the original version fired `setPage(1)` 300ms after the
+    page first rendered even though nobody had typed anything — silently throwing
+    away any page the student picked inside that window. It is reachable by hand
+    (load /explore, click 第 2 頁 immediately) and it is what made the pagination
+    boundary test flaky: under a loaded test run the click landed before the timer
+    and the page snapped back to 1. Resetting only when the query actually changed
+    leaves the keystroke behaviour identical and closes the mount window.
+  */
+  const settledQuery = useRef(query);
   useEffect(() => {
-    const timer = window.setTimeout(() => { setDebouncedQuery(query); setPage(1); }, 300);
+    const timer = window.setTimeout(() => {
+      if (settledQuery.current !== query) {
+        settledQuery.current = query;
+        setPage(1);
+      }
+      setDebouncedQuery(query);
+    }, 300);
     return () => window.clearTimeout(timer);
   }, [query]);
 

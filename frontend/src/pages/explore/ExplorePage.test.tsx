@@ -516,6 +516,33 @@ describe("ExplorePage — pagination boundaries", () => {
     expect(await screen.findByText("第 1–25 筆，共 51 筆")).toBeInTheDocument();
   });
 
+  /*
+    Regression: the search debounce effect also runs on mount, and its original
+    form called `setPage(1)` unconditionally 300ms later. A page chosen inside
+    that window was silently thrown away — reachable by hand (load the page, click
+    第 2 頁 straight away) and the cause of a flaky boundary test. Fake timers make
+    the window deterministic instead of load-dependent.
+  */
+  it("keeps a page picked before the mount debounce fires", async () => {
+    vi.useFakeTimers();
+    respondWith([course()], 51);
+    renderPage();
+
+    // Let the first query settle without letting fake time reach 300ms, so the
+    // click below genuinely happens inside the mount debounce window.
+    await act(async () => { await vi.advanceTimersByTimeAsync(10); });
+    const pageTwo = screen.getByRole("button", { name: "第 2 頁" });
+    await act(async () => { fireEvent.click(pageTwo); });
+    expect(screen.getByRole("button", { name: "第 2 頁" })).toHaveAttribute("aria-current", "page");
+
+    // Cross the 300ms debounce. Before the fix this fired setPage(1) and the
+    // selection above was silently lost.
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+
+    expect(screen.getByRole("button", { name: "第 2 頁" })).toHaveAttribute("aria-current", "page");
+    vi.useRealTimers();
+  });
+
   it("hides pagination when a filter returns nothing", async () => {
     respondWith([], 0);
     renderPage();

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RecommendPage } from "./RecommendPage";
@@ -34,6 +34,38 @@ const plan: SchedulePlan = { id: "plan", name: "測試方案", entries: [], crea
  */
 const appliedFilters = () => screen.getByRole("region", { name: "已套用的篩選條件" });
 const appliedFiltersNode = () => document.querySelector(".applied-filters") as HTMLElement;
+
+type User = ReturnType<typeof userEvent.setup>;
+
+/**
+ * HeroUI's drag-to-dismiss is its own pointer hook on the drawer dialog (React
+ * Aria knows nothing about it), and it refuses to start from an interactive
+ * element or from the scrolling body — the drag handle is where a thumb
+ * actually lands, so that is what this drives.
+ *
+ * jsdom has no layout, so `offsetHeight` is 0 and any downward offset clears the
+ * "30% of the panel" dismiss threshold. The gesture still runs end to end: the
+ * 8px activation threshold, the capture, and the release. Pointer capture is
+ * stubbed per element because jsdom implements neither side of it.
+ */
+function swipeDown() {
+  const dialog = screen.getByRole("dialog");
+  const handle = dialog.querySelector("[data-slot='drawer-handle']") as HTMLElement;
+  Object.assign(dialog, { releasePointerCapture() {}, setPointerCapture() {} });
+  fireEvent.pointerDown(handle, { button: 0, clientY: 40, pointerId: 1 });
+  fireEvent.pointerMove(handle, { clientY: 260, pointerId: 1 });
+  fireEvent.pointerUp(handle, { clientY: 260, pointerId: 1 });
+}
+
+/** The four ways out of the sheet that are *not* 套用. */
+const dismissals: [string, (user: User) => Promise<void>][] = [
+  ["Escape", async (user) => { await user.keyboard("{Escape}"); }],
+  ["the backdrop", async (user) => { await user.click(document.querySelector(".drawer__backdrop") as HTMLElement); }],
+  ["the ✕ close control", async (user) => {
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "關閉面板" }));
+  }],
+  ["a swipe down", async () => { swipeDown(); }],
+];
 
 describe("recommend page filters", () => {
   beforeEach(() => {
@@ -82,7 +114,7 @@ describe("recommend page filters", () => {
     expect(within(appliedFilters()).getByText("目前沒有額外的硬條件")).toBeInTheDocument();
   });
 
-  it("holds drawer edits back until the sheet closes", async () => {
+  it("holds drawer edits back until 套用, then commits them in one go", async () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /篩選/ }));
     const sheet = within(await screen.findByRole("dialog"));
@@ -94,21 +126,62 @@ describe("recommend page filters", () => {
     expect(within(appliedFiltersNode()).getByText("檢查衝堂")).toBeInTheDocument();
 
     await user.click(sheet.getByRole("button", { name: "套用 2 項" }));
-    await waitFor(() => expect(within(appliedFilters()).getByText("已套用 2 項條件")).toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    expect(within(appliedFilters()).getByText("已套用 2 項條件")).toBeInTheDocument();
     expect(within(appliedFilters()).queryByText("檢查衝堂")).not.toBeInTheDocument();
   });
 
-  it("commits the draft when the sheet is dismissed with Escape, not discards it", async () => {
+  /**
+   * FIX54. The sheet used to commit on *any* close, which made its own 套用
+   * button redundant and gave a student who backed out conditions they never
+   * confirmed. Every one of React Aria's four exits now discards instead, so
+   * each is pinned separately — they are four different code paths inside the
+   * overlay (keyboard, interact-outside, the close trigger, and HeroUI's own
+   * pointer-drag hook), and only `onOpenChange`/`onClose` is shared.
+   */
+  describe.each(dismissals)("dismissing with %s", (_label, dismiss) => {
+    it("throws the draft away and leaves the results untouched", async () => {
+      const user = userEvent.setup();
+      await user.click(screen.getByRole("button", { name: /篩選/ }));
+      const sheet = within(await screen.findByRole("dialog"));
+      await user.click(sheet.getByRole("switch", { name: "納入完整課表檢查衝堂" }));
+      expect(sheet.getByRole("button", { name: "套用 2 項" })).toBeInTheDocument();
+
+      await dismiss(user);
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      // The committed set — and so the tag list driving the results — is exactly
+      // what it was before the sheet opened.
+      expect(within(appliedFilters()).getByText("已套用 3 項條件")).toBeInTheDocument();
+      expect(within(appliedFilters()).getByText("檢查衝堂")).toBeInTheDocument();
+    });
+
+    it("re-seeds the sheet from the committed filters on the next open", async () => {
+      const user = userEvent.setup();
+      await user.click(screen.getByRole("button", { name: /篩選/ }));
+      await user.click(within(await screen.findByRole("dialog")).getByRole("switch", { name: "納入完整課表檢查衝堂" }));
+      await dismiss(user);
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+      await user.click(screen.getByRole("button", { name: /篩選/ }));
+      const reopened = within(await screen.findByRole("dialog"));
+      // Not 套用 2 項: the abandoned draft did not survive the dismissal.
+      expect(reopened.getByRole("button", { name: "套用 3 項" })).toBeInTheDocument();
+      expect(reopened.getByRole("switch", { name: "納入完整課表檢查衝堂" })).toBeChecked();
+    });
+  });
+
+  it("clears only the draft from the sheet's 清除全部", async () => {
     const user = userEvent.setup();
     await user.click(screen.getByRole("button", { name: /篩選/ }));
     const sheet = within(await screen.findByRole("dialog"));
-    await user.click(sheet.getByRole("switch", { name: "暫時忽略星期限制" }));
-    expect(within(appliedFiltersNode()).getByText("星期一、二、三")).toBeInTheDocument();
+    await user.click(sheet.getByRole("button", { name: "清除全部" }));
 
+    expect(sheet.getByRole("button", { name: "套用 0 項" })).toBeInTheDocument();
+    // Still uncommitted, so still discardable.
+    expect(within(appliedFiltersNode()).getByText("已套用 3 項條件")).toBeInTheDocument();
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(within(appliedFilters()).queryByText("星期一、二、三")).not.toBeInTheDocument();
-    expect(within(appliedFilters()).getByText("已套用 2 項條件")).toBeInTheDocument();
+    expect(within(appliedFilters()).getByText("已套用 3 項條件")).toBeInTheDocument();
   });
 
   it("flattens the nested 進階設定 to one disclosure per group inside the sheet", async () => {

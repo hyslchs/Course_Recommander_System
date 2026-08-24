@@ -52,7 +52,7 @@ export function RecommendPage() {
     createFilters(profile?.preferredWeekdays?.length ? profile.preferredWeekdays : defaultPreferredWeekdays));
   // The sheet edits a copy. Plan §5.2-5: re-ranking on every tap inside a
   // bottom sheet reflows a list the user cannot see, so the draft is committed
-  // once, when the sheet closes (by button, Escape, backdrop or swipe-down).
+  // in one go — by 套用 and by nothing else. Every dismissal throws it away.
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const [draftFilters, setDraftFilters] = useState<RecommendFilters>(filters);
   const [lastEmbedding, setLastEmbedding] = useState<RecommendationEmbedding>();
@@ -124,8 +124,23 @@ export function RecommendPage() {
     setDraftFilters(filters);
     setFilterSheetOpen(true);
   };
-  /** Any close commits: the sheet has no cancel, only 套用 (plan §5.2-5). */
-  const closeFilterSheet = () => {
+  /**
+   * Dismissal discards (FIX54). The sheet already carries an explicit 套用 N 項,
+   * and a surface with a commit button that *also* commits when you back out of
+   * it has no way to say "no" — the ✕ and the button would do the same thing,
+   * and Escape would silently apply conditions the student never confirmed.
+   *
+   * Nothing is reset here: `openFilterSheet` re-seeds the draft from the
+   * committed filters, so an abandoned draft can never leak into the next open.
+   *
+   * No "discard your changes?" prompt on a dirty draft: a confirm inside a
+   * bottom sheet is a dialog over a dialog (two stacked focus traps on a phone),
+   * and the thing being protected is a few taps in a panel that is one tap away
+   * — the cost of re-doing it is far below the cost of the interruption.
+   */
+  const dismissFilterSheet = () => setFilterSheetOpen(false);
+  /** The sheet's only commit path. */
+  const commitFilterSheet = () => {
     setFilterSheetOpen(false);
     applyFilters(draftFilters);
   };
@@ -299,13 +314,17 @@ export function RecommendPage() {
         className="recommend-filter-sheet"
         footer={(
           <>
+            {/* Clears the *draft* only. Inside the sheet nothing reaches the
+                results until 套用, so this has to stay reversible by walking
+                out — unlike the identically-named button on the page, which is
+                already outside the draft and therefore commits at once. */}
             <Button className="min-h-11" variant="tertiary" onPress={() => setDraftFilters(clearFilters(draftFilters))}>清除全部</Button>
-            <Button className="min-h-11 flex-1" onPress={closeFilterSheet}>套用 {draftFilterCount} 項</Button>
+            <Button className="min-h-11 flex-1" onPress={commitFilterSheet}>套用 {draftFilterCount} 項</Button>
           </>
         )}
         open={filterSheetOpen}
         title="硬條件篩選"
-        onClose={closeFilterSheet}
+        onClose={dismissFilterSheet}
       >
         <FilterPanel {...panelProps} mode="drawer" value={draftFilters} onChange={setDraftFilters} />
       </SideDrawer>

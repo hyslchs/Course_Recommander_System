@@ -164,6 +164,21 @@
     --surface: oklch(21.68% 0.0109 260.68); /* #171A1F */
     --surface-foreground: var(--foreground);
 
+    /* HeroUI's dark block is `.dark, [data-theme="dark"]` (@heroui/styles 3.2.4,
+       themes/default/variables.css:178) and its light block includes a bare
+       `:root`, which DOES match this app's <html>. So under fju-dark these two
+       kept HeroUI's LIGHT defaults — oklch(95.24%) / oklch(93.73%) — and Table
+       painted a 1200x1997 rgb(239,239,240) slab inside a dark page. They are the
+       only two literal-valued tokens in HeroUI's dark block that fju.css did not
+       already restate (verified by diffing both blocks against this file); every
+       other dark token is a color-mix() derivation that tracks the base tokens.
+       Steps mirror HeroUI's own dark ramp (21.03 -> 25.7 -> 27.21) applied to
+       fju's 21.68% surface, keeping fju's hue and chroma so the family holds. */
+    --surface-secondary: oklch(26.3% 0.0102 260.68);
+    --surface-secondary-foreground: var(--foreground);
+    --surface-tertiary: oklch(27.9% 0.0098 260.68);
+    --surface-tertiary-foreground: var(--foreground);
+
     --overlay: oklch(24.4% 0.0113 260.7);
     --overlay-foreground: var(--foreground);
 

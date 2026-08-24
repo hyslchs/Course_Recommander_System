@@ -146,14 +146,16 @@ export function sortCourseRows(rows: CourseRow[], descriptor: SortDescriptor | u
 /**
  * `text-foreground`, not HeroUI's `text-muted`, and the reason is measured.
  *
- * `.table__column` ships as `text-muted` on `bg-surface-secondary`. The legacy
- * unlayered `:root` still shadows `--muted` with #667069 (T30 handoff #3), which
- * lands at **4.47:1** on the light header — 0.03 under AA, and Lighthouse's axe
- * run failed the page on exactly these four spans. In fju-dark it is worse:
- * `--muted` does not flip either, so the same text measured **2.99:1** on the
- * dark header. `--foreground` does flip, and gives 17.76:1 light / 14.49:1 dark.
+ * `.table__column` ships as `text-muted` on `bg-surface-secondary`. When this
+ * was written the legacy unlayered `:root` shadowed `--muted` with #667069,
+ * which landed at **4.47:1** on the light header — 0.03 under AA, and
+ * Lighthouse's axe run failed the page on exactly these four spans; in fju-dark
+ * the same text measured **2.99:1**. T41a deleted that `:root` and gave
+ * `--surface-secondary` a real dark value, so both numbers are now fine on
+ * their own. `--foreground` is still the right choice, for the reason below,
+ * and gives 17.76:1 light / 14.49:1 dark.
  *
- * This is not a workaround for a token that T41 will fix. A sortable column
+ * This was never only a workaround for the shadowed token. A sortable column
  * header is a *control* — it takes focus, it takes Enter, it changes the whole
  * result order — and de-emphasising a control below body text was the wrong
  * default for this table regardless of what `--muted` resolves to. Choosing the

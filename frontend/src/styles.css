@@ -950,3 +950,64 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 [data-page="assistant"] .assistant-examples .button,[data-page="assistant"] .assistant-followups .button{min-height:2.75rem;border-radius:999px}
 [data-page="assistant"] .assistant-composer{display:flex;flex-direction:column}
 /* === T36 data + assistant — end ============================================ */
+/* === T34 explore page — begin === */
+/* Per-component stylesheets for what src/pages/explore/** newly adopts.
+   Everything else the page uses (button, chip, input, input-group, label,
+   description, list-box*, popover, combo-box, select, skeleton, alert, card,
+   disclosure, tooltip, toggle-button, radio*) is already imported at the top of
+   this file by T30/T31/T32, and a duplicate @import of the same URL is a no-op
+   in Tailwind's resolver, so these are the only additions.
+
+   They sit at the END of the file rather than up in the import block because
+   three sibling page migrations are editing this file concurrently and the task
+   asks for one contiguous appended fence. That Tailwind honours a trailing
+   @import was verified in the built CSS, not assumed. */
+@import "@heroui/styles/components/table.css" layer(components);
+@import "@heroui/styles/components/pagination.css" layer(components);
+@import "@heroui/styles/components/search-field.css" layer(components);
+
+/* Same legacy shadowing T32 documented on onboarding, same repair, new page.
+   The unlayered legacy `button{background:#fff;border:1px solid var(--line);
+   border-radius:10px;padding:.68rem 1rem;color:var(--ink)}` outranks every
+   layered HeroUI rule whatever its specificity, so without this the Select
+   trigger, the SearchField clear button, the ComboBox trigger and all eleven
+   pagination controls render as white outline boxes — and under fju-dark they
+   stay white inside a dark page. Scoped to this page rather than repaired
+   globally because the other page migrations are in flight on their own
+   branches; T41 deletes the cause and this block with it. */
+[data-page="explore"] .button[data-slot="button"],[data-page="explore"] .pagination__link,[data-page="explore"] .search-field__clear-button,[data-page="explore"] .combo-box__trigger{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;font-weight:revert-layer}
+
+/* And the `input,select,textarea{border:1px solid #cdd5ce;border-radius:9px;
+   background:#fff;padding:.78rem .85rem;color:var(--ink);width:100%}` half,
+   which pins the search box and the department ComboBox input to a white field
+   with near-black text in both themes. */
+[data-page="explore"] .input[data-slot="input"],[data-page="explore"] .search-field__input,[data-page="explore"] .select__trigger{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;width:revert-layer}
+
+/* MISSING DARK TOKENS, found by measurement — belongs in `theme/fju.css` §4.2,
+   parked here so T34 does not edit a file three sibling migrations also touch.
+
+   HeroUI's own dark block is `.dark, [data-theme="dark"]`
+   (@heroui/styles 3.2.4, themes/default/variables.css:177). This app themes with
+   `[data-theme="fju-dark"]` only, so *nothing* in that block ever applies and
+   `theme/fju.css` has to restate every token it wants. It restates `--surface`
+   for both schemes but never `--surface-secondary` / `--surface-tertiary`, so
+   under fju-dark those two keep their LIGHT default, oklch(95.24%) /
+   oklch(93.73%). Nothing noticed until now because no adopted component used
+   them; `Table` uses both — measured, `.table-root` and `.table__header` painted
+   rgb(239,239,240), a 1200x1997 light slab inside a dark page, and the
+   `--muted` header text on it came to 4.47:1.
+
+   The steps mirror HeroUI's own dark ramp (surface 21.03% -> secondary 25.7% ->
+   tertiary 27.21%) applied to fju's surface at 21.68%, keeping fju's hue and
+   chroma so the family holds. Scoped to this page's subtree, which is enough:
+   both tokens are only read by descendants. Delete when T41 moves them into
+   `theme/fju.css` for the whole app. */
+[data-theme="fju-dark"] [data-page="explore"]{--surface-secondary:oklch(26.3% .0102 260.68);--surface-tertiary:oklch(27.9% .0098 260.68)}
+
+/* `.table__scroll-container` is the only element on this page allowed to scroll
+   horizontally, and it can only do so *inside* the content well — what stops a
+   wide table widening the document is `.table-root`'s own
+   `grid-template-columns: minmax(0,1fr)`. Recorded here because a future
+   `overflow:visible` on either would reintroduce document-level horizontal
+   scroll silently, which §5.5 forbids at every width. */
+/* === T34 explore page — end === */

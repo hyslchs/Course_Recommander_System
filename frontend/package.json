@@ -4,7 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "pnpm run fonts && vite",
+    "fonts": "python3 scripts/build-fonts.py",
+    "prebuild": "pnpm run fonts",
     "build": "tsc -b && vite build",
     "test": "vitest run"
   },

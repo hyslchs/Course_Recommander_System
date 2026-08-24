@@ -201,10 +201,6 @@
   --color-category-general-education: var(--category-general-education);
   --color-category-external-department: var(--category-external-department);
 
-  /* Latin-first stack; each CJK codepoint falls through to Noto Sans TC. */
-  --font-sans: var(--font-latin), var(--font-cjk);
-  --font-mono: var(--font-mono-latin);
-
   /* CJK-tuned type scale (§4.4 rule 4). 15px is the content floor; 13px
      (--text-2xs) is reserved for the schedule secondary line. --text-display
      caps at 36px rather than the 54px the old h1 clamp reached. */
@@ -234,13 +230,30 @@
   --leading-cjk: 1.75;
 }
 
-*{box-sizing:border-box}body{margin:0;min-width:320px}button,input,select,textarea{font:inherit}button:disabled{opacity:.5;cursor:not-allowed}a{color:inherit}.app-shell{min-height:100vh;display:flex;flex-direction:column}.topbar{height:72px;padding:0 clamp(1rem,5vw,4.5rem);display:flex;align-items:center;gap:2rem;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}.brand{display:flex;gap:.7rem;align-items:center;text-decoration:none}.brand span{display:grid;place-items:center;background:var(--green);color:#fff;border-radius:8px;width:38px;height:38px;font-size:.75rem;letter-spacing:.08em}.brand strong{font-size:1.1rem;white-space:nowrap}.topbar nav{display:flex;gap:.35rem;flex:1}.topbar nav a,.profile-link{padding:.65rem .8rem;text-decoration:none;color:var(--muted);border-radius:9px}.topbar nav a.active{background:#edf3ee;color:var(--green);font-weight:700}.profile-link{border:1px solid var(--line);color:var(--green)}main{flex:1}.page,.narrow-page{max-width:1200px;margin:0 auto;padding:3rem clamp(1rem,4vw,3rem) 5rem}.narrow-page{max-width:850px}.eyebrow{text-transform:uppercase;letter-spacing:.13em;font-size:.78rem;font-weight:800;color:#54715f}.lead{font-size:1.1rem;color:var(--muted);line-height:1.7}h1{font-size:clamp(2rem,4vw,3.4rem);line-height:1.08;margin:.5rem 0 1rem;letter-spacing:-.04em}h2{margin:.2rem 0 .5rem}.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:1.4rem;box-shadow:0 10px 35px #183d2610}textarea{resize:vertical;line-height:1.6}.check{flex-direction:row!important;align-items:center!important}.check input{width:auto}.primary{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}.hero{background:var(--green);color:#fff;border-radius:24px;padding:clamp(2rem,5vw,4rem);display:flex;align-items:flex-end;justify-content:space-between;gap:2rem}.hero p{color:#dbe7df;max-width:620px}.hero .eyebrow{color:var(--lime)}.privacy-pill{white-space:nowrap;border:1px solid #ffffff44;border-radius:999px;padding:.65rem 1rem;color:var(--lime)}.course-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.course-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.35rem;display:flex;flex-direction:column;gap:.65rem;min-width:0}.course-card h2{font-size:1.35rem}.course-top{display:flex;align-items:center;gap:.5rem}.rank{font-weight:900;font-size:1.1rem;color:var(--green)}.heart{margin-left:auto;border:0;padding:.25rem;background:none;color:#bec6c0;font-size:1.35rem}.heart.active{color:#c94b58}.status{border-radius:999px;padding:.3rem .55rem;font-size:.75rem;font-weight:800;background:#eef1ee}.status.eligible_confirmed{background:#daf3e4;color:#196038}.status.needs_confirmation{background:#fff1c8;color:#775600}.status.blocked_confirmed{background:#f9d9d9;color:#8c2525}.meta{display:flex;gap:.45rem;flex-wrap:wrap}.meta span{font-size:.78rem;border:1px solid var(--line);padding:.28rem .48rem;border-radius:6px}.muted,.meeting{color:var(--muted);margin:0}.meeting{font-size:.9rem}.reasons{margin:.25rem 0;padding-left:1.2rem;color:#345c45}.reasons li{margin:.3rem 0}.course-card details{border-top:1px solid var(--line);padding-top:.7rem}.course-card summary{cursor:pointer;font-weight:700;color:var(--green)}.details{line-height:1.65}.details p{white-space:pre-line}.evidence{display:flex;flex-direction:column;background:#fff8df;border-left:3px solid #e1bd44;padding:.7rem;margin:.6rem 0}.evidence q{color:#68591f}.card-actions{display:flex;gap:.45rem;margin-top:auto;flex-wrap:wrap}.quiet{border:0;color:var(--muted)}.empty-panel,.empty-state{padding:4rem 2rem;text-align:center}.feature-grid{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap}.feature-grid span{background:#fff;border:1px solid var(--line);padding:1rem;border-radius:12px}.page-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:1.5rem}.schedule-summary{display:flex;gap:2rem;background:#fff;border-radius:14px;padding:1rem 1.3rem;margin:1rem 0}.timetable{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px}.timetable table{width:100%;border-collapse:collapse;min-width:760px}.timetable th,.timetable td{border:1px solid var(--line);padding:.5rem;vertical-align:top;min-width:125px}.class-block{background:#dcecdf;border-left:3px solid var(--green);border-radius:6px;padding:.45rem;font-size:.85rem;margin:.2rem 0}.class-block small{display:block;color:var(--muted)}.schedule-list{margin-top:1rem}.schedule-list>div{display:flex;align-items:center;gap:.6rem;background:#fff;border-bottom:1px solid var(--line);padding:.8rem 1rem}.schedule-list span{display:flex;flex-direction:column;flex:1}.schedule-list small{color:var(--muted)}.notice{padding:1rem;border-radius:10px;margin:1rem 0}.danger{background:#fee6e6;color:#8a2323}.button-link{display:inline-block;text-decoration:none;padding:.75rem 1rem;border-radius:10px}footer{text-align:center;padding:1.3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}@media(max-width:800px){.topbar{height:auto;padding:.7rem 1rem;flex-wrap:wrap;gap:.5rem}.topbar nav{order:3;overflow:auto;width:100%}.topbar nav a{white-space:nowrap}.profile-link{margin-left:auto}.course-grid{grid-template-columns:1fr}.hero{border-radius:0;margin:-3rem -1rem 0}.page-heading{align-items:start}.schedule-summary{gap:.7rem;flex-wrap:wrap}}
-/* Recommendation hierarchy */
-.category-tag{padding:.25rem .55rem;border-radius:999px;font-size:.78rem;font-weight:800;letter-spacing:.02em}
-.category-tag.home_required{background:#0d5238;color:#fff}
-.category-tag.home_elective{background:#d9f078;color:#29411f}
-.category-tag.general_education{background:#dcecff;color:#21527c}
-.category-tag.external_department{background:#ece8f4;color:#574a70}
+/* NOT `inline` (T41b), and that is the whole point. `@theme inline` inlines a
+   value into the utility and never emits the custom property, which is exactly
+   why `--font-sans` measured as the empty string from T11 through T34 and why
+   `html` had to hard-code its stack. A plain `@theme` emits `:root{--font-sans}`
+   AND wires the `font-sans` utility, so there is one declaration and one live
+   token. Inter is deliberately absent — see theme/typography.css. The three
+   tiers are one typeface split for transfer only (theme/fonts.css); the
+   platform faces after them are the no-webfont fallback. */
+@theme {
+  --font-sans:
+    "FJU Sans 1", "FJU Sans 2", "FJU Sans 3", "Noto Sans TC", "PingFang TC",
+    "Microsoft JhengHei UI", "Noto Sans CJK TC", "Heiti TC", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+}
+
+*{box-sizing:border-box}body{margin:0;min-width:320px}button,input,select,textarea{font:inherit}button:disabled{opacity:.5;cursor:not-allowed}a{color:inherit}.app-shell{min-height:100vh;display:flex;flex-direction:column}.topbar{height:72px;padding:0 clamp(1rem,5vw,4.5rem);display:flex;align-items:center;gap:2rem;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}.brand{display:flex;gap:.7rem;align-items:center;text-decoration:none}.brand span{display:grid;place-items:center;background:var(--green);color:#fff;border-radius:8px;width:38px;height:38px;font-size:.75rem;letter-spacing:.08em}.brand strong{font-size:1.1rem;white-space:nowrap}.topbar nav{display:flex;gap:.35rem;flex:1}.topbar nav a,.profile-link{padding:.65rem .8rem;text-decoration:none;color:var(--muted);border-radius:9px}.topbar nav a.active{background:#edf3ee;color:var(--green);font-weight:700}.profile-link{border:1px solid var(--line);color:var(--green)}main{flex:1}.page,.narrow-page{max-width:1200px;margin:0 auto;padding:3rem clamp(1rem,4vw,3rem) 5rem}.narrow-page{max-width:850px}.eyebrow{text-transform:uppercase;letter-spacing:.13em;font-size:.78rem;font-weight:800;color:#54715f}.lead{font-size:1.1rem;color:var(--muted);line-height:1.7}h1{font-size:clamp(2rem,4vw,3.4rem);line-height:1.08;margin:.5rem 0 1rem;letter-spacing:-.04em}h2{margin:.2rem 0 .5rem}textarea{resize:vertical;line-height:1.6}.check{flex-direction:row!important;align-items:center!important}.check input{width:auto}.primary{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}.hero{background:var(--green);color:#fff;border-radius:24px;padding:clamp(2rem,5vw,4rem);display:flex;align-items:flex-end;justify-content:space-between;gap:2rem}.hero p{color:#dbe7df;max-width:620px}.hero .eyebrow{color:var(--lime)}.privacy-pill{white-space:nowrap;border:1px solid #ffffff44;border-radius:999px;padding:.65rem 1rem;color:var(--lime)}.course-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.course-card{border:1px solid var(--line);border-radius:16px;padding:1.35rem;display:flex;flex-direction:column;gap:.65rem;min-width:0}.course-card h2{font-size:1.35rem}.course-top{display:flex;align-items:center;gap:.5rem}.rank{font-weight:900;font-size:1.1rem;color:var(--green)}.heart{margin-left:auto;border:0;padding:.25rem;background:none;color:#bec6c0;font-size:1.35rem}.heart.active{color:#c94b58}.meta{display:flex;gap:.45rem;flex-wrap:wrap}.meta span{font-size:.78rem;border:1px solid var(--line);padding:.28rem .48rem;border-radius:6px}.muted,.meeting{color:var(--muted);margin:0}.meeting{font-size:.9rem}.reasons{margin:.25rem 0;padding-left:1.2rem;color:#345c45}.reasons li{margin:.3rem 0}.course-card details{border-top:1px solid var(--line);padding-top:.7rem}.course-card summary{cursor:pointer;font-weight:700;color:var(--green)}.details{line-height:1.65}.details p{white-space:pre-line}.evidence{display:flex;flex-direction:column;background:#fff8df;border-left:3px solid #e1bd44;padding:.7rem;margin:.6rem 0}.evidence q{color:#68591f}.card-actions{display:flex;gap:.45rem;margin-top:auto;flex-wrap:wrap}.quiet{border:0;color:var(--muted)}.empty-panel,.empty-state{padding:4rem 2rem;text-align:center}.feature-grid{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap}.feature-grid span{background:#fff;border:1px solid var(--line);padding:1rem;border-radius:12px}.page-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:1.5rem}.schedule-summary{display:flex;gap:2rem;background:#fff;border-radius:14px;padding:1rem 1.3rem;margin:1rem 0}.timetable{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px}.timetable table{width:100%;border-collapse:collapse;min-width:760px}.timetable th,.timetable td{border:1px solid var(--line);padding:.5rem;vertical-align:top;min-width:125px}.class-block{background:#dcecdf;border-left:3px solid var(--green);border-radius:6px;padding:.45rem;font-size:.85rem;margin:.2rem 0}.class-block small{display:block;color:var(--muted)}.schedule-list{margin-top:1rem}.schedule-list>div{display:flex;align-items:center;gap:.6rem;background:#fff;border-bottom:1px solid var(--line);padding:.8rem 1rem}.schedule-list span{display:flex;flex-direction:column;flex:1}.schedule-list small{color:var(--muted)}.button-link{display:inline-block;text-decoration:none;padding:.75rem 1rem;border-radius:10px}footer{text-align:center;padding:1.3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}@media(max-width:800px){.topbar{height:auto;padding:.7rem 1rem;flex-wrap:wrap;gap:.5rem}.topbar nav{order:3;overflow:auto;width:100%}.topbar nav a{white-space:nowrap}.profile-link{margin-left:auto}.course-grid{grid-template-columns:1fr}.hero{border-radius:0;margin:-3rem -1rem 0}.page-heading{align-items:start}.schedule-summary{gap:.7rem;flex-wrap:wrap}}
+/* Recommendation hierarchy.
+   T41b deleted the `.category-tag*` and `.status*` families: T31 replaced both
+   with `CategoryChip` / `EligibilityChip`, and the last consumer outside a
+   course card (`SlotRecommendationDialog`) imports those components too. Their
+   runtime-composed class names (`category-tag ${category}`) were the R3 hazard
+   the plan called out; the colours now live on `[data-category]` selectors
+   further down. `.slot-category-filter ${category}` is the ONE runtime-composed
+   name still alive and its rules are deliberately kept. */
 .official-course-tags{display:flex;gap:.35rem;flex-wrap:wrap}.official-course-tags span{border-radius:999px;padding:.28rem .55rem;background:#e8f1ff;color:#255687;font-size:.76rem;font-weight:800}
 .course-top{flex-wrap:wrap}
 .search-execution-summary{display:flex;gap:.75rem;flex-wrap:wrap;margin:1rem 0}.search-execution-summary>span{display:flex;flex-direction:column;gap:.18rem;min-width:220px;padding:.75rem 1rem;border:1px solid var(--line);border-radius:12px;background:#fff}.search-execution-summary strong{font-size:.78rem;color:var(--muted)}
@@ -279,17 +292,28 @@
 .cautions ul{margin:0;padding-left:1.1rem}
 @media (prefers-reduced-motion: reduce){.thinking-dots i{animation:none;opacity:.75}}
 @media(max-width:800px){.assistant-composer{margin:1rem 0}.assistant-toolbar{align-items:flex-start;flex-direction:column}.assistant-error{align-items:flex-start;flex-direction:column}.assistant-thinking{align-items:flex-start;flex-wrap:wrap}.assistant-thinking>span:last-child{width:100%}.assistant-user-message p{max-width:90%}}
-.schedule-add-card{margin-bottom:1rem}.schedule-add-card>p{color:var(--muted);margin:.35rem 0 1rem}.schedule-add-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin:.8rem 0}.schedule-add-grid label{display:flex;flex-direction:column;gap:.4rem;font-weight:700}.fixed-schedule-entry{background:#f8f6e7!important;border-left:3px solid #b88b22}.fixed-schedule-entry>span:last-child{color:#8a691f;font-size:.85rem;font-weight:700;white-space:nowrap}@media(max-width:800px){.schedule-add-grid{grid-template-columns:1fr}}
+.schedule-add-card{margin-bottom:1rem;position:relative;display:flex;flex-direction:column;gap:.75rem;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:1.4rem;box-shadow:0 10px 35px #183d2610}.schedule-add-card>p{color:var(--muted);margin:.35rem 0 1rem}.schedule-add-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin:.8rem 0}.schedule-add-grid label{display:flex;flex-direction:column;gap:.4rem;font-weight:700}.fixed-schedule-entry{background:#f8f6e7!important;border-left:3px solid #b88b22}.fixed-schedule-entry>span:last-child{color:#8a691f;font-size:.85rem;font-weight:700;white-space:nowrap}@media(max-width:800px){.schedule-add-grid{grid-template-columns:1fr}}
 .schedule-plan-actions{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:.75rem 1rem;margin-bottom:1rem}.schedule-plan-actions strong{margin-right:auto}.schedule-view-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:.8rem 0;padding:.8rem 1rem;border:1px solid var(--line);border-radius:12px;background:#fff}.schedule-view-toolbar>div:first-child{display:flex;flex-direction:column;gap:.2rem}.schedule-view-toolbar span{color:var(--muted);font-size:.85rem}.segmented-control{display:flex;border:1px solid var(--line);border-radius:10px;padding:3px;background:#f3f6f2}.schedule-hidden-notice{display:flex;align-items:center;gap:.75rem}.schedule-hidden-notice button{margin-left:auto}.mobile-day-picker,.mobile-schedule-list{display:none}.schedule-grid{position:relative;display:grid;min-width:max-content;background:#fff}.schedule-corner,.schedule-day-header,.schedule-section-label{display:grid;place-items:center;background:#f7f9f6;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-weight:800;z-index:3}.schedule-corner{position:sticky;left:0;top:0;z-index:6}.schedule-day-header{position:sticky;top:0;z-index:5}.schedule-section-label{position:sticky;left:0;z-index:4}.schedule-section-label.extended{background:#fff9e9;color:#7c6220}.schedule-cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}.schedule-grid .class-block{position:relative;z-index:2;align-self:stretch;display:flex;flex-direction:column;align-items:flex-start;gap:.18rem;overflow:hidden;margin-top:3px;margin-bottom:3px;padding:.5rem .48rem;border:1px solid #bfd6c4;border-left:4px solid var(--green);border-radius:8px;background:#dcecdf;text-align:left;color:var(--ink);box-shadow:0 2px 7px #173b2618}.schedule-grid .class-block:hover,.schedule-grid .class-block:focus-visible{z-index:7;outline:3px solid #7eaa8d;outline-offset:1px}.schedule-grid .class-block strong{line-height:1.3}.schedule-grid .class-block small{display:block;color:#4f6357;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.schedule-grid .class-block.fixed{background:#fff5ce;border-color:#d3b96b;border-left-color:#9b7420}.schedule-grid .class-block.conflict,.mobile-schedule-block.conflict{border-color:#b63a3a;border-left-color:#b63a3a;background:repeating-linear-gradient(135deg,#feeaea,#feeaea 8px,#fff5f5 8px,#fff5f5 16px)}.class-block-tags{display:flex;gap:.25rem;flex-wrap:wrap;margin-top:auto}.class-block-tags em,.manual-time-tag{font-style:normal;font-size:.7rem;font-weight:800;border-radius:999px;background:#fff8;padding:.15rem .35rem}.class-block-tags .conflict-tag{background:#a93232;color:#fff}.manual-time-tag{margin-left:.45rem;background:#e8e1f5;color:#59487b}.unplaced-courses{margin:1rem 0;padding:1rem;border:1px dashed #c09634;border-radius:14px;background:#fffaf0}.unplaced-courses h2,.unplaced-courses p{margin:.15rem 0}.unplaced-courses>button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:1rem;margin-top:.65rem;text-align:left}.schedule-detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin:1rem 0}.schedule-detail-meta span{display:flex;flex-direction:column;gap:.15rem;padding:.65rem;border-radius:9px;background:#f3f6f2}.schedule-dialog section{border-top:1px solid var(--line);padding-top:.8rem;margin-top:.8rem}.schedule-objective{white-space:pre-line;line-height:1.7}.schedule-outline-link{width:100%;margin-top:1rem;text-align:center}.mobile-schedule-block{width:100%;display:flex;align-items:center;justify-content:space-between;gap:.7rem;text-align:left;border-left:4px solid var(--green);background:#eef6ef}.mobile-schedule-block>span:first-child{display:flex;flex-direction:column}.mobile-schedule-block small{color:var(--muted)}
 @media(max-width:800px){.schedule-plan-actions{align-items:flex-start}.schedule-view-toolbar{align-items:stretch;flex-direction:column}.segmented-control{overflow:auto}.segmented-control button{white-space:nowrap;flex:1}.mobile-day-picker{display:block;margin:.75rem 0}.mobile-day-picker label{display:flex;align-items:center;gap:.7rem;font-weight:800}.mobile-day-picker select{width:auto;flex:1}.schedule-grid{display:none}.mobile-schedule-list{display:grid;gap:.55rem;padding:.75rem}.timetable{overflow:visible}.schedule-summary{display:grid;grid-template-columns:1fr 1fr}.unplaced-courses>button{align-items:flex-start;flex-direction:column}.schedule-list>div{align-items:flex-start;flex-wrap:wrap}.schedule-list>div>span{width:100%}.schedule-detail-meta{grid-template-columns:1fr}.schedule-view-toolbar span{display:block}}
 @media print{.topbar,footer,.page-heading>button,.schedule-plan-actions,.schedule-add-card,.schedule-view-toolbar,.schedule-hidden-notice,.mobile-day-picker,.mobile-schedule-list,.unplaced-courses,.schedule-list{display:none!important}.page{max-width:none;padding:0}.page-heading{margin-bottom:.5rem}.schedule-grid{display:grid!important;min-width:0}.timetable{overflow:visible;border:0}.schedule-grid .class-block{box-shadow:none}.schedule-summary{border:1px solid var(--line);margin:.5rem 0}body{background:#fff}}
-.department-field{display:flex;flex-direction:column;gap:.45rem}.department-field>label{font-weight:700}.department-combobox{position:relative}.department-combobox>input{padding-right:3.2rem}.department-combobox-toggle{position:absolute;top:50%;right:.35rem;transform:translateY(-50%);display:grid;place-items:center;width:2.4rem;height:2.4rem;padding:0;border:0;background:transparent;color:var(--green);font-size:1.35rem}.department-combobox:focus-within>input{border-color:#6c9980;box-shadow:0 0 0 3px #0d52381a;outline:0}.department-options{position:absolute;top:calc(100% + .35rem);left:0;right:0;z-index:35;max-height:340px;overflow:auto;border:1px solid #cdd5ce;border-radius:12px;background:#fff;box-shadow:0 16px 38px #173b2630}.department-result-count{position:sticky;top:0;z-index:2;padding:.65rem .8rem;border-bottom:1px solid var(--line);background:#f7faf7;color:var(--muted);font-size:.82rem}.department-option-group-label{position:sticky;top:2.35rem;z-index:1;padding:.45rem .8rem;background:#edf3ee;color:var(--green);font-size:.78rem;font-weight:800}.department-option-group>button{display:flex;align-items:center;justify-content:space-between;gap:.8rem;width:100%;padding:.68rem .8rem;border:0;border-radius:0;text-align:left}.department-option-group>button:hover,.department-option-group>button.active{background:#e6f0e8;color:var(--green)}.department-option-group>button[aria-selected="true"]{font-weight:800}.department-option-group>button small{flex:none;padding:.15rem .4rem;border-radius:999px;background:#edf1ed;color:var(--muted);font-size:.72rem}.field-error{color:var(--danger)!important;font-weight:700!important}
-.department-option-group>button small{max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.department-selection-summary{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .65rem;padding:.6rem .75rem;border:1px solid #d6e1d8;border-radius:10px;background:#f7faf7;color:var(--green);font-size:.86rem}.department-selection-summary span{color:var(--muted)}.department-selection-summary small{width:100%;color:var(--muted)}
+.field-error{color:var(--danger)!important;font-weight:700!important}
+/* `.department-*` deleted (T41b): the picker is a HeroUI ComboBox since T32
+   and no `department-` class name survives anywhere in src/**. */
+/* `.schedule-add-card` above absorbed the legacy `.card` box AND the flex
+   column HeroUI's own `.card` was handing `ManualCoursePanel` by accident (the
+   name collision cut both ways: the legacy section was picking up
+   `flex flex-col gap-3 relative` from `components/card.css` while the real
+   HeroUI Cards on /recommend, /data and /assistant were picking up the legacy
+   `padding:1.4rem` + radius + drop shadow). Copied verbatim so the panel
+   renders pixel-identically; verified by an A/B against the pre-change build. */
 
 /* Recommendation filter workspace */
 /* UX accessibility and responsive hardening */
 html{scroll-behavior:smooth}
-[id]{scroll-margin-top:92px}
+/* T41b: matches the real sticky header. `.topbar` is `height:72px` above
+   800px and 64px below it (both measured in Chrome); the old 92/78 pair was
+   guessed and left a visible gap under every in-page anchor. */
+[id]{scroll-margin-top:72px}
 button,input,select,textarea,a{touch-action:manipulation}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
   outline:3px solid var(--focus);
@@ -300,34 +324,26 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .icon-button{display:inline-grid;place-items:center;min-width:44px;min-height:44px;padding:.55rem}
 .icon-button svg{width:1.35rem;height:1.35rem}
 .menu-button,.profile-compact{display:none}
-.contents-fieldset{display:contents;border:0;padding:0;margin:0;min-inline-size:0}
 .field-error{display:block;color:#8a2323;font-weight:700}
 .error-summary:focus{outline:3px solid var(--focus);outline-offset:3px}
-.course-grid,.filter-group-content,.schedule-detail-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
-.course-card h2,.course-card .muted,.course-card .meeting,.course-card .meta span,.official-course-tags span,.category-tag,.status,.applied-filter-list button{overflow-wrap:anywhere;white-space:normal}
-.official-course-tags,.applied-filter-list,.meta,.card-actions{display:flex;flex-wrap:wrap;min-width:0}
+.course-grid,.schedule-detail-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
+.course-card h2,.course-card .muted,.course-card .meeting,.course-card .meta span,.official-course-tags span{overflow-wrap:anywhere;white-space:normal}
+.official-course-tags,.meta,.card-actions{display:flex;flex-wrap:wrap;min-width:0}
 .empty-actions,.dialog-actions{display:flex;justify-content:flex-end;gap:.7rem;flex-wrap:wrap}
-.notice>button{margin-left:.75rem}
 .results-region{position:relative}
 .updating-indicator{position:sticky;top:80px;z-index:4;width:max-content;margin:0 auto -2.5rem;background:var(--ink);color:#fff;border-radius:999px;padding:.45rem .8rem}
-.skeleton-grid{min-height:520px}
-.course-skeleton{height:245px;border:1px solid var(--line);border-radius:16px;background:#fff;padding:1.35rem}
-.course-skeleton span{display:block;height:18px;margin:.8rem 0;border-radius:6px;background:#e4e9e4;animation:skeleton-pulse 1.2s ease-in-out infinite alternate}
-.course-skeleton span:first-child{width:62%;height:26px}.course-skeleton span:last-child{width:78%}
-@keyframes skeleton-pulse{to{opacity:.42}}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-.dialog-content{line-height:1.65}.dialog-actions{margin-top:1.25rem}.dialog-actions .danger,.danger{background:#9b2929;color:#fff;border-color:#9b2929}
+.dialog-content{line-height:1.65}.dialog-actions{margin-top:1.25rem}
 .navigation-drawer nav{display:flex;flex-direction:column;gap:.4rem}
 .navigation-drawer nav a{display:flex;justify-content:space-between;gap:1rem;padding:.9rem;border-radius:10px;text-decoration:none;font-weight:750}
 .navigation-drawer nav a.active{background:var(--surface-muted);color:var(--green)}
 .navigation-drawer nav a span{color:var(--muted);font-size:.85rem;text-align:right;overflow-wrap:anywhere}
 .completed-row{align-items:center}.completed-name{overflow-wrap:anywhere}.completed-actions{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
-.inline-empty{text-align:center;display:block!important}.inline-empty p{color:var(--muted)}
 .class-block strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .class-block small{min-width:0}
 .class-block svg,.schedule-conflict-summary svg,.schedule-list button svg,.assistant-limitations svg{vertical-align:-.15em;margin-right:.25rem}
 .heart{color:#6f7a73}.heart.active{color:#b52f47}
-.topbar{scroll-margin-top:80px}
+.topbar{scroll-margin-top:72px}
 .profile-full,.profile-compact{max-width:260px;overflow-wrap:anywhere;text-align:center}
 
 @media (min-width:801px) and (max-width:1199px){
@@ -340,13 +356,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .page,.narrow-page{padding-inline:0}
 }
 @media (max-width:800px){
-  [id]{scroll-margin-top:78px}
+  [id]{scroll-margin-top:64px}
   .topbar{height:64px;padding:.55rem 1rem;flex-wrap:nowrap}
   .desktop-nav,.desktop-profile{display:none!important}
   .menu-button{display:inline-grid;margin-left:auto}
   .page,.narrow-page{padding:2rem 1rem 4rem}
   .hero{margin:-2rem -1rem 0}
-  .course-grid,.filter-group-content,.schedule-detail-meta{grid-template-columns:1fr}
+  .course-grid,.schedule-detail-meta{grid-template-columns:1fr}
   .schedule-view-toolbar{align-items:stretch}
 }
 @media (min-width:641px) and (max-width:800px){
@@ -364,7 +380,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
-  .course-skeleton span{animation:none}
   /* T40, layer 1 of §4.6. Two things the `*` rule above cannot reach:
 
      1. HeroUI's `Skeleton` picks its animation from the `--skeleton-animation`
@@ -392,8 +407,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .brand{min-height:44px}
 
 
-.schedule-cell{position:relative}.schedule-slot-button{display:flex;width:100%;height:100%;min-height:44px;align-items:center;justify-content:center;gap:.35rem;border:0;border-radius:0;background:transparent;color:#456a52;opacity:.42;transition:background-color .16s ease,color .16s ease,opacity .16s ease}.schedule-slot-button svg{width:1rem;height:1rem}.schedule-slot-button span{font-size:.75rem;font-weight:800;opacity:0}.schedule-slot-button:hover,.schedule-slot-button:focus-visible{background:#edf6ee;color:var(--green);opacity:1;outline:3px solid #6f9f7e;outline-offset:-3px}.schedule-slot-button:hover span,.schedule-slot-button:focus-visible span{opacity:1}.slot-recommendation-intro{display:grid;gap:.35rem;padding-bottom:.8rem}.slot-recommendation-intro .eyebrow{display:flex;align-items:center;gap:.35rem}.slot-recommendation-intro p{margin:0;color:var(--muted);line-height:1.6}.slot-recommendation-state{display:grid;gap:.35rem;margin:1rem 0;padding:1.25rem;border:1px dashed #b9c8bd;border-radius:14px;background:#f7faf7;text-align:center}.slot-recommendation-state span{color:var(--muted);line-height:1.55}.slot-recommendation-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:.5rem 0 1rem}.slot-recommendation-summary span{display:flex;min-width:0;flex-direction:column;gap:.1rem;padding:.7rem;border-radius:10px;background:#f1f6f1;color:var(--muted);font-size:.78rem;text-align:center}.slot-recommendation-summary strong{color:var(--green);font-size:1.2rem}.slot-confidence-note{display:flex;align-items:flex-start;gap:.45rem;padding:.65rem .75rem;border-radius:10px;background:#fff8df;color:#6b571d;line-height:1.5}.slot-confidence-note svg{flex:none;margin-top:.2rem}.slot-recommendation-list{display:grid;gap:.8rem}.slot-recommendation-list article{display:grid;grid-template-columns:2rem minmax(0,1fr);gap:.7rem;padding:1rem;border:1px solid var(--line);border-radius:14px;background:#fff}.slot-recommendation-rank{display:grid;width:2rem;height:2rem;place-items:center;border-radius:999px;background:var(--green);color:#fff;font-weight:900}.slot-recommendation-content{min-width:0}.slot-recommendation-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem}.slot-recommendation-heading h3{margin:0;font-size:1.1rem;overflow-wrap:anywhere}.slot-recommendation-heading p{margin:.15rem 0 0;color:var(--muted);font-size:.82rem;overflow-wrap:anywhere}.slot-recommendation-heading .status{flex:none}.slot-recommendation-meta{display:flex;gap:.35rem;flex-wrap:wrap;margin:.6rem 0}.slot-recommendation-meta span{padding:.25rem .42rem;border:1px solid var(--line);border-radius:6px;font-size:.76rem}.slot-recommendation-list .reasons{font-size:.88rem;line-height:1.45}.slot-recommendation-actions{display:flex;align-items:center;justify-content:flex-end;gap:.55rem;margin-top:.75rem}.slot-recommendation-actions a{padding:.65rem .75rem;color:var(--green);font-weight:700}.slot-recommendation-actions button{display:inline-flex;min-height:44px;align-items:center;gap:.35rem}.mobile-open-slots{display:grid;gap:.5rem;padding-top:.5rem;border-top:1px solid var(--line)}.mobile-open-slots>div{display:flex;gap:.45rem;flex-wrap:wrap}.mobile-open-slots button{display:inline-flex;min-width:58px;min-height:44px;align-items:center;justify-content:center;gap:.3rem;color:var(--green);font-weight:800}.slot-recommendation-dialog .notice{display:grid;gap:.45rem}.slot-recommendation-dialog .notice button{justify-self:start}@media(max-width:800px){.slot-recommendation-summary{grid-template-columns:1fr 1fr}.slot-recommendation-list article{grid-template-columns:1fr}.slot-recommendation-rank{width:1.75rem;height:1.75rem}.slot-recommendation-actions{align-items:stretch;flex-direction:column}.slot-recommendation-actions a,.slot-recommendation-actions button{width:100%;justify-content:center;text-align:center}}@media print{.schedule-slot-button{display:none!important}}
-.slot-recommendation-tags{display:flex;align-items:flex-start;justify-content:flex-end;gap:.35rem;flex-wrap:wrap}.slot-recommendation-tags .category-tag,.slot-recommendation-tags .status{flex:none}
+.schedule-cell{position:relative}.schedule-slot-button{display:flex;width:100%;height:100%;min-height:44px;align-items:center;justify-content:center;gap:.35rem;border:0;border-radius:0;background:transparent;color:#456a52;opacity:.42;transition:background-color .16s ease,color .16s ease,opacity .16s ease}.schedule-slot-button svg{width:1rem;height:1rem}.schedule-slot-button span{font-size:.75rem;font-weight:800;opacity:0}.schedule-slot-button:hover,.schedule-slot-button:focus-visible{background:#edf6ee;color:var(--green);opacity:1;outline:3px solid #6f9f7e;outline-offset:-3px}.schedule-slot-button:hover span,.schedule-slot-button:focus-visible span{opacity:1}.slot-recommendation-intro{display:grid;gap:.35rem;padding-bottom:.8rem}.slot-recommendation-intro .eyebrow{display:flex;align-items:center;gap:.35rem}.slot-recommendation-intro p{margin:0;color:var(--muted);line-height:1.6}.slot-recommendation-state{display:grid;gap:.35rem;margin:1rem 0;padding:1.25rem;border:1px dashed #b9c8bd;border-radius:14px;background:#f7faf7;text-align:center}.slot-recommendation-state span{color:var(--muted);line-height:1.55}.slot-recommendation-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:.5rem 0 1rem}.slot-recommendation-summary span{display:flex;min-width:0;flex-direction:column;gap:.1rem;padding:.7rem;border-radius:10px;background:#f1f6f1;color:var(--muted);font-size:.78rem;text-align:center}.slot-recommendation-summary strong{color:var(--green);font-size:1.2rem}.slot-confidence-note{display:flex;align-items:flex-start;gap:.45rem;padding:.65rem .75rem;border-radius:10px;background:#fff8df;color:#6b571d;line-height:1.5}.slot-confidence-note svg{flex:none;margin-top:.2rem}.slot-recommendation-list{display:grid;gap:.8rem}.slot-recommendation-list article{display:grid;grid-template-columns:2rem minmax(0,1fr);gap:.7rem;padding:1rem;border:1px solid var(--line);border-radius:14px;background:#fff}.slot-recommendation-rank{display:grid;width:2rem;height:2rem;place-items:center;border-radius:999px;background:var(--green);color:#fff;font-weight:900}.slot-recommendation-content{min-width:0}.slot-recommendation-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem}.slot-recommendation-heading h3{margin:0;font-size:1.1rem;overflow-wrap:anywhere}.slot-recommendation-heading p{margin:.15rem 0 0;color:var(--muted);font-size:.82rem;overflow-wrap:anywhere}.slot-recommendation-meta{display:flex;gap:.35rem;flex-wrap:wrap;margin:.6rem 0}.slot-recommendation-meta span{padding:.25rem .42rem;border:1px solid var(--line);border-radius:6px;font-size:.76rem}.slot-recommendation-list .reasons{font-size:.88rem;line-height:1.45}.slot-recommendation-actions{display:flex;align-items:center;justify-content:flex-end;gap:.55rem;margin-top:.75rem}.slot-recommendation-actions a{padding:.65rem .75rem;color:var(--green);font-weight:700}.slot-recommendation-actions button{display:inline-flex;min-height:44px;align-items:center;gap:.35rem}.mobile-open-slots{display:grid;gap:.5rem;padding-top:.5rem;border-top:1px solid var(--line)}.mobile-open-slots>div{display:flex;gap:.45rem;flex-wrap:wrap}.mobile-open-slots button{display:inline-flex;min-width:58px;min-height:44px;align-items:center;justify-content:center;gap:.3rem;color:var(--green);font-weight:800}@media(max-width:800px){.slot-recommendation-summary{grid-template-columns:1fr 1fr}.slot-recommendation-list article{grid-template-columns:1fr}.slot-recommendation-rank{width:1.75rem;height:1.75rem}.slot-recommendation-actions{align-items:stretch;flex-direction:column}.slot-recommendation-actions a,.slot-recommendation-actions button{width:100%;justify-content:center;text-align:center}}@media print{.schedule-slot-button{display:none!important}}
+.slot-recommendation-tags{display:flex;align-items:flex-start;justify-content:flex-end;gap:.35rem;flex-wrap:wrap}.slot-recommendation-tags .category-chip,.slot-recommendation-tags .eligibility-chip{flex:none}
 .slot-category-filters{margin:.25rem 0 1rem;padding:.8rem;border:1px solid var(--line);border-radius:12px;background:#f7faf7}.slot-category-filters legend{padding:0 .35rem;color:var(--green);font-weight:800}.slot-category-filter-heading{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.6rem;color:var(--muted);font-size:.85rem}.slot-category-filter-heading button{min-height:36px;padding:.35rem .6rem;color:var(--green);font-weight:800}.slot-category-filter-options{display:flex;gap:.45rem;flex-wrap:wrap}.slot-category-filter{display:inline-flex;min-height:44px;align-items:center;gap:.3rem;background:#fff;font-weight:800}.slot-category-filter.selected.home_required{border-color:#0d5238;background:#0d5238;color:#fff}.slot-category-filter.selected.home_elective{border-color:#b7cf52;background:#d9f078;color:#29411f}.slot-category-filter.selected.general_education{border-color:#a9cbe9;background:#dcecff;color:#21527c}.slot-category-filter.selected.external_department{border-color:#c8bddc;background:#ece8f4;color:#574a70}.slot-category-filter svg{flex:none}.slot-category-filters:disabled{opacity:.65}.slot-recommendation-state button{justify-self:center}
 .course-card .meta .study-level-badge{border-color:#b8ccbe;background:#edf5ef;color:var(--green);font-weight:800}
 
@@ -778,23 +793,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    The repair below reverts BY LAYER rather than to hard-coded values, so the
    property lands on whatever HeroUI's own rule would have given it. */
 
-/* DELIBERATELY KEPT BY T41a. Legacy `.card{background:var(--paper);border:1px
-   solid var(--line);padding:1.4rem;box-shadow:...}` collides by NAME with
-   HeroUI's `.card`, and `ManualCoursePanel` still puts the bare legacy class on
-   a plain `<section>`, so the rule cannot simply be deleted or moved into
-   `@layer base` — either would hand /data's and /recommend's HeroUI Cards a
-   different box (padding 1.4rem, radius 16px, the legacy drop shadow) and that
-   is a LIGHT-mode change this task must not make. The colour half of the
-   problem is already gone: T41a aliases `--paper` to `--surface` and `--line`
-   to `--border`, so the legacy rule is theme-aware now. Retiring the name
-   collision belongs to T41b. */
-[data-page="data"] .card[data-slot="card"],[data-page="assistant"] .card[data-slot="card"]{background:revert-layer;border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;padding:revert-layer;box-shadow:revert-layer;color:var(--surface-foreground)}
-/* `color` is set outright rather than reverted, exactly as T31 did for
-   `.course-card`: HeroUI's `.card` sets no colour of its own, so `revert-layer`
-   drops the text back to the legacy unlayered `:root{color:#18221d}`, which is
-   light-only. Measured on [data-theme="fju-dark"]: near-black body text on the
-   dark `--surface` card, 1.07:1. Binding to --surface-foreground makes the two
-   halves of the card flip together. */
+/* RETIRED BY T41b. This was a `revert-layer` patch undoing the legacy unlayered
+   `.card{...}` box that HeroUI's own `.card` kept losing to. Both halves of the
+   collision are gone: `ManualCoursePanel` — the only consumer of the bare
+   legacy class — now carries `.schedule-add-card` alone, and the legacy
+   `.card{...}` rule is deleted, so `/data` and `/assistant` get HeroUI's Card
+   from HeroUI with nothing to revert. The `color` half is unnecessary too: the
+   unlayered `:root{color:#18221d}` it was compensating for died in T41a, and
+   text now inherits `html{color:var(--foreground)}` from `@layer base`. */
 
 /* The button and textarea repairs this block used to carry died with the
    unlayered legacy `button{}` / `input,select,textarea{}` rules in T41a. */
@@ -1056,9 +1062,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    legacy sheet hard-codes `color:#fff` on top of it in six places. */
 @layer base {
   html {
-    /* T34 measured that `--font-sans` resolves to the empty string, so this is
-       the stack the body actually renders with. Kept verbatim. */
-    font-family: "Noto Sans TC", "Segoe UI", sans-serif;
+    /* T41b: `--font-sans` is a real, emitted custom property now (see
+       theme/typography.css), so the hard-coded stack T34 had to keep is gone
+       and the three self-hosted tiers are what actually renders. */
+    font-family: var(--font-sans);
     font-synthesis: none;
     color: var(--foreground);
     background: var(--background);
@@ -1132,8 +1139,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .secondary:not(:disabled):hover{background:var(--default-hover);border-color:var(--border-strong)}
 .feature-grid span{background:var(--surface)}
 .updating-indicator{background:var(--foreground);color:var(--background)}
-.course-skeleton{background:var(--surface)}
-.course-skeleton span{background:var(--default)}
 .hero{color:var(--on-green)}
 .hero p{color:color-mix(in oklab,var(--on-green) 82%,var(--green))}
 
@@ -1239,3 +1244,100 @@ html[data-fju-theme-vt="active"]::view-transition-new(root){clip-path:var(--fju-
 .course-grid>.result-reveal{display:flex;min-width:0}
 .result-reveal>.course-card{flex:1}
 /* === T40 dark mode + motion — end ========================================== */
+
+/* === T41b forced colours + print re-audit — begin ==========================
+   Appended, never edited in place: everything above is either minified legacy
+   source (plan R4) or another agent's fence. */
+
+/* --- Windows high contrast (plan §4.3, "colour is never the only channel") --
+   `forced-colors: active` replaces every background-colour with Canvas and
+   every foreground with CanvasText. Everything this app uses to say "you can
+   take this course" — the eligibility chip, the category bar, the conflict
+   hatch, the fixed-slot fill — is carried by FILL, so in high contrast the
+   whole eligibility signal collapses into identical grey boxes. The mode does
+   keep border WIDTH and STYLE and honours the system colour keywords, so the
+   signal is re-expressed in those two channels here.
+   The wording and the Phosphor glyphs (`EligibilityChip`, `ClassBlock`) are
+   untouched by the mode and remain the primary channel; this is the third. */
+@media (forced-colors: active) {
+  /* Every status/category chip gets a box, so it still reads as a chip once
+     its soft fill has been flattened away. */
+  .eligibility-chip,
+  .category-chip,
+  .official-course-tags .chip,
+  .recommend-page .tag,
+  .study-level-badge,
+  .class-block-tags em,
+  .manual-time-tag,
+  .slot-category-filter,
+  .skip-link {
+    border: 1px solid CanvasText;
+  }
+  /* The 4px category bar is a background on a pseudo-element, so it vanishes
+     outright; CanvasText keeps it as a visible rule. */
+  .category-chip::before {
+    background: CanvasText;
+  }
+
+  /* Timetable. `border-style` is the only channel left once the green fill,
+     the amber fixed fill and the red conflict hatch are all flattened to
+     Canvas, so the three states take three distinguishable styles. */
+  .class-block,
+  .schedule-grid .class-block,
+  .mobile-schedule-block {
+    border: 1px solid CanvasText;
+  }
+  .schedule-grid .class-block.fixed,
+  .mobile-schedule-block.fixed {
+    border: 2px dashed CanvasText;
+  }
+  .schedule-grid .class-block.conflict,
+  .mobile-schedule-block.conflict {
+    border: 3px double CanvasText;
+  }
+  .class-block-tags .conflict-tag {
+    border: 2px double CanvasText;
+  }
+
+  /* Selection is the SYSTEM highlight, not the app accent: an accent border
+     would be forced to the same CanvasText as everything else, making selected
+     indistinguishable from unselected. `outline` sits on top of whatever
+     border the control already carries. */
+  .slot-category-filter.selected,
+  .course-variants .radio[data-selected="true"],
+  .toggle-button[data-selected="true"],
+  .topbar nav a.active {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  /* The focus ring is `var(--focus)`, which the mode would otherwise flatten
+     into the same CanvasText as every border added above. */
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* --- Print re-audit (plan R10) ---------------------------------------------
+   Re-verified standing after this task: the legacy hide-list, the portalled
+   `[data-rac][role="dialog"|"alertdialog"]` / backdrop / toast-region family
+   (R10), `.schedule-slot-button`, `.tabs__list-container`, and FIX51's
+   `@page{size:A4 landscape}` + `--schedule-col-min:0px` — which together are
+   what keep all seven day columns on the sheet.
+   Three things were still wrong, all of them introduced after the legacy
+   hide-list was written, which is why none of them were on it. */
+@media print {
+  .recommend-filter-launcher,
+  .updating-indicator {
+    display: none !important;
+  }
+  /* `position:sticky` resolves against the print box, so the header row and
+     the section labels re-pin on every printed page and overlap the rows
+     underneath them. */
+  .schedule-corner,
+  .schedule-day-header,
+  .schedule-section-label {
+    position: static;
+  }
+}
+/* === T41b forced colours + print re-audit — end ============================ */

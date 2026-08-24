@@ -73,7 +73,11 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
     }
     await saveEntry(entry, selectedCourse.name_zh);
   };
-  return <section className="card schedule-add-card">
+  // T41b: the bare legacy `.card` is gone from here. It collided by NAME with
+  // HeroUI's `.card`, which is why /data and /assistant needed a page-scoped
+  // `revert-layer` patch to get their real Card box back. `.schedule-add-card`
+  // carries the identical legacy box now, and nothing else claims the name.
+  return <section className="schedule-add-card">
     <h2>手動加入課程</h2>
     <p>可搜尋學校分發的課程；加入後推薦會一併檢查衝堂。</p>
     <div className="schedule-add-grid">

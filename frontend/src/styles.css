@@ -69,6 +69,36 @@
 @import "@heroui/styles/components/radio.css" layer(components);
 @import "@heroui/styles/components/radio-group.css" layer(components);
 /* --- end T31 imports --- */
+/* --- T32 (onboarding form) -------------------------------------------------
+   Adopted by src/pages/onboarding/OnboardingPage.tsx. Grouped so concurrent
+   page migrations can be merged without touching each other's lines; duplicate
+   @import of the same URL is a no-op in Tailwind's resolver, so an overlap with
+   another page's block is harmless.
+   Form itself ships no stylesheet — it renders a bare <form> and delegates all
+   appearance to the field components (confirmed in @heroui/styles 3.2.4: there
+   is no components/form.css). label/description/field-error back Label,
+   Description and FieldError; input + input-group back ComboBox.InputGroup;
+   list-box{,-item,-section} + header back every popover list, including the
+   ListBox.Section headers the department picker groups by; popover backs the
+   ComboBox/Select overlays; empty-state backs ListBox renderEmptyState. */
+@import "@heroui/styles/components/fieldset.css" layer(components);
+@import "@heroui/styles/components/label.css" layer(components);
+@import "@heroui/styles/components/description.css" layer(components);
+@import "@heroui/styles/components/field-error.css" layer(components);
+@import "@heroui/styles/components/input.css" layer(components);
+@import "@heroui/styles/components/input-group.css" layer(components);
+@import "@heroui/styles/components/popover.css" layer(components);
+@import "@heroui/styles/components/list-box.css" layer(components);
+@import "@heroui/styles/components/list-box-item.css" layer(components);
+@import "@heroui/styles/components/list-box-section.css" layer(components);
+@import "@heroui/styles/components/header.css" layer(components);
+@import "@heroui/styles/components/empty-state.css" layer(components);
+@import "@heroui/styles/components/combo-box.css" layer(components);
+@import "@heroui/styles/components/select.css" layer(components);
+@import "@heroui/styles/components/radio.css" layer(components);
+@import "@heroui/styles/components/radio-group.css" layer(components);
+@import "@heroui/styles/components/switch.css" layer(components);
+/* --- end T32 --------------------------------------------------------------- */
 
 @import "./theme/fju.css" layer(theme);
 @import "./theme/typography.css" layer(theme);
@@ -530,3 +560,43 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    at 8px and .45rem measured 7.2px in Chrome. */
 .course-card .card__footer{flex-wrap:wrap;gap:.5rem;margin-top:auto}
 .course-top{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;min-width:0}
+
+/* ---------------------------------------------------------------------------
+   T32 (onboarding form) — legacy-shadowing repairs. Appended, not edited in
+   place: the block above is minified source that must not be reformatted
+   (plan R4), and all of this dies with it in T41.
+
+   Both rules exist for the same reason: the legacy sheet and T30's
+   preflight-revert shim are UNLAYERED, and an unlayered declaration beats a
+   layered one no matter how specific the layered selector is. So HeroUI's
+   `components` layer loses to `button{...}` and to `:where(fieldset){...}` on
+   every property those name. `revert-layer` rather than hard-coded values,
+   exactly as T30 did for `.modal__dialog` and `.toast`: it rolls each property
+   back to whatever the `components` layer — HeroUI's own rule — would set. */
+
+/* `:where(fieldset){padding:revert;border:revert}` in the shim restores the UA
+   `2px groove` border and UA padding on every <fieldset>, HeroUI's included
+   (measured: `border: 2px groove rgb(239,239,239)`). Only HeroUI's own
+   `.fieldset` is neutralised here, so bare legacy fieldsets keep what the shim
+   gives them and the shim itself stays untouched. */
+.fieldset[data-slot="fieldset"]{border:0;padding:0;margin:0;min-inline-size:0}
+
+/* Legacy `button{background:#fff;border:1px solid var(--line);border-radius:10px;
+   padding:.68rem 1rem;color:var(--ink)}` repainted HeroUI's primary CTA as a
+   white outline button — measured, `background-color: rgb(255,255,255)` on an
+   element carrying `.button--primary`. Scoped to this page rather than repaired
+   globally because the other page migrations are in flight on their own
+   branches, and a bare `.button` rule here would silently restyle them
+   mid-review. The same repair is needed app-wide; T41 removes the cause. */
+[data-page="onboarding"] .button[data-slot="button"]{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;font-weight:revert-layer}
+
+/* Same shadowing, different victim: legacy
+   `input,select,textarea{border:1px solid #cdd5ce;border-radius:9px;background:#fff;
+   padding:.78rem .85rem;color:var(--ink);width:100%}` pins every field to a white
+   box with near-black text. In light mode that merely ignores --field-*; in DARK
+   mode it leaves white fields sitting inside the dark card — measured on
+   [data-theme="fju-dark"]: input background rgb(255,255,255), colour
+   rgb(24,34,29), while --field-background resolves to oklch(24.4% .0113 260.7).
+   Reverting by layer hands the fields back to HeroUI's `.input` /
+   `.select__trigger`, which read the theme tokens and so track both schemes. */
+[data-page="onboarding"] .input[data-slot="input"],[data-page="onboarding"] .select__trigger{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;width:revert-layer}

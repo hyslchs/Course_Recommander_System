@@ -99,6 +99,18 @@
 @import "@heroui/styles/components/radio-group.css" layer(components);
 @import "@heroui/styles/components/switch.css" layer(components);
 /* --- end T32 --------------------------------------------------------------- */
+/* === T35 schedule workspace imports — begin ================================
+   Adopted by src/pages/schedule/**. `@import` has to stay in the import block
+   at the top of the file (CSS only allows it before other rules), so the T35
+   *rules* live in a second fence at the very bottom instead.
+   tabs backs the plan switcher, toolbar the two control strips, and
+   toggle-button-group the view-range + day-picker segmented controls
+   (toggle-button.css itself is already above, from T31). drawer/tooltip/alert
+   are likewise already imported and are re-used, not re-added. */
+@import "@heroui/styles/components/tabs.css" layer(components);
+@import "@heroui/styles/components/toolbar.css" layer(components);
+@import "@heroui/styles/components/toggle-button-group.css" layer(components);
+/* === T35 schedule workspace imports — end ================================== */
 /* === T36 data + assistant — begin (imports) ================================
    `@import` is only legal before other rules, so the T36 block is split: the
    three newly adopted component stylesheets live here with T30/T31/T32's, and
@@ -364,7 +376,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
   .course-skeleton span{animation:none}
 }
-.class-block[data-course-name]:is(:hover,:focus-visible)::after{content:attr(data-course-name);position:absolute;left:0;top:calc(100% + 5px);z-index:20;width:max-content;max-width:min(320px,70vw);padding:.45rem .6rem;border-radius:7px;background:#18221d;color:#fff;font-size:.8rem;line-height:1.4;box-shadow:0 6px 18px #0004}
+/* T35 deleted the `.class-block[data-course-name]::after` popup that lived here:
+   a `content: attr()` string is not in the accessibility tree, so it existed for
+   sighted mouse users only. Replaced by a real `Tooltip` in ClassBlock.tsx. */
 .mobile-schedule-block strong,.mobile-schedule-block small,.schedule-list strong,.schedule-list small{overflow-wrap:anywhere;white-space:normal}
 .brand{min-height:44px}
 
@@ -613,6 +627,81 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    `.select__trigger`, which read the theme tokens and so track both schemes. */
 [data-page="onboarding"] .input[data-slot="input"],[data-page="onboarding"] .select__trigger{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;width:revert-layer}
 
+/* === T35 schedule workspace — begin =======================================
+   Appended, never edited in place: the minified block far above is legacy
+   source that must not be reformatted (plan R4). Everything here is UNLAYERED
+   to match it, and scoped to `[data-page="schedule"]` for the same reason T32
+   scoped its repairs to `[data-page="onboarding"]` — the sibling page
+   migrations are in flight on their own branches and a bare `.button` /
+   `.toggle-button` rule here would silently restyle them mid-review. */
+
+/* Same shadowing T30/T32 already documented: legacy
+   `button{background:#fff;border:1px solid var(--line);border-radius:10px;
+   padding:.68rem 1rem;color:var(--ink)}` is unlayered, so it beats every HeroUI
+   `components`-layer rule regardless of specificity. On a ToggleButtonGroup that
+   is not cosmetic — it repaints the *selected* segment white, which erases the
+   only visual difference between selected and unselected and leaves the control
+   conveying its state through nothing at all. `.segmented-control button` (from
+   the legacy sheet) compounds it with `background:transparent`, hence the page
+   scope here, which outranks both. `revert-layer` rather than fixed values rolls
+   each property back to HeroUI's own rule instead of guessing at one. */
+[data-page="schedule"] .button,[data-page="schedule"] .toggle-button,[data-page="schedule"] .tabs__tab{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;font-weight:revert-layer}
+
+/* Empty-slot affordance contrast. Was `color:#456a52;opacity:.42`, which
+   composites to roughly 2.6:1 on the white cell — under the 4.5:1 floor, on the
+   one control whose entire job is to say "there is something to do here".
+   `--muted` at full opacity is the fix. NOTE: `--muted` is still shadowed by the
+   legacy unlayered `:root{--muted:#667069}` until T41, so the ratio this
+   actually lands on is the one measured against #667069, not plan §4.2's
+   6.39:1 — re-measure after the teardown. The `找課` wording stays hidden until
+   hover/focus (legacy rule), so only the icon carries the resting state. */
+[data-page="schedule"] .schedule-slot-button{color:var(--muted);opacity:1}
+
+/* The real Tooltip that replaced the deleted `::after` popup. Same width cap the
+   CSS version used, so long CJK course names still wrap rather than run off. */
+.class-block-tooltip{max-width:min(320px,70vw)}
+
+/* Course details moved from Modal to Drawer, so the box-neutralising rule T30
+   wrote for `.modal__dialog.schedule-dialog` needs its Drawer twin. The dialog's
+   *content* rules (`.schedule-dialog section`, `.schedule-detail-meta`, ...) are
+   still wanted and are left alone; only the panel box is handed back to HeroUI.
+   `.schedule-dialog` is still on the slot-recommendation Modal too, which is why
+   the T30 rule stays. */
+.drawer__dialog.schedule-dialog{width:revert-layer;height:revert-layer;max-height:revert-layer;margin:revert-layer;padding:revert-layer;background:revert-layer;box-shadow:revert-layer;border-radius:revert-layer;overflow:revert-layer}
+
+/* Plan §5.3: 44x44 minimum touch target. HeroUI's `md` controls are 40px and its
+   tabs 32px, so the three control families this page adopts all need the floor
+   raised. Measured at 375px before the fix: 13 targets under 44px. */
+[data-page="schedule"] .tabs__tab,[data-page="schedule"] .schedule-plan-actions .button,[data-page="schedule"] .toggle-button{min-height:44px}
+
+/* HeroUI's `.toolbar` is `width: fit-content`, which the legacy rules for these
+   two strips never had to override because they were plain divs. Measured: the
+   plan-actions bar collapsed from full width to 519px. */
+[data-page="schedule"] .schedule-plan-actions,[data-page="schedule"] .schedule-view-toolbar{width:100%}
+
+/* Day picker: `<select>` -> ToggleButtonGroup, so the old `label`/`select` flex
+   pair no longer describes the DOM. Mobile-first (plan §5.1): declared visible
+   here and hidden at `md` below, rather than adding another `max-width` query. */
+[data-page="schedule"] .mobile-day-picker{display:flex;align-items:center;gap:.7rem;margin:.75rem 0}
+[data-page="schedule"] .mobile-day-picker>strong{flex:none}
+[data-page="schedule"] .mobile-day-picker .toggle-button-group{flex:1}
+
+/* Plan §5.1 puts the timetable grid at `md` (768px). The legacy sheet switches
+   at 800px, which left 768-800 on the single-day list; this is the corrected
+   boundary, expressed as `min-width` so it overrides the legacy `max-width:800`
+   block without editing it. */
+@media (min-width:768px){
+  [data-page="schedule"] .schedule-grid{display:grid}
+  [data-page="schedule"] .mobile-schedule-list,[data-page="schedule"] .mobile-day-picker{display:none}
+  [data-page="schedule"] .timetable{overflow:auto}
+}
+
+/* Print hide-list: the plan switcher is navigation, not schedule content. Its
+   class changed from `.plan-tabs` to HeroUI's `.tabs__list-container`, so the
+   legacy `@media print` list no longer reaches it. Only the tab strip is hidden
+   — `.tabs__panel` holds the timetable and must stay. */
+@media print{[data-page="schedule"] .tabs__list-container{display:none!important}}
+/* === T35 schedule workspace — end ========================================= */
 /* === T36 data + assistant — begin ==========================================
    Same shape as T32's block: the legacy sheet above is UNLAYERED, so it beats
    HeroUI's `components` layer on every property it names, no matter how

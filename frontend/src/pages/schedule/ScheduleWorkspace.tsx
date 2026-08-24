@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Lock, MapPin, Sparkle, Warning } from "@phosphor-icons/react";
-import { Button } from "@heroui/react";
+import { Lock, Sparkle, Warning } from "@phosphor-icons/react";
+import { Button, Tabs, ToggleButton, ToggleButtonGroup, Toolbar } from "@heroui/react";
 import { getCatalog, getEmbeddingBundle } from "@/data/api";
 import { getAllRecords, putRecord } from "@/data/db";
 import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
@@ -14,7 +14,6 @@ import {
   sectionGridSpan,
   unplacedBlock,
   weekdayLabels,
-  weekPatternLabel,
   type ScheduleBlock,
 } from "@/domain/schedule";
 import { coursesInPlan } from "@/domain/scheduleUtils";
@@ -24,6 +23,7 @@ import { useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { Modal, StateAlert, useFeedback } from "@/components/ui";
 import type { CompletedCourse, Course, FixedScheduleEntry, RecommendationCategory, ScheduleEntry, SchedulePlan } from "@/domain/types";
+import { ClassBlock } from "./ClassBlock";
 import { CourseDetails } from "./CourseDetails";
 import { ManualCoursePanel } from "./ManualCoursePanel";
 import { SlotRecommendationDialog } from "./SlotRecommendationDialog";
@@ -74,7 +74,6 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
   const [planDialog, setPlanDialog] = useState<"create" | "rename" | "">("");
   const [planName, setPlanName] = useState("");
   const planNameRef = useRef<HTMLInputElement>(null);
-  const planTabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const { notify } = useFeedback();
   const courses = coursesInPlan(catalog, active);
   const fixedEntries: FixedScheduleEntry[] = active?.fixedEntries ?? [];
@@ -264,14 +263,6 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
     }
     setPlanDialog("");
   };
-  const onPlanTabKeyDown = (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
-    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key) || !plans.length) return;
-    event.preventDefault();
-    const nextIndex = event.key === "Home" ? 0 : event.key === "End" ? plans.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + plans.length) % plans.length;
-    const next = plans[nextIndex];
-    planTabRefs.current[nextIndex]?.focus();
-    void selectPlan(next.id);
-  };
   const duplicatePlan = async () => {
     if (!active) return;
     const now = new Date().toISOString();
@@ -320,31 +311,55 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
     selectAllCategories: () => applySlotCategoryFilters([...scheduleRecommendationCategories]),
   };
 
-  return <section className="page"><div className="page-heading"><div><div className="eyebrow">安排多個選課方案</div><h1>我的課表</h1></div><button className="primary" type="button" onClick={createPlan}>新增方案</button></div>
-    <div className="plan-tabs" role="tablist" aria-label="課表方案">{plans.map((plan, index) => <button ref={(element) => { planTabRefs.current[index] = element; }} type="button" role="tab" id={"plan-tab-" + plan.id} aria-controls={"plan-panel-" + plan.id} aria-selected={plan.id === active?.id} tabIndex={plan.id === active?.id ? 0 : -1} className={plan.id === active?.id ? "active" : ""} onKeyDown={(event) => onPlanTabKeyDown(event, index)} onClick={() => void selectPlan(plan.id)} key={plan.id}>{plan.name}</button>)}</div>
+  return <section className="page" data-page="schedule"><div className="page-heading"><div><div className="eyebrow">安排多個選課方案</div><h1>我的課表</h1></div><button className="primary" type="button" onClick={createPlan}>新增方案</button></div>
     {/* `<h2>`, not `<h1>`: the page heading above already owns this route's single `<h1>` (plan R9). */}
-    {!active ? <section className="empty-state"><h2 className="page-title">先建立一個課表方案</h2><p>建立課表後，你可以加入課程並檢查衝堂。</p><button className="primary" type="button" onClick={createPlan}>建立第一個方案</button></section> : <>
-      <div id={"plan-panel-" + active.id} role="tabpanel" aria-labelledby={"plan-tab-" + active.id}><div className="schedule-plan-actions"><strong>目前方案：{active.name}</strong><button type="button" onClick={renamePlan}>重新命名</button><button onClick={() => void duplicatePlan()}>建立副本</button><button onClick={printSchedule}>列印／另存 PDF</button></div>
+    {!active ? <section className="empty-state"><h2 className="page-title">先建立一個課表方案</h2><p>建立課表後，你可以加入課程並檢查衝堂。</p><button className="primary" type="button" onClick={createPlan}>建立第一個方案</button></section> :
+      /* The hand-rolled tablist (a `role="tablist"` div, manual `aria-selected`,
+         manual `tabIndex` and an `onPlanTabKeyDown` that re-implemented
+         Arrow/Home/End) is gone: React Aria's `Tabs` owns the roving tabindex,
+         the tab/panel wiring and the automatic activation. Only the selected
+         plan's panel is rendered, which is exactly what `Tabs.Panel` mounts. */
+      <Tabs selectedKey={active.id} onSelectionChange={(key) => void selectPlan(String(key))}>
+      <Tabs.ListContainer><Tabs.List aria-label="課表方案" className="schedule-plan-tabs">{plans.map((plan) => <Tabs.Tab id={plan.id} key={plan.id}>{plan.name}<Tabs.Indicator /></Tabs.Tab>)}</Tabs.List></Tabs.ListContainer>
+      <Tabs.Panel id={active.id}>
+      <Toolbar aria-label="課表方案操作" className="schedule-plan-actions"><strong>目前方案：{active.name}</strong><Button variant="secondary" onPress={renamePlan}>重新命名</Button><Button variant="secondary" onPress={() => void duplicatePlan()}>建立副本</Button><Button variant="secondary" onPress={printSchedule}>列印／另存 PDF</Button></Toolbar>
       <ManualCoursePanel catalog={catalog} plan={active} />
-      <div className="schedule-summary"><strong>{courses.length} 門課</strong><span>{credits} 學分</span>{fixedEntries.length > 0 && <span>{fixedEntries.length} 個固定時段</span>}{conflictCount > 0 && <span className="schedule-conflict-summary"><Warning aria-hidden="true" />{conflictCount} 門課衝堂</span>}{unplacedCourses.length > 0 && <span>待安排 {unplacedCourses.length} 門</span>}</div>
-      <div className="schedule-view-toolbar"><div><strong>點空白時段找適合的課</strong><span>系統會依目前課表推測興趣，並檢查課程的所有上課節次。</span></div><div className="segmented-control" role="group" aria-label="課表顯示範圍"><button className={viewMode === "auto" ? "active" : ""} aria-pressed={viewMode === "auto"} onClick={() => setViewMode("auto")}>智慧</button><button className={viewMode === "core" ? "active" : ""} aria-pressed={viewMode === "core"} onClick={() => setViewMode("core")}>核心時段{viewMode === "core" && hiddenSourceIds.size > 0 ? `（隱藏 ${hiddenSourceIds.size} 門）` : ""}</button><button className={viewMode === "full" ? "active" : ""} aria-pressed={viewMode === "full"} onClick={() => setViewMode("full")}>完整課表</button></div></div>
+      <div className="schedule-summary"><strong>{courses.length} 門課</strong><span>{credits} 學分</span>{fixedEntries.length > 0 && <span>{fixedEntries.length} 個固定時段</span>}</div>
+      {/* Was a `.schedule-conflict-summary` span wedged into the count strip, i.e.
+          a warning that looked like a statistic and was announced as one. */}
+      {conflictCount > 0 && <StateAlert className="schedule-conflict-alert" live="polite" title="課表有衝堂" tone="danger">{conflictCount} 門課的上課時間互相重疊，格線上以紅色斜線標示。</StateAlert>}
+      <Toolbar aria-label="課表顯示設定" className="schedule-view-toolbar"><div><strong>點空白時段找適合的課</strong><span>系統會依目前課表推測興趣，並檢查課程的所有上課節次。</span></div>
+        {/* `selectionMode="single"` makes React Aria emit `radiogroup`/`radio` +
+            `aria-checked` instead of the old `group` + `aria-pressed`. That is the
+            APG pattern for a mutually exclusive segmented control and is why the
+            workspace test now queries by those roles. */}
+        <ToggleButtonGroup aria-label="課表顯示範圍" className="segmented-control" disallowEmptySelection selectedKeys={[viewMode]} selectionMode="single" onSelectionChange={(keys) => { const next = [...keys][0]; if (next) setViewMode(next as typeof viewMode); }}>
+          <ToggleButton id="auto">智慧</ToggleButton>
+          <ToggleButton id="core">核心時段{viewMode === "core" && hiddenSourceIds.size > 0 ? `（隱藏 ${hiddenSourceIds.size} 門）` : ""}</ToggleButton>
+          <ToggleButton id="full">完整課表</ToggleButton>
+        </ToggleButtonGroup></Toolbar>
       {viewMode === "core" && hiddenSourceIds.size > 0 && <StateAlert action={<Button className="mt-2 min-h-11" variant="secondary" onPress={() => setViewMode("auto")}>顯示有課時段</Button>} className="schedule-hidden-notice" tone="info">目前折疊範圍內有 {hiddenSourceIds.size} 門課。</StateAlert>}
-      <div className="mobile-day-picker"><label>查看星期<select value={mobileDay} onChange={(event) => setMobileDay(Number(event.target.value))}>{visibleDays.map((day) => <option value={day} key={day}>星期{weekdayLabels[day - 1]}</option>)}</select></label></div>
-      <div className="timetable" aria-label={`${active.name}課表`}><div className="schedule-grid" style={gridStyle} role="grid"><div className="schedule-corner" role="columnheader">節次</div>{visibleDays.map((day, dayIndex) => <div className="schedule-day-header" role="columnheader" key={day} style={{ gridColumn: dayIndex + 2, gridRow: 1 }}>星期{weekdayLabels[day - 1]}</div>)}{visibleSections.map((section, sectionIndex) => <div className={`schedule-section-label ${EXTENDED_SCHEDULE_SECTIONS.includes(section as typeof EXTENDED_SCHEDULE_SECTIONS[number]) ? "extended" : ""}`} role="rowheader" key={section} style={{ gridColumn: 1, gridRow: sectionIndex + 2 }}>{section}</div>)}{visibleSections.flatMap((section, sectionIndex) => visibleDays.map((day, dayIndex) => {
+      <div className="mobile-day-picker"><strong id="mobile-day-picker-label">查看星期</strong><ToggleButtonGroup aria-labelledby="mobile-day-picker-label" disallowEmptySelection fullWidth selectedKeys={[String(mobileDay)]} selectionMode="single" onSelectionChange={(keys) => { const next = [...keys][0]; if (next) setMobileDay(Number(next)); }}>{visibleDays.map((day) => <ToggleButton aria-label={`星期${weekdayLabels[day - 1]}`} id={String(day)} key={day}>{weekdayLabels[day - 1]}</ToggleButton>)}</ToggleButtonGroup></div>
+      {/* `aria-rowcount`/`aria-colcount` count the header row and the section-label
+          column, so the indices below are 1-based over the whole grid. They sit on
+          the four `grid`-family roles only; the class blocks are absolutely placed
+          siblings rather than gridcells, and `aria-rowindex` is not valid on a
+          `button`. */}
+      <div className="timetable" aria-label={`${active.name}課表`}><div className="schedule-grid" style={gridStyle} role="grid" aria-colcount={visibleDays.length + 1} aria-rowcount={visibleSections.length + 1}><div className="schedule-corner" role="columnheader" aria-colindex={1} aria-rowindex={1}>節次</div>{visibleDays.map((day, dayIndex) => <div className="schedule-day-header" role="columnheader" aria-colindex={dayIndex + 2} aria-rowindex={1} key={day} style={{ gridColumn: dayIndex + 2, gridRow: 1 }}>星期{weekdayLabels[day - 1]}</div>)}{visibleSections.map((section, sectionIndex) => <div className={`schedule-section-label ${EXTENDED_SCHEDULE_SECTIONS.includes(section as typeof EXTENDED_SCHEDULE_SECTIONS[number]) ? "extended" : ""}`} role="rowheader" aria-colindex={1} aria-rowindex={sectionIndex + 2} key={section} style={{ gridColumn: 1, gridRow: sectionIndex + 2 }}>{section}</div>)}{visibleSections.flatMap((section, sectionIndex) => visibleDays.map((day, dayIndex) => {
         const key = `${day}-${section}`;
         const occupied = occupiedSlotKeys.has(key);
-        return <div className={`schedule-cell ${occupied ? "occupied" : ""}`} role="gridcell" aria-label={`星期${weekdayLabels[day - 1]} ${section}`} key={key} style={{ gridColumn: dayIndex + 2, gridRow: sectionIndex + 2 }}>{!occupied && <button ref={(element) => { if (element) slotButtonRefs.current.set(key, element); else slotButtonRefs.current.delete(key); }} type="button" className="schedule-slot-button" tabIndex={resolvedActiveSlotKey === key ? 0 : -1} aria-label={`推薦星期${weekdayLabels[day - 1]} ${section} 可以排入的課程`} onFocus={() => setActiveSlotKey(key)} onKeyDown={(event) => onSlotKeyDown(event, dayIndex, sectionIndex)} onClick={() => void loadSlotRecommendations({ weekday: day, section })}><Sparkle aria-hidden="true" /><span>找課</span></button>}</div>;
+        return <div className={`schedule-cell ${occupied ? "occupied" : ""}`} role="gridcell" aria-colindex={dayIndex + 2} aria-label={`星期${weekdayLabels[day - 1]} ${section}`} aria-rowindex={sectionIndex + 2} key={key} style={{ gridColumn: dayIndex + 2, gridRow: sectionIndex + 2 }}>{!occupied && <button ref={(element) => { if (element) slotButtonRefs.current.set(key, element); else slotButtonRefs.current.delete(key); }} type="button" className="schedule-slot-button" tabIndex={resolvedActiveSlotKey === key ? 0 : -1} aria-label={`推薦星期${weekdayLabels[day - 1]} ${section} 可以排入的課程`} onFocus={() => setActiveSlotKey(key)} onKeyDown={(event) => onSlotKeyDown(event, dayIndex, sectionIndex)} onClick={() => void loadSlotRecommendations({ weekday: day, section })}><Sparkle aria-hidden="true" /><span>找課</span></button>}</div>;
       }))}{blocks.map((block) => {
         const dayIndex = visibleDays.indexOf(block.weekday); const span = sectionGridSpan(block, visibleSections); if (dayIndex === -1 || !span) return null;
         const blockStyle = { gridColumn: dayIndex + 2, gridRow: `${span.start + 2} / span ${span.span}`, width: `calc(${100 / block.laneCount}% - 6px)`, marginLeft: `calc(${block.lane * 100 / block.laneCount}% + 3px)` } as CSSProperties;
-        return <button type="button" className={`class-block ${block.source === "fixed" ? "fixed" : ""} ${block.conflict ? "conflict" : ""}`} style={blockStyle} data-course-name={block.name} key={block.id} onClick={(event) => openDetails(block, event.currentTarget)} aria-label={`${block.name}，星期${weekdayLabels[block.weekday - 1]} ${block.sections.join("到")}${block.conflict ? "，有衝堂" : ""}`}><strong>{block.name}</strong><small>{block.teacher}</small>{block.room && <small><MapPin aria-hidden="true" />{block.room}</small>}<span className="class-block-tags">{weekPatternLabel(block.weekPattern) && <em>{weekPatternLabel(block.weekPattern)}</em>}{block.conflict && <em className="conflict-tag"><Warning aria-hidden="true" />衝堂</em>}</span></button>;
-      })}</div><div className="mobile-schedule-list">{!mobileBlocks.length && <p className="muted">星期{weekdayLabels[mobileDay - 1]}目前沒有課程。</p>}{mobileBlocks.map((block) => <button key={block.id} className={`mobile-schedule-block ${block.source === "fixed" ? "fixed" : ""} ${block.conflict ? "conflict" : ""}`} onClick={(event) => openDetails(block, event.currentTarget)}><span><strong>{block.sections.join("–")}　{block.name}</strong><small>{block.teacher}{block.room ? ` · ${block.room}` : ""}</small></span><span>{weekPatternLabel(block.weekPattern)}{block.conflict ? <Warning aria-label="有衝堂" /> : null}</span></button>)}<div className="mobile-open-slots"><strong>點空堂找課</strong><div>{mobileOpenSections.map((section) => <button type="button" key={section} onClick={() => void loadSlotRecommendations({ weekday: mobileDay, section })}><Sparkle aria-hidden="true" />{section}</button>)}</div></div></div></div>
-      {unplacedCourses.length > 0 && <section className="unplaced-courses"><div><h2>時間未定／待安排</h2><p>這些課程不會被誤放進星期一；指定時間後才會出現在格狀課表。</p></div>{unplacedCourses.map((course) => <button key={course.course_id} onClick={(event) => openDetails(unplacedBlock(course), event.currentTarget)}><strong>{course.name_zh}</strong><span>{formatMeetings(course)}</span></button>)}</section>}
+        return <ClassBlock block={block} key={block.id} style={blockStyle} variant="grid" onSelect={openDetails} />;
+      })}</div><div className="mobile-schedule-list">{!mobileBlocks.length && <p className="muted">星期{weekdayLabels[mobileDay - 1]}目前沒有課程。</p>}{mobileBlocks.map((block) => <ClassBlock block={block} key={block.id} variant="list" onSelect={openDetails} />)}<div className="mobile-open-slots"><strong>點空堂找課</strong><div>{mobileOpenSections.map((section) => <button type="button" key={section} onClick={() => void loadSlotRecommendations({ weekday: mobileDay, section })}><Sparkle aria-hidden="true" />{section}</button>)}</div></div></div></div>
+      {unplacedCourses.length > 0 && <section className="unplaced-courses"><h2>時間未定／待安排</h2><StateAlert live="polite" tone="warning">{unplacedCourses.length} 門課的上課時間未定。它們不會被誤放進星期一，指定時間後才會出現在格狀課表。</StateAlert>{unplacedCourses.map((course) => <button key={course.course_id} onClick={(event) => openDetails(unplacedBlock(course), event.currentTarget)}><strong>{course.name_zh}</strong><span>{formatMeetings(course)}</span></button>)}</section>}
       <div className="schedule-list">{fixedEntries.map((entry) => <div key={entry.id} className="fixed-schedule-entry"><span><strong>{entry.name}</strong><small>{formatMeetings(entry)} · {entry.teacher ?? "固定時段"}</small></span><span>固定時段</span></div>)}{courses.map((course) => { const entry = active.entries.find((item) => item.courseId === course.course_id)!; return <div key={course.course_id}><span><strong>{course.name_zh}{entry.meetingsOverride && <em className="manual-time-tag">手動時間</em>}</strong><small>{formatMeetings(course)}</small></span><button onClick={() => void toggleLock(course.course_id)}>{entry.locked ? <><Lock aria-hidden="true" />已鎖定</> : "鎖定"}</button><button onClick={() => void removeEntry(course.course_id)}>移除</button></div>; })}</div>
       {selectedBlock && <CourseDetails block={selectedBlock} catalog={catalog} scheduledCourses={courses} plan={active} onClose={closeDetails} />}
       <SlotRecommendationContext.Provider value={slotRecommendationValue}><SlotRecommendationDialog /></SlotRecommendationContext.Provider>
-      </div>
-    </>}
+      </Tabs.Panel>
+    </Tabs>}
     <Modal open={Boolean(planDialog)} title={planDialog === "create" ? "建立課表方案" : "重新命名課表方案"} onClose={() => setPlanDialog("")} initialFocusRef={planNameRef}>
       <label htmlFor="plan-name"><strong>方案名稱</strong></label>
       <input ref={planNameRef} id="plan-name" value={planName} maxLength={80} onChange={(event) => setPlanName(event.target.value)} />

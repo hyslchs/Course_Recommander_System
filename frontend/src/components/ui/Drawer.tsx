@@ -6,6 +6,12 @@ export interface SideDrawerProps {
   title: ReactNode;
   onClose: () => void;
   children: ReactNode;
+  /**
+   * Sticky action bar pinned below the scrolling body (`Drawer.Footer`). Added
+   * for T33's filter sheet, whose 清除全部 / 套用 pair has to stay reachable
+   * while the filter list scrolls. Omit it and no footer element is rendered.
+   */
+  footer?: ReactNode;
   /** `bottom` is the mobile default; `right`/`left` are the desktop shapes. */
   placement?: "top" | "bottom" | "left" | "right";
   /** Renders the drag affordance. Only meaningful for `bottom`/`top`. */
@@ -25,6 +31,7 @@ export function SideDrawer({
   title,
   onClose,
   children,
+  footer,
   placement = "bottom",
   showHandle = placement === "bottom" || placement === "top",
   initialFocusRef,
@@ -53,6 +60,7 @@ export function SideDrawer({
             <HeroDrawer.Heading level={2}>{title}</HeroDrawer.Heading>
           </HeroDrawer.Header>
           <HeroDrawer.Body>{children}</HeroDrawer.Body>
+          {footer ? <HeroDrawer.Footer>{footer}</HeroDrawer.Footer> : null}
         </HeroDrawer.Dialog>
       </HeroDrawer.Content>
     </HeroDrawer.Backdrop>

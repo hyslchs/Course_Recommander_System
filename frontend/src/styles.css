@@ -95,10 +95,24 @@
 @import "@heroui/styles/components/empty-state.css" layer(components);
 @import "@heroui/styles/components/combo-box.css" layer(components);
 @import "@heroui/styles/components/select.css" layer(components);
-@import "@heroui/styles/components/radio.css" layer(components);
-@import "@heroui/styles/components/radio-group.css" layer(components);
 @import "@heroui/styles/components/switch.css" layer(components);
 /* --- end T32 --------------------------------------------------------------- */
+/* === T33 recommend page — imports begin ===================================
+   Newly adopted by src/pages/recommend/**. Everything else the page uses
+   (button, card, chip, disclosure, drawer, close-button, label, description,
+   radio{,-group}, switch, toggle-button, alert, skeleton, empty-state) is
+   already imported above; a duplicate @import of the same URL is a no-op in
+   Tailwind's resolver, so the overlap with T31/T32 is harmless.
+   `tag.css` and `tag-group.css` are two files: the group only lays out the
+   list, the chip itself (and its remove button) lives in the other. Same split
+   as toggle-button / toggle-button-group. */
+@import "@heroui/styles/components/accordion.css" layer(components);
+@import "@heroui/styles/components/textarea.css" layer(components);
+@import "@heroui/styles/components/tag.css" layer(components);
+@import "@heroui/styles/components/tag-group.css" layer(components);
+@import "@heroui/styles/components/toggle-button-group.css" layer(components);
+@import "@heroui/styles/components/badge.css" layer(components);
+/* === T33 recommend page — imports end ===================================== */
 /* === T35 schedule workspace imports — begin ================================
    Adopted by src/pages/schedule/**. `@import` has to stay in the import block
    at the top of the file (CSS only allows it before other rules), so the T35
@@ -109,7 +123,6 @@
    are likewise already imported and are re-used, not re-added. */
 @import "@heroui/styles/components/tabs.css" layer(components);
 @import "@heroui/styles/components/toolbar.css" layer(components);
-@import "@heroui/styles/components/toggle-button-group.css" layer(components);
 /* === T35 schedule workspace imports — end ================================== */
 /* === T36 data + assistant — begin (imports) ================================
    `@import` is only legal before other rules, so the T36 block is split: the
@@ -120,7 +133,6 @@
    meter -> storage usage; textarea -> the two composers; checkbox -> the
    "想繼續深入" row toggle and the import-overwrite opt-in. */
 @import "@heroui/styles/components/meter.css" layer(components);
-@import "@heroui/styles/components/textarea.css" layer(components);
 @import "@heroui/styles/components/checkbox.css" layer(components);
 /* === T36 data + assistant — end (imports) ================================== */
 
@@ -211,7 +223,7 @@
   --leading-cjk: 1.75;
 }
 
-:root{font-family:"Noto Sans TC","Segoe UI",sans-serif;color:#18221d;background:#f3f5f1;font-synthesis:none;--green:#0d5238;--lime:#d9f078;--ink:#18221d;--muted:#667069;--line:#dfe4de;--paper:#fff;--danger:#a93232}*{box-sizing:border-box}body{margin:0;min-width:320px}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:10px;background:#fff;padding:.68rem 1rem;color:var(--ink)}button:disabled{opacity:.5;cursor:not-allowed}a{color:inherit}.app-shell{min-height:100vh;display:flex;flex-direction:column}.topbar{height:72px;padding:0 clamp(1rem,5vw,4.5rem);display:flex;align-items:center;gap:2rem;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}.brand{display:flex;gap:.7rem;align-items:center;text-decoration:none}.brand span{display:grid;place-items:center;background:var(--green);color:#fff;border-radius:8px;width:38px;height:38px;font-size:.75rem;letter-spacing:.08em}.brand strong{font-size:1.1rem;white-space:nowrap}.topbar nav{display:flex;gap:.35rem;flex:1}.topbar nav a,.profile-link{padding:.65rem .8rem;text-decoration:none;color:var(--muted);border-radius:9px}.topbar nav a.active{background:#edf3ee;color:var(--green);font-weight:700}.profile-link{border:1px solid var(--line);color:var(--green)}main{flex:1}.page,.narrow-page{max-width:1200px;margin:0 auto;padding:3rem clamp(1rem,4vw,3rem) 5rem}.narrow-page{max-width:850px}.eyebrow{text-transform:uppercase;letter-spacing:.13em;font-size:.78rem;font-weight:800;color:#54715f}.lead{font-size:1.1rem;color:var(--muted);line-height:1.7}h1{font-size:clamp(2rem,4vw,3.4rem);line-height:1.08;margin:.5rem 0 1rem;letter-spacing:-.04em}h2{margin:.2rem 0 .5rem}.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:1.4rem;box-shadow:0 10px 35px #183d2610}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-top:2rem}.form-grid label,.form-grid fieldset{display:flex;flex-direction:column;gap:.45rem;font-weight:700}.form-grid small{font-weight:400;color:var(--muted)}input,select,textarea{border:1px solid #cdd5ce;border-radius:9px;background:#fff;padding:.78rem .85rem;color:var(--ink);width:100%}textarea{resize:vertical;line-height:1.6}.wide{grid-column:1/-1}.check{flex-direction:row!important;align-items:center!important}.check input{width:auto}.choice-row{display:flex;gap:.5rem;flex-wrap:wrap}.primary{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}.hero{background:var(--green);color:#fff;border-radius:24px;padding:clamp(2rem,5vw,4rem);display:flex;align-items:flex-end;justify-content:space-between;gap:2rem}.hero p{color:#dbe7df;max-width:620px}.hero .eyebrow{color:var(--lime)}.privacy-pill{white-space:nowrap;border:1px solid #ffffff44;border-radius:999px;padding:.65rem 1rem;color:var(--lime)}.recommend-box{display:grid;grid-template-columns:1fr auto;gap:.75rem;margin:-1.5rem auto 2rem;position:relative;width:calc(100% - 4rem);background:#fff;padding:1rem;border-radius:16px;box-shadow:0 14px 45px #173b2625}.recommend-box textarea{border:0;min-height:74px}.course-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.course-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.35rem;display:flex;flex-direction:column;gap:.65rem;min-width:0}.course-card h2{font-size:1.35rem}.course-top{display:flex;align-items:center;gap:.5rem}.rank{font-weight:900;font-size:1.1rem;color:var(--green)}.heart{margin-left:auto;border:0;padding:.25rem;background:none;color:#bec6c0;font-size:1.35rem}.heart.active{color:#c94b58}.status{border-radius:999px;padding:.3rem .55rem;font-size:.75rem;font-weight:800;background:#eef1ee}.status.eligible_confirmed{background:#daf3e4;color:#196038}.status.needs_confirmation{background:#fff1c8;color:#775600}.status.blocked_confirmed{background:#f9d9d9;color:#8c2525}.meta{display:flex;gap:.45rem;flex-wrap:wrap}.meta span{font-size:.78rem;border:1px solid var(--line);padding:.28rem .48rem;border-radius:6px}.muted,.meeting{color:var(--muted);margin:0}.meeting{font-size:.9rem}.reasons{margin:.25rem 0;padding-left:1.2rem;color:#345c45}.reasons li{margin:.3rem 0}.course-card details{border-top:1px solid var(--line);padding-top:.7rem}.course-card summary{cursor:pointer;font-weight:700;color:var(--green)}.details{line-height:1.65}.details p{white-space:pre-line}.evidence{display:flex;flex-direction:column;background:#fff8df;border-left:3px solid #e1bd44;padding:.7rem;margin:.6rem 0}.evidence q{color:#68591f}.card-actions{display:flex;gap:.45rem;margin-top:auto;flex-wrap:wrap}.quiet{border:0;color:var(--muted)}.empty-panel,.empty-state{padding:4rem 2rem;text-align:center}.feature-grid{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap}.feature-grid span{background:#fff;border:1px solid var(--line);padding:1rem;border-radius:12px}.page-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:1.5rem}.filters-bar{display:grid;grid-template-columns:2fr 1fr 1fr;gap:.7rem;margin-bottom:1.2rem}.pager,.plan-tabs{display:flex;justify-content:center;align-items:center;gap:.75rem;margin:1.5rem}.plan-tabs button.active{background:var(--green);color:#fff}.schedule-summary{display:flex;gap:2rem;background:#fff;border-radius:14px;padding:1rem 1.3rem;margin:1rem 0}.timetable{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px}.timetable table{width:100%;border-collapse:collapse;min-width:760px}.timetable th,.timetable td{border:1px solid var(--line);padding:.5rem;vertical-align:top;min-width:125px}.class-block{background:#dcecdf;border-left:3px solid var(--green);border-radius:6px;padding:.45rem;font-size:.85rem;margin:.2rem 0}.class-block small{display:block;color:var(--muted)}.schedule-list,.list-card{margin-top:1rem}.schedule-list>div,.list-card>div{display:flex;align-items:center;gap:.6rem;background:#fff;border-bottom:1px solid var(--line);padding:.8rem 1rem}.schedule-list span,.list-card>div>span{display:flex;flex-direction:column;flex:1}.schedule-list small{color:var(--muted)}.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.data-grid .card{display:flex;flex-direction:column;gap:.8rem}.big-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}.big-stats span{background:#f3f6f2;padding:1rem;border-radius:10px;text-align:center}.big-stats strong{font-size:1.8rem;display:block;color:var(--green)}.danger-button{color:var(--danger);border-color:#e9bcbc}.notice{padding:1rem;border-radius:10px;margin:1rem 0}.danger{background:#fee6e6;color:#8a2323}.button-link{display:inline-block;text-decoration:none;padding:.75rem 1rem;border-radius:10px}footer{text-align:center;padding:1.3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}@media(max-width:800px){.topbar{height:auto;padding:.7rem 1rem;flex-wrap:wrap;gap:.5rem}.topbar nav{order:3;overflow:auto;width:100%}.topbar nav a{white-space:nowrap}.profile-link{margin-left:auto}.course-grid,.data-grid{grid-template-columns:1fr}.form-grid,.filters-bar{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.hero{border-radius:0;margin:-3rem -1rem 0}.recommend-box{width:100%;margin:1rem 0;grid-template-columns:1fr}.page-heading{align-items:start}.schedule-summary{gap:.7rem;flex-wrap:wrap}}
+:root{font-family:"Noto Sans TC","Segoe UI",sans-serif;color:#18221d;background:#f3f5f1;font-synthesis:none;--green:#0d5238;--lime:#d9f078;--ink:#18221d;--muted:#667069;--line:#dfe4de;--paper:#fff;--danger:#a93232}*{box-sizing:border-box}body{margin:0;min-width:320px}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:10px;background:#fff;padding:.68rem 1rem;color:var(--ink)}button:disabled{opacity:.5;cursor:not-allowed}a{color:inherit}.app-shell{min-height:100vh;display:flex;flex-direction:column}.topbar{height:72px;padding:0 clamp(1rem,5vw,4.5rem);display:flex;align-items:center;gap:2rem;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}.brand{display:flex;gap:.7rem;align-items:center;text-decoration:none}.brand span{display:grid;place-items:center;background:var(--green);color:#fff;border-radius:8px;width:38px;height:38px;font-size:.75rem;letter-spacing:.08em}.brand strong{font-size:1.1rem;white-space:nowrap}.topbar nav{display:flex;gap:.35rem;flex:1}.topbar nav a,.profile-link{padding:.65rem .8rem;text-decoration:none;color:var(--muted);border-radius:9px}.topbar nav a.active{background:#edf3ee;color:var(--green);font-weight:700}.profile-link{border:1px solid var(--line);color:var(--green)}main{flex:1}.page,.narrow-page{max-width:1200px;margin:0 auto;padding:3rem clamp(1rem,4vw,3rem) 5rem}.narrow-page{max-width:850px}.eyebrow{text-transform:uppercase;letter-spacing:.13em;font-size:.78rem;font-weight:800;color:#54715f}.lead{font-size:1.1rem;color:var(--muted);line-height:1.7}h1{font-size:clamp(2rem,4vw,3.4rem);line-height:1.08;margin:.5rem 0 1rem;letter-spacing:-.04em}h2{margin:.2rem 0 .5rem}.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:1.4rem;box-shadow:0 10px 35px #183d2610}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-top:2rem}.form-grid label,.form-grid fieldset{display:flex;flex-direction:column;gap:.45rem;font-weight:700}.form-grid small{font-weight:400;color:var(--muted)}input,select,textarea{border:1px solid #cdd5ce;border-radius:9px;background:#fff;padding:.78rem .85rem;color:var(--ink);width:100%}textarea{resize:vertical;line-height:1.6}.wide{grid-column:1/-1}.check{flex-direction:row!important;align-items:center!important}.check input{width:auto}.choice-row{display:flex;gap:.5rem;flex-wrap:wrap}.primary{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}.hero{background:var(--green);color:#fff;border-radius:24px;padding:clamp(2rem,5vw,4rem);display:flex;align-items:flex-end;justify-content:space-between;gap:2rem}.hero p{color:#dbe7df;max-width:620px}.hero .eyebrow{color:var(--lime)}.privacy-pill{white-space:nowrap;border:1px solid #ffffff44;border-radius:999px;padding:.65rem 1rem;color:var(--lime)}.course-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.course-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.35rem;display:flex;flex-direction:column;gap:.65rem;min-width:0}.course-card h2{font-size:1.35rem}.course-top{display:flex;align-items:center;gap:.5rem}.rank{font-weight:900;font-size:1.1rem;color:var(--green)}.heart{margin-left:auto;border:0;padding:.25rem;background:none;color:#bec6c0;font-size:1.35rem}.heart.active{color:#c94b58}.status{border-radius:999px;padding:.3rem .55rem;font-size:.75rem;font-weight:800;background:#eef1ee}.status.eligible_confirmed{background:#daf3e4;color:#196038}.status.needs_confirmation{background:#fff1c8;color:#775600}.status.blocked_confirmed{background:#f9d9d9;color:#8c2525}.meta{display:flex;gap:.45rem;flex-wrap:wrap}.meta span{font-size:.78rem;border:1px solid var(--line);padding:.28rem .48rem;border-radius:6px}.muted,.meeting{color:var(--muted);margin:0}.meeting{font-size:.9rem}.reasons{margin:.25rem 0;padding-left:1.2rem;color:#345c45}.reasons li{margin:.3rem 0}.course-card details{border-top:1px solid var(--line);padding-top:.7rem}.course-card summary{cursor:pointer;font-weight:700;color:var(--green)}.details{line-height:1.65}.details p{white-space:pre-line}.evidence{display:flex;flex-direction:column;background:#fff8df;border-left:3px solid #e1bd44;padding:.7rem;margin:.6rem 0}.evidence q{color:#68591f}.card-actions{display:flex;gap:.45rem;margin-top:auto;flex-wrap:wrap}.quiet{border:0;color:var(--muted)}.empty-panel,.empty-state{padding:4rem 2rem;text-align:center}.feature-grid{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap}.feature-grid span{background:#fff;border:1px solid var(--line);padding:1rem;border-radius:12px}.page-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:1.5rem}.filters-bar{display:grid;grid-template-columns:2fr 1fr 1fr;gap:.7rem;margin-bottom:1.2rem}.pager,.plan-tabs{display:flex;justify-content:center;align-items:center;gap:.75rem;margin:1.5rem}.plan-tabs button.active{background:var(--green);color:#fff}.schedule-summary{display:flex;gap:2rem;background:#fff;border-radius:14px;padding:1rem 1.3rem;margin:1rem 0}.timetable{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px}.timetable table{width:100%;border-collapse:collapse;min-width:760px}.timetable th,.timetable td{border:1px solid var(--line);padding:.5rem;vertical-align:top;min-width:125px}.class-block{background:#dcecdf;border-left:3px solid var(--green);border-radius:6px;padding:.45rem;font-size:.85rem;margin:.2rem 0}.class-block small{display:block;color:var(--muted)}.schedule-list,.list-card{margin-top:1rem}.schedule-list>div,.list-card>div{display:flex;align-items:center;gap:.6rem;background:#fff;border-bottom:1px solid var(--line);padding:.8rem 1rem}.schedule-list span,.list-card>div>span{display:flex;flex-direction:column;flex:1}.schedule-list small{color:var(--muted)}.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.data-grid .card{display:flex;flex-direction:column;gap:.8rem}.big-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}.big-stats span{background:#f3f6f2;padding:1rem;border-radius:10px;text-align:center}.big-stats strong{font-size:1.8rem;display:block;color:var(--green)}.danger-button{color:var(--danger);border-color:#e9bcbc}.notice{padding:1rem;border-radius:10px;margin:1rem 0}.danger{background:#fee6e6;color:#8a2323}.button-link{display:inline-block;text-decoration:none;padding:.75rem 1rem;border-radius:10px}footer{text-align:center;padding:1.3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}@media(max-width:800px){.topbar{height:auto;padding:.7rem 1rem;flex-wrap:wrap;gap:.5rem}.topbar nav{order:3;overflow:auto;width:100%}.topbar nav a{white-space:nowrap}.profile-link{margin-left:auto}.course-grid,.data-grid{grid-template-columns:1fr}.form-grid,.filters-bar{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.hero{border-radius:0;margin:-3rem -1rem 0}.page-heading{align-items:start}.schedule-summary{gap:.7rem;flex-wrap:wrap}}
 /* Recommendation hierarchy */
 .category-tag{padding:.25rem .55rem;border-radius:999px;font-size:.78rem;font-weight:800;letter-spacing:.02em}
 .category-tag.home_required{background:#0d5238;color:#fff}
@@ -220,8 +232,8 @@
 .category-tag.external_department{background:#ece8f4;color:#574a70}
 .official-course-tags{display:flex;gap:.35rem;flex-wrap:wrap}.official-course-tags span{border-radius:999px;padding:.28rem .55rem;background:#e8f1ff;color:#255687;font-size:.76rem;font-weight:800}
 .course-top{flex-wrap:wrap}
-.subject-query-field{display:grid;gap:.35rem}.subject-query-field label{font-weight:800;color:var(--green)}.subject-query-field small{color:var(--muted);line-height:1.45}.recommend-box>.primary{align-self:center}.search-execution-summary{display:flex;gap:.75rem;flex-wrap:wrap;margin:1rem 0}.search-execution-summary>span{display:flex;flex-direction:column;gap:.18rem;min-width:220px;padding:.75rem 1rem;border:1px solid var(--line);border-radius:12px;background:#fff}.search-execution-summary strong{font-size:.78rem;color:var(--muted)}.filter-section-heading{display:flex;align-items:end;justify-content:space-between;gap:1rem;margin:1.7rem 0 .4rem}.filter-section-heading span{font-size:.78rem;font-weight:900;letter-spacing:.12em;color:var(--green)}.filter-section-heading h2{margin:.2rem 0}.filter-section-heading p{max-width:480px;margin:0;color:var(--muted);text-align:right}
-@media(max-width:800px){.filter-section-heading{align-items:start;flex-direction:column}.filter-section-heading p{text-align:left}.search-execution-summary>span{min-width:0;flex:1 1 100%}}
+.search-execution-summary{display:flex;gap:.75rem;flex-wrap:wrap;margin:1rem 0}.search-execution-summary>span{display:flex;flex-direction:column;gap:.18rem;min-width:220px;padding:.75rem 1rem;border:1px solid var(--line);border-radius:12px;background:#fff}.search-execution-summary strong{font-size:.78rem;color:var(--muted)}
+@media(max-width:800px){.search-execution-summary>span{min-width:0;flex:1 1 100%}}
 .assistant-page{max-width:1200px}
 .assistant-hero{margin-bottom:1rem}
 .assistant-consent{max-width:760px;margin:1rem auto;line-height:1.7}
@@ -264,8 +276,6 @@
 .department-option-group>button small{max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.department-selection-summary{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .65rem;padding:.6rem .75rem;border:1px solid #d6e1d8;border-radius:10px;background:#f7faf7;color:var(--green);font-size:.86rem}.department-selection-summary span{color:var(--muted)}.department-selection-summary small{width:100%;color:var(--muted)}
 
 /* Recommendation filter workspace */
-.filter-workspace{margin:1.7rem 0 1rem}.filter-workspace .filter-section-heading{margin:0 0 .85rem}.applied-filters{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding:1rem 1.1rem;border:1px solid #cfe0d2;border-radius:14px;background:#f7faf7}.applied-filters>div{display:flex;align-items:flex-start;gap:.8rem;min-width:0}.applied-filters strong{flex:none;color:var(--green);font-size:.9rem;line-height:2.25}.applied-filter-list{display:flex;flex-wrap:wrap;gap:.4rem}.applied-filter-list button,.applied-filter-note{display:inline-flex;align-items:center;gap:.35rem;border:1px solid #c9ddce;border-radius:999px;background:#fff;padding:.38rem .62rem;color:#31583e;font-size:.82rem;font-weight:700}.applied-filter-list button:hover{border-color:#7ba98a;background:#edf5ee}.applied-filter-list button span{font-size:1rem;line-height:.8}.applied-filter-note{border-style:dashed;color:var(--muted);font-weight:500}.clear-filters{flex:none;border:0;background:transparent;padding:.38rem .2rem;color:var(--muted);font-size:.86rem;text-decoration:underline}.clear-filters:not(:disabled):hover{color:var(--green)}.filter-group{margin-top:.7rem;border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden}.filter-group[open]{border-color:#c8d9cc;box-shadow:0 8px 24px #183d260b}.filter-group>summary{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.1rem;cursor:pointer;list-style:none}.filter-group>summary::-webkit-details-marker,.filter-advanced>summary::-webkit-details-marker{display:none}.filter-group>summary::after{content:"⌄";margin-left:.15rem;color:var(--green);font-size:1.1rem;font-weight:800;transition:transform .18s ease}.filter-group[open]>summary::after{transform:rotate(180deg)}.filter-group>summary>span:first-child{display:flex;align-items:baseline;gap:.6rem;min-width:0}.filter-group summary b{font-size:1rem}.filter-group summary small{overflow:hidden;color:var(--muted);font-size:.84rem;text-overflow:ellipsis;white-space:nowrap}.filter-group-count{margin-left:auto;border-radius:999px;background:#edf3ee;padding:.27rem .55rem;color:var(--green);font-size:.76rem;font-weight:800;white-space:nowrap}.filter-group-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;border-top:1px solid var(--line);background:var(--line)}.filter-control{display:flex;flex-direction:column;align-items:flex-start;gap:.7rem;min-width:0;padding:1.05rem 1.1rem;background:#fff}.filter-control-heading{display:flex;align-items:baseline;justify-content:space-between;gap:.8rem;width:100%}.filter-control-heading strong,.filter-schedule-toggle strong{font-size:.94rem}.filter-control-heading span,.filter-schedule-toggle span{color:var(--muted);font-size:.82rem;text-align:right}.filter-chip-grid{display:flex;flex-wrap:wrap;gap:.45rem}.choice-chip,.filter-choice,.filter-toggle{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:999px;background:#fff;padding:.43rem .7rem;font-size:.86rem;font-weight:650}.choice-chip{background:#f3f6f2}.choice-chip.selected,.filter-choice.selected,.filter-toggle.active{border-color:var(--green);background:var(--green);color:#fff;box-shadow:0 2px 7px #0d523826}.choice-chip:hover:not(.selected),.filter-choice:hover:not(.selected),.filter-toggle:hover:not(.active){border-color:#7ba98a;background:#f4f8f4}.filter-toggle{align-self:flex-start;background:#f7faf7;color:#31583e}.filter-advanced{width:100%;border-top:1px dashed #d6ded6;padding-top:.7rem}.filter-advanced>summary{cursor:pointer;color:var(--green);font-size:.85rem;font-weight:800;list-style:none}.filter-advanced summary small{margin-left:.35rem;color:var(--muted);font-size:.78rem;font-weight:500}.filter-advanced[open]>summary{margin-bottom:.65rem}.filter-advanced .filter-toggle{margin-right:.4rem;margin-bottom:.4rem}.filter-schedule-toggle{grid-column:span 2;display:flex;align-items:center;justify-content:space-between;flex-direction:row}.filter-schedule-toggle>div{display:flex;flex-direction:column;gap:.2rem}
-@media(max-width:800px){.applied-filters,.applied-filters>div{align-items:stretch;flex-direction:column}.applied-filters strong{line-height:1.25}.clear-filters{align-self:flex-start}.filter-group>summary{align-items:flex-start;padding:.9rem}.filter-group>summary>span:first-child{align-items:flex-start;flex-direction:column;gap:.18rem}.filter-group summary small{white-space:normal}.filter-group-count{margin-left:0}.filter-group-content{grid-template-columns:1fr}.filter-control{padding:.95rem}.filter-control-heading{align-items:flex-start;flex-direction:column;gap:.2rem}.filter-control-heading span{text-align:left}.filter-schedule-toggle{grid-column:auto;align-items:flex-start;flex-direction:column}.filter-chip-grid{gap:.4rem}.choice-chip,.filter-choice,.filter-toggle{min-height:2.5rem}.filter-advanced summary small{display:block;margin:.15rem 0 0}}
 /* UX accessibility and responsive hardening */
 :root{
   --control-border:#87958b;
@@ -291,9 +301,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .course-grid,.data-grid,.form-grid,.filter-group-content,.schedule-detail-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
 .course-card h2,.course-card .muted,.course-card .meeting,.course-card .meta span,.official-course-tags span,.category-tag,.status,.applied-filter-list button{overflow-wrap:anywhere;white-space:normal}
 .official-course-tags,.applied-filter-list,.meta,.card-actions{display:flex;flex-wrap:wrap;min-width:0}
-.radio-choice{position:relative;display:flex;align-items:center;min-height:44px}
-.radio-choice input{position:absolute;width:1px;height:1px;opacity:0}
-.radio-choice:has(input:focus-visible){outline:3px solid var(--focus);outline-offset:3px}
 .empty-actions,.dialog-actions{display:flex;justify-content:flex-end;gap:.7rem;flex-wrap:wrap}
 .notice>button{margin-left:.75rem}
 .filters-bar label{display:flex;flex-direction:column;gap:.35rem;font-weight:700;min-width:0}
@@ -365,7 +372,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .course-grid,.data-grid,.form-grid{grid-template-columns:1fr}
   .page-heading,.schedule-plan-actions,.schedule-view-toolbar,.filters-bar{align-items:stretch;flex-direction:column}
   .page-heading{gap:.8rem}
-  .recommend-box,.card-actions,.dialog-actions{grid-template-columns:1fr}
+  .card-actions,.dialog-actions{grid-template-columns:1fr}
   .card-actions>button,.dialog-actions>button{width:100%}
   .completed-row{align-items:stretch!important;flex-direction:column}
   .completed-actions{justify-content:space-between;width:100%}
@@ -627,6 +634,148 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    `.select__trigger`, which read the theme tokens and so track both schemes. */
 [data-page="onboarding"] .input[data-slot="input"],[data-page="onboarding"] .select__trigger{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;width:revert-layer}
 
+/* === T33 recommend page — begin ============================================
+   One contiguous appended block; nothing above is reformatted (plan R4).
+   Three sibling page migrations are in flight, so every rule here is scoped to
+   `.recommend-page` / `[data-page="recommend"]` and cannot reach another page.
+
+   Deleted from the legacy sheet by this task (nothing else referenced them):
+     .recommend-box            the `margin:-1.5rem auto` + `width:calc(100% - 4rem)`
+                               negative-margin hack, and its two media-query overrides
+     .subject-query-field      superseded by Card + Label + TextArea + Description
+     .filter-section-heading   superseded by the sidebar heading below
+     .filter-workspace / .applied-filters / .applied-filter-* / .filter-group*
+     .filter-control* / .filter-chip-grid / .choice-chip / .filter-choice
+     .filter-toggle / .filter-advanced / .filter-schedule-toggle   (4.93 kB)
+     .radio-choice{...} + .radio-choice input{position:absolute;opacity:0}
+                               the hidden-native-input trick, now RadioGroup/Radio
+   `.hero` and `.privacy-pill` are NOT deleted: AssistantPage still uses them
+   and belongs to T36. */
+
+/* --- Intro. Replaces `.hero`. -------------------------------------------- */
+.recommend-intro{display:flex;flex-direction:column;gap:.35rem;margin-bottom:1rem}
+.recommend-intro-title{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+/* The global `h1{font-size:clamp(2rem,4vw,3.4rem)}` is 32px at 375px with
+   `letter-spacing:-.04em` — §4.4-1 wants 0 tracking for anything that can hold
+   Han, and the display step already caps at 36px. Both together are most of
+   the first-screen height this task is here to hand back. */
+.recommend-page>.recommend-intro h1{margin:0;font-size:var(--text-display);line-height:1.3;letter-spacing:var(--tracking-cjk)}
+.recommend-intro p{margin:0;color:var(--muted);line-height:var(--leading-cjk);max-width:60ch}
+.recommend-privacy-chip{flex:none;white-space:nowrap}
+
+/* --- Query box. Replaces `.recommend-box`. ------------------------------- */
+/* `background`/`color` are not cosmetic here: HeroUI's `.card` loses to the
+   legacy UNLAYERED `.card{background:var(--paper)}`, which is light-only, so
+   under [data-theme="fju-dark"] the query box stayed rgb(255,255,255) with
+   rgb(24,34,29) text inside a dark page while the TextArea inside it correctly
+   went dark — measured. Same repair T31 made for `.course-card`. */
+.recommend-query{gap:.75rem;margin-bottom:1.25rem;background:var(--surface);color:var(--surface-foreground);border-color:var(--border-strong);box-shadow:none}
+.recommend-query-body{display:flex;flex-direction:column;gap:.4rem;min-width:0}
+.recommend-query-body .textarea{min-height:5.5rem;line-height:var(--leading-cjk)}
+/* §4.4-4 content floor: HeroUI's `.description` is text-xs, measured 14px. */
+.recommend-page .description,.recommend-filter-sheet .description{font-size:.9375rem}
+.recommend-query-actions{justify-content:flex-end}
+
+/* --- lg split: 320px filter column beside the results (plan §5.1). ------- */
+.recommend-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:1.25rem;align-items:start}
+.recommend-sidebar{display:none}
+.recommend-results{min-width:0}
+@media (min-width:1024px){
+  .recommend-layout{grid-template-columns:320px minmax(0,1fr)}
+  .recommend-sidebar{display:block;position:sticky;top:88px;max-height:calc(100dvh - 7rem);overflow:auto;overscroll-behavior:contain}
+}
+.recommend-sidebar-heading{margin:0 0 .6rem;font-size:1rem;font-weight:700;color:var(--accent)}
+
+/* --- Sticky drawer trigger, sub-lg only. --------------------------------- */
+.recommend-filter-launcher{position:sticky;bottom:1rem;z-index:20;display:flex;justify-content:flex-end;margin-top:1rem;pointer-events:none}
+.recommend-filter-launcher>*{pointer-events:auto}
+.recommend-filter-launcher .button{box-shadow:0 10px 30px #183d2633}
+/* AFTER the base rule, not folded into the layout media block above: same
+   specificity, so source order is what decides and `display:flex` would
+   otherwise win at every width. Measured at 1024px before the move. */
+@media (min-width:1024px){.recommend-filter-launcher{display:none}}
+/* Reset the unlayered legacy `button{...}` so HeroUI's own variants win. Same
+   `revert-layer` shape T32 used for the onboarding CTA; T41 removes the cause.
+   Wider than T32's single selector because this page is built out of five more
+   button-backed HeroUI parts, and the legacy rule repainted every one of them:
+   measured, a *selected* weekday ToggleButton and an unselected one both came
+   back `rgb(255,255,255)` with the same `1px solid rgb(135,149,139)` border —
+   i.e. multi-select state was invisible, not merely off-palette.
+   The `.recommend-filter-sheet` half is not redundant: `Drawer` portals to
+   `<body>`, outside `[data-page="recommend"]`. */
+[data-page="recommend"] .button[data-slot="button"],
+[data-page="recommend"] .toggle-button[data-slot="toggle-button"],
+[data-page="recommend"] .accordion__trigger,
+[data-page="recommend"] .disclosure__trigger,
+[data-page="recommend"] .close-button,
+.recommend-filter-sheet .button[data-slot="button"],
+.recommend-filter-sheet .toggle-button[data-slot="toggle-button"],
+.recommend-filter-sheet .accordion__trigger,
+.recommend-filter-sheet .disclosure__trigger,
+.recommend-filter-sheet .close-button,
+.recommend-filter-sheet .drawer__close-trigger{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;font-weight:revert-layer}
+/* Legacy `input,select,textarea{border;border-radius;background:#fff;padding;
+   color;width}` pins the query box to a white field with near-black text —
+   invisible-in-dark exactly as T32 measured for the onboarding inputs. */
+[data-page="recommend"] .textarea{border-width:revert-layer;border-style:revert-layer;border-color:revert-layer;border-radius:revert-layer;background:revert-layer;color:revert-layer;padding:revert-layer;width:revert-layer}
+
+/* --- Applied filters. Always on the page, never only in the sheet. ------- */
+/* Column, not a row: at 375px a row left the TagGroup 216px of the 343px
+   available and wrapped every chip onto two lines. Measured, not assumed. */
+.recommend-page .applied-filters{display:flex;flex-direction:column;align-items:stretch;gap:.6rem;margin-bottom:1rem;padding:.75rem .85rem;border:1px solid var(--border-strong);border-radius:14px;background:var(--surface);color:var(--surface-foreground)}
+.recommend-page .applied-filter-tags{display:flex;flex-direction:column;gap:.4rem;min-width:0}
+.recommend-page .applied-filter-tags .label{margin:0;color:var(--accent);font-weight:700}
+.recommend-page .tag-group__list{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;min-width:0}
+/* §4.4-4: no content text below 15px. HeroUI's `.tag` is text-xs (14px) and
+   the chip wording is content, not chrome. §5.3: the *remove button* is the
+   tap target, so it carries the 44px floor and the tag follows it. */
+.recommend-page .tag{flex:0 1 auto;max-width:100%;min-height:2.75rem;padding-inline-end:.25rem;font-size:.9375rem;overflow-wrap:break-word;line-break:strict;word-break:normal;white-space:normal}
+.recommend-page .tag__remove-button{width:2.75rem;height:2.75rem;flex:none;padding:0}
+/* The glyph is not the target: without this the icon inherits the 44px box and
+   the chip reads as a giant X. */
+.recommend-page .tag__remove-button svg{width:1rem;height:1rem}
+.recommend-page .applied-filters>.button{align-self:flex-start}
+.applied-filter-note{color:var(--muted);font-size:.9375rem}
+
+/* --- Filter panel, shared by the sidebar and the sheet. ------------------ */
+/* `color` alongside the layout: every surface on this page has to re-establish
+   its own foreground because the legacy UNLAYERED `:root{color:#18221d}` is
+   inherited by anything that does not. Measured under [data-theme="fju-dark"]:
+   the group titles inside the surface accordion came out rgb(24,34,29) on a
+   dark panel. Same fix as `.recommend-query` / `.applied-filters`. */
+.filter-accordion{width:100%;color:var(--surface-foreground)}
+.filter-accordion-trigger{display:flex;width:100%;align-items:center;gap:.6rem;min-height:2.75rem;text-align:left}
+.filter-accordion-label{display:flex;flex-direction:column;gap:.1rem;min-width:0;flex:1}
+.filter-accordion-label b{font-size:1rem;font-weight:700}
+.filter-accordion-label small{color:var(--muted);font-size:.9375rem;overflow-wrap:break-word}
+.filter-group-body{display:flex;flex-direction:column;gap:1.1rem}
+.filter-control{display:flex;flex-direction:column;gap:.5rem;min-width:0}
+.filter-control-head{display:flex;flex-direction:column;gap:.1rem}
+/* HeroUI's `.accordion__body` is `text-muted`, so a control's *title* inherited
+   the same grey as its summary line — measured 5.14:1 in light where the title
+   is the thing being labelled. Titles take the foreground, summaries keep the
+   muted grey, which is the distinction the two lines exist to make. */
+.filter-control-head strong,.filter-accordion-label b{color:var(--surface-foreground)}
+.filter-control-head strong{font-size:.9375rem;font-weight:700}
+.filter-control-head span{color:var(--muted);font-size:.9375rem}
+/* `isDetached` gives the group real gaps; §5.3 puts the floor for adjacent
+   touch targets at 8px, and the wrap is what keeps 7+ weekday chips off a
+   horizontal scrollbar at 375px. */
+.filter-chips{flex-wrap:wrap;gap:.5rem}
+.filter-chips .toggle-button{font-size:.9375rem}
+.filter-radio-group{gap:.3rem}
+.filter-switch .label{font-size:.9375rem;font-weight:400}
+.filter-advanced-disclosure{width:100%;border-top:1px dashed var(--separator);padding-top:.4rem}
+.filter-advanced-trigger{display:flex;width:100%;align-items:center;gap:.4rem;min-height:2.75rem;padding:.4rem 0;border:0;border-radius:0;background:none;color:var(--accent);font-weight:700;font-size:.9375rem;text-align:left}
+.filter-advanced-trigger small{color:var(--muted);font-weight:400}
+.filter-advanced-trigger .disclosure__indicator{margin-inline-start:auto}
+.filter-advanced-body{display:flex;flex-direction:column;gap:.35rem}
+
+/* --- Bottom sheet. ------------------------------------------------------- */
+.recommend-filter-sheet{max-height:85dvh}
+.recommend-filter-sheet .drawer__body{overscroll-behavior:contain}
+.recommend-filter-sheet .drawer__footer{display:flex;gap:.5rem;align-items:center}
+/* === T33 recommend page — end ============================================== */
 /* === T35 schedule workspace — begin =======================================
    Appended, never edited in place: the minified block far above is legacy
    source that must not be reformatted (plan R4). Everything here is UNLAYERED

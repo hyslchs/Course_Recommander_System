@@ -7,15 +7,44 @@ import { weekdayLabels, weekPatternLabel, type ScheduleBlock } from "@/domain/sc
  * The accessible name of a scheduled block, in one place.
  *
  * The shape is load-bearing (T01 handoff 1): `ScheduleWorkspace.test.tsx` matches
- * blocks with `/，星期/` and identifies individual courses with `/^日間課程，/`,
- * so the full-width comma has to stay immediately after the course name and the
- * weekday has to stay immediately after the comma. Both the timetable grid and
- * the mobile day list now derive their label from here, which is the point of
- * the extraction — the two used to build it (or, on mobile, not build it at all)
- * independently.
+ * blocks with `/，星期/` and identifies individual courses with `/^日間課程/`.
+ * Both the timetable grid and the mobile day list derive their label from here,
+ * which is the point of the extraction — the two used to build it (or, on
+ * mobile, not build it at all) independently.
+ *
+ * FIX51 P2-f — WCAG 2.5.3 Label in Name — CHANGED THE FORMAT. It used to be
+ * `${課名}，星期…` with nothing between; the tile's own metadata now sits in the
+ * middle, joined by ASCII commas, and the separator that used to follow the
+ * course name is an ASCII `,` rather than a full-width `，`. Both regexes above
+ * still hold; `ClassBlock.test.tsx` and the two `/^…課程，/` matchers in
+ * `ScheduleWorkspace.test.tsx` were updated with it.
+ *
+ * Why it had to change. Lighthouse flagged every grid tile: the visible text
+ * reads "微積分王小明B201衝堂" and the name was "微積分，星期二 E1到E2到E3", so
+ * a speech-input user addressing the control by what they can read misses it.
+ * Two things about how axe checks this were measured against the real audit
+ * rather than assumed:
+ *
+ *   - `aria-hidden` on the supplementary nodes is NOT a way out. axe evaluates
+ *     this rule's visible text with its `screenReader` flag set to `false`, so
+ *     it counts anything merely on screen. Verified in the bundled source and
+ *     then in a live audit: marking them hidden changed nothing.
+ *   - The comparison is `name.includes(visible)` after BOTH sides are stripped
+ *     of punctuation — and only ASCII punctuation is stripped. `，` (U+FF0C),
+ *     `、` (U+3001) and `·` (U+00B7) all survive, while `,` `.` `;` `/` `-`
+ *     `(` `)` do not. Measured one separator at a time. The visible side is
+ *     concatenated with no separators at all, so the old full-width comma sat
+ *     in the middle of the run and split it: the contract format and this rule
+ *     were mutually exclusive, which is why the format moved.
+ *
+ * The clause order below mirrors the grid tile's DOM order exactly. Change
+ * either without the other and the rule breaks again. The mobile row's visible
+ * text leads with its section range and cannot be covered by the same name; it
+ * is a mobile-only finding on an unscored audit and is left as-is.
  */
 export function classBlockLabel(block: ScheduleBlock): string {
-  return `${block.name}，星期${weekdayLabels[block.weekday - 1]} ${block.sections.join("到")}${block.conflict ? "，有衝堂" : ""}`;
+  const tile = [block.teacher, block.room, weekPatternLabel(block.weekPattern), block.conflict ? "衝堂" : ""].filter(Boolean).join(",");
+  return `${block.name}${tile ? `,${tile}` : ""}，星期${weekdayLabels[block.weekday - 1]} ${block.sections.join("到")}${block.conflict ? "，有衝堂" : ""}`;
 }
 
 export interface ClassBlockProps {
@@ -50,6 +79,14 @@ export interface ClassBlockProps {
  *    `content: attr(...)` popup that no screen reader could ever reach. Only the
  *    grid variant needs it: that is the layout where `-webkit-line-clamp: 2`
  *    truncates long course names. The mobile row wraps instead.
+ *
+ * 3. The grid tile's child order — name, teacher, room, week pattern, 衝堂 — is
+ *    part of the WCAG 2.5.3 fix documented on `classBlockLabel` above, which
+ *    encodes the same sequence. Reorder one and the other has to follow. The
+ *    mobile row deliberately does not match: its visible text leads with the
+ *    section range, which cannot be moved into the shared label without
+ *    breaking the `/^課名，/` contract, so it stays outside that repair (see the
+ *    task report — it is a mobile-only, unscored finding).
  */
 export function ClassBlock({ block, variant, style, onSelect }: ClassBlockProps) {
   const stateClass = `${block.source === "fixed" ? "fixed" : ""} ${block.conflict ? "conflict" : ""}`.trim();

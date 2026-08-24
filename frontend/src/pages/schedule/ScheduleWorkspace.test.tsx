@@ -100,10 +100,18 @@ describe("schedule workspace", () => {
 
   it("warns when compact mode hides occupied uncommon periods", async () => {
     const user = userEvent.setup();
-    const viewRange = within(screen.getByRole("group", { name: "課表顯示範圍" }));
-    await user.click(viewRange.getByRole("button", { name: /^核心時段/ }));
+    // T35: the view-range control is a HeroUI `ToggleButtonGroup` with
+    // `selectionMode="single"`, which React Aria exposes as radiogroup/radio +
+    // `aria-checked` rather than the hand-rolled group + `aria-pressed` it
+    // replaced. That is the APG pattern for a mutually exclusive segmented
+    // control, so the query moves with it rather than the markup moving back.
+    const viewRange = within(screen.getByRole("radiogroup", { name: "課表顯示範圍" }));
+    await user.click(viewRange.getByRole("radio", { name: /^核心時段/ }));
     expect(screen.getByRole("button", { name: "顯示有課時段" })).toBeInTheDocument();
-    expect(screen.getByText(/1 門課/)).toBeInTheDocument();
+    // Was `getByText(/1 門課/)` because the notice carried no role at all (T01
+    // handoff 2). It is a `StateAlert` with `role="status"` now, so compact mode
+    // no longer hides courses silently from a screen reader.
+    expect(within(screen.getByRole("status")).getByText(/1 門課/)).toBeInTheDocument();
     expect(within(screen.getByRole("grid")).queryByRole("columnheader", { name: "星期六" })).not.toBeInTheDocument();
   });
 

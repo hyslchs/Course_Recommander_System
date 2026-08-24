@@ -1,7 +1,7 @@
 import { Check, Plus, Sparkle, Warning } from "@phosphor-icons/react";
-import { eligibilityStatusShortLabels } from "@/domain/eligibility";
 import { recommendationCategoryLabels } from "@/domain/recommendation";
 import { formatMeetings, weekdayLabels } from "@/domain/schedule";
+import { CategoryChip, EligibilityChip } from "@/components/CourseCard";
 import { Modal, StateAlert } from "@/components/ui";
 import { Button } from "@heroui/react";
 import { scheduleRecommendationCategories, useSlotRecommendation } from "./SlotRecommendationContext";
@@ -49,7 +49,10 @@ export function SlotRecommendationDialog() {
         {result.recommendations.map((recommendation, index) => <article key={recommendation.course.course_id}>
           <div className="slot-recommendation-rank" aria-label={`推薦順位 ${index + 1}`}>{index + 1}</div>
           <div className="slot-recommendation-content">
-            <div className="slot-recommendation-heading"><div><h3>{recommendation.course.name_zh}</h3><p>{recommendation.course.name_en}</p></div><div className="slot-recommendation-tags"><span className={`category-tag ${recommendation.category}`}>{recommendationCategoryLabels[recommendation.category]}</span><span className={`status ${recommendation.eligibility}`}>{eligibilityStatusShortLabels[recommendation.eligibility]}</span></div></div>
+            <div className="slot-recommendation-heading"><div><h3>{recommendation.course.name_zh}</h3><p>{recommendation.course.name_en}</p></div>{/* T31 exported these two so the dialog reaches the same icon+text+colour
+                treatment as the course cards. `labels="short"` is the dense wording
+                (未見限制 / 資格符合 / 資格不符 / 資格待確認) this dialog has always used. */}
+              <div className="slot-recommendation-tags"><CategoryChip category={recommendation.category} /><EligibilityChip labels="short" status={recommendation.eligibility} /></div></div>
             <div className="slot-recommendation-meta"><span>{recommendation.course.credits === null ? "學分未定" : `${recommendation.course.credits} 學分`}</span><span>{recommendation.course.teacher || "教師未定"}</span><span>{recommendation.course.required_elective_name || "類別未定"}</span></div>
             <p className="meeting">{formatMeetings(recommendation.course)}</p>
             <ul className="reasons">{recommendation.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>

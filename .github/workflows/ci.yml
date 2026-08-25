@@ -15,12 +15,18 @@ jobs:
         with: { version: 10 }
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24.15
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
         working-directory: frontend
       - run: pnpm test
         working-directory: frontend
+      # The webfont tiers are built from committed codepoint lists (the frontend
+      # Docker stage only COPYs frontend/, so data/ is unreachable there). This
+      # regenerates them from the real catalogue and fails if they have drifted.
+      - run: pip install 'fonttools>=4.63' brotli
+      - run: python frontend/scripts/font-tiers.py
+      - run: git diff --exit-code -- frontend/scripts/font-tiers
       - run: pnpm build
         working-directory: frontend

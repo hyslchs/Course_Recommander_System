@@ -1,7 +1,40 @@
 <!doctype html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" data-theme="fju">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      No flash of the wrong theme (T40).
+
+      `data-theme="fju"` on <html> above is the fallback for a load where this
+      script cannot run (CSP, JS disabled): light, which is the design default.
+      Otherwise this rewrites it *here*, while the parser is still inside <head>
+      and before the render-blocking stylesheet has even been requested, so the
+      first painted frame is already the right theme.
+
+      It reads localStorage rather than IndexedDB on purpose. IndexedDB is the
+      store of record, but every read from it is asynchronous, so it cannot
+      answer before first paint; `src/hooks/theme.tsx` keeps this key as a
+      synchronous mirror and re-syncs it from IndexedDB on mount. The key name
+      must stay in step with THEME_STORAGE_KEY there.
+
+      Classic (non-module) script: module scripts are deferred, which would put
+      this after first paint and defeat the whole point.
+    -->
+    <script>
+      (function () {
+        try {
+          var stored = localStorage.getItem("fju-theme");
+          if (stored !== "fju" && stored !== "fju-dark") {
+            stored = window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+              ? "fju-dark"
+              : "fju";
+          }
+          document.documentElement.setAttribute("data-theme", stored);
+        } catch (error) {
+          /* Storage blocked (private mode). Keep the light default. */
+        }
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="輔仁大學課程探索、推薦與課表規劃工具" />
     <title>輔大選課指南</title>

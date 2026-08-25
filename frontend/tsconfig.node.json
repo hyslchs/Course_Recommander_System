@@ -1,10 +1,18 @@
 {
   "compilerOptions": {
     "composite": true,
+    "noEmit": true,
+    // These two files run in Node (24 locally, 22 in CI/Docker), never in a
+    // browser, but with no `target` TypeScript defaults them to ES5 — so
+    // String#endsWith and Object.entries were type errors in a file Node
+    // executes natively. Nothing is emitted from this project, so the target
+    // only picks the lib.
+    "target": "ES2022",
+    "lib": ["ES2022"],
     "skipLibCheck": true,
     "module": "ESNext",
     "moduleResolution": "Bundler",
     "allowSyntheticDefaultImports": true
   },
-  "include": ["vite.config.ts"]
+  "include": ["vite.config.ts", "vitest.config.ts"]
 }

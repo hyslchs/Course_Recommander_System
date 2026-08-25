@@ -1,30 +1,263 @@
-:root{font-family:"Noto Sans TC","Segoe UI",sans-serif;color:#18221d;background:#f3f5f1;font-synthesis:none;--green:#0d5238;--lime:#d9f078;--ink:#18221d;--muted:#667069;--line:#dfe4de;--paper:#fff;--danger:#a93232}*{box-sizing:border-box}body{margin:0;min-width:320px}button,input,select,textarea{font:inherit}button{cursor:pointer;border:1px solid var(--line);border-radius:10px;background:#fff;padding:.68rem 1rem;color:var(--ink)}button:disabled{opacity:.5;cursor:not-allowed}a{color:inherit}.app-shell{min-height:100vh;display:flex;flex-direction:column}.topbar{height:72px;padding:0 clamp(1rem,5vw,4.5rem);display:flex;align-items:center;gap:2rem;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}.brand{display:flex;gap:.7rem;align-items:center;text-decoration:none}.brand span{display:grid;place-items:center;background:var(--green);color:#fff;border-radius:8px;width:38px;height:38px;font-size:.75rem;letter-spacing:.08em}.brand strong{font-size:1.1rem;white-space:nowrap}.topbar nav{display:flex;gap:.35rem;flex:1}.topbar nav a,.profile-link{padding:.65rem .8rem;text-decoration:none;color:var(--muted);border-radius:9px}.topbar nav a.active{background:#edf3ee;color:var(--green);font-weight:700}.profile-link{border:1px solid var(--line);color:var(--green)}main{flex:1}.page,.narrow-page{max-width:1200px;margin:0 auto;padding:3rem clamp(1rem,4vw,3rem) 5rem}.narrow-page{max-width:850px}.eyebrow{text-transform:uppercase;letter-spacing:.13em;font-size:.78rem;font-weight:800;color:#54715f}.lead{font-size:1.1rem;color:var(--muted);line-height:1.7}h1{font-size:clamp(2rem,4vw,3.4rem);line-height:1.08;margin:.5rem 0 1rem;letter-spacing:-.04em}h2{margin:.2rem 0 .5rem}.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:1.4rem;box-shadow:0 10px 35px #183d2610}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-top:2rem}.form-grid label,.form-grid fieldset{display:flex;flex-direction:column;gap:.45rem;font-weight:700}.form-grid small{font-weight:400;color:var(--muted)}input,select,textarea{border:1px solid #cdd5ce;border-radius:9px;background:#fff;padding:.78rem .85rem;color:var(--ink);width:100%}textarea{resize:vertical;line-height:1.6}.wide{grid-column:1/-1}.check{flex-direction:row!important;align-items:center!important}.check input,.chip input{width:auto}.choice-row{display:flex;gap:.5rem;flex-wrap:wrap}.chip{font-weight:500!important;display:flex!important;flex-direction:row!important;background:#f2f6f2;border-radius:999px;padding:.55rem .75rem}.primary{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}.hero{background:var(--green);color:#fff;border-radius:24px;padding:clamp(2rem,5vw,4rem);display:flex;align-items:flex-end;justify-content:space-between;gap:2rem}.hero p{color:#dbe7df;max-width:620px}.hero .eyebrow{color:var(--lime)}.privacy-pill{white-space:nowrap;border:1px solid #ffffff44;border-radius:999px;padding:.65rem 1rem;color:var(--lime)}.recommend-box{display:grid;grid-template-columns:1fr auto;gap:.75rem;margin:-1.5rem auto 2rem;position:relative;width:calc(100% - 4rem);background:#fff;padding:1rem;border-radius:16px;box-shadow:0 14px 45px #173b2625}.recommend-box textarea{border:0;min-height:74px}.course-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.course-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:1.35rem;display:flex;flex-direction:column;gap:.65rem;min-width:0}.course-card h2{font-size:1.35rem}.course-top{display:flex;align-items:center;gap:.5rem}.rank{font-weight:900;font-size:1.1rem;color:var(--green)}.heart{margin-left:auto;border:0;padding:.25rem;background:none;color:#bec6c0;font-size:1.35rem}.heart.active{color:#c94b58}.status{border-radius:999px;padding:.3rem .55rem;font-size:.75rem;font-weight:800;background:#eef1ee}.status.eligible_confirmed{background:#daf3e4;color:#196038}.status.needs_confirmation{background:#fff1c8;color:#775600}.status.blocked_confirmed{background:#f9d9d9;color:#8c2525}.meta{display:flex;gap:.45rem;flex-wrap:wrap}.meta span{font-size:.78rem;border:1px solid var(--line);padding:.28rem .48rem;border-radius:6px}.muted,.meeting{color:var(--muted);margin:0}.meeting{font-size:.9rem}.reasons{margin:.25rem 0;padding-left:1.2rem;color:#345c45}.reasons li{margin:.3rem 0}.course-card details{border-top:1px solid var(--line);padding-top:.7rem}.course-card summary{cursor:pointer;font-weight:700;color:var(--green)}.details{line-height:1.65}.details p{white-space:pre-line}.evidence{display:flex;flex-direction:column;background:#fff8df;border-left:3px solid #e1bd44;padding:.7rem;margin:.6rem 0}.evidence q{color:#68591f}.card-actions{display:flex;gap:.45rem;margin-top:auto;flex-wrap:wrap}.quiet{border:0;color:var(--muted)}.empty-panel,.empty-state{padding:4rem 2rem;text-align:center}.feature-grid{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap}.feature-grid span{background:#fff;border:1px solid var(--line);padding:1rem;border-radius:12px}.page-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:1.5rem}.filters-bar{display:grid;grid-template-columns:2fr 1fr 1fr;gap:.7rem;margin-bottom:1.2rem}.pager,.plan-tabs{display:flex;justify-content:center;align-items:center;gap:.75rem;margin:1.5rem}.plan-tabs button.active{background:var(--green);color:#fff}.schedule-summary{display:flex;gap:2rem;background:#fff;border-radius:14px;padding:1rem 1.3rem;margin:1rem 0}.timetable{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px}.timetable table{width:100%;border-collapse:collapse;min-width:760px}.timetable th,.timetable td{border:1px solid var(--line);padding:.5rem;vertical-align:top;min-width:125px}.class-block{background:#dcecdf;border-left:3px solid var(--green);border-radius:6px;padding:.45rem;font-size:.85rem;margin:.2rem 0}.class-block small{display:block;color:var(--muted)}.schedule-list,.list-card{margin-top:1rem}.schedule-list>div,.list-card>div{display:flex;align-items:center;gap:.6rem;background:#fff;border-bottom:1px solid var(--line);padding:.8rem 1rem}.schedule-list span,.list-card>div>span{display:flex;flex-direction:column;flex:1}.schedule-list small{color:var(--muted)}.data-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}.data-grid .card{display:flex;flex-direction:column;gap:.8rem}.big-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem}.big-stats span{background:#f3f6f2;padding:1rem;border-radius:10px;text-align:center}.big-stats strong{font-size:1.8rem;display:block;color:var(--green)}.danger-button{color:var(--danger);border-color:#e9bcbc}.notice,.error-banner{padding:1rem;border-radius:10px;margin:1rem 0}.danger,.error-banner{background:#fee6e6;color:#8a2323}.error-banner{margin:0;border-radius:0;text-align:center}.button-link{display:inline-block;text-decoration:none;padding:.75rem 1rem;border-radius:10px}footer{text-align:center;padding:1.3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}@media(max-width:800px){.topbar{height:auto;padding:.7rem 1rem;flex-wrap:wrap;gap:.5rem}.topbar nav{order:3;overflow:auto;width:100%}.topbar nav a{white-space:nowrap}.profile-link{margin-left:auto}.course-grid,.data-grid{grid-template-columns:1fr}.form-grid,.filters-bar{grid-template-columns:1fr}.form-grid .wide{grid-column:auto}.hero{border-radius:0;margin:-3rem -1rem 0}.recommend-box{width:100%;margin:1rem 0;grid-template-columns:1fr}.page-heading{align-items:start}.schedule-summary{gap:.7rem;flex-wrap:wrap}}
-/* Recommendation hierarchy */
-.priority-legend{display:flex;align-items:center;flex-wrap:wrap;gap:.65rem;margin:1rem 0;padding:.85rem 1rem;border:1px solid var(--line);border-radius:14px;background:var(--card)}
-.priority-legend strong{margin-right:.25rem}
-.priority-legend span{padding:.32rem .62rem;border-radius:999px;background:#eef1eb;font-size:.86rem}
-.category-filter{min-width:0}
-.category-filter legend{padding:0 .25rem;font-weight:800}
-.category-options{display:flex;align-items:center;flex-wrap:wrap;gap:.45rem}
-.filter-option{display:flex;align-items:center;gap:.35rem;padding:.35rem .55rem;border:1px solid var(--line);border-radius:999px;background:#fff;font-weight:600;cursor:pointer}
-.filter-option input{width:auto;accent-color:var(--green)}
-.category-tag{padding:.25rem .55rem;border-radius:999px;font-size:.78rem;font-weight:800;letter-spacing:.02em}
-.category-tag.home_required{background:#0d5238;color:#fff}
-.category-tag.home_elective{background:#d9f078;color:#29411f}
-.category-tag.general_education{background:#dcecff;color:#21527c}
-.category-tag.external_department{background:#ece8f4;color:#574a70}
+/* Layer order is load-bearing: HeroUI flags it with a warning callout.
+   theme < base < components < utilities, declared before any @import so the
+   cascade is fixed regardless of import resolution order. Everything below
+   this block is UNLAYERED legacy CSS and therefore still wins over Tailwind
+   preflight and HeroUI base — that is deliberate for T11. */
+@layer theme, base, components, utilities;
+
+/* T30 re-enabled preflight. T11 had deliberately imported theme + utilities
+   without it, because with no Tailwind utility and no HeroUI component in use
+   preflight only cost four measured regressions (unstyled `h2` 24px/700 ->
+   16px/400, global line-height normal -> 1.5, `p` losing its UA margin, `svg`
+   inline -> block). T30 adopts real HeroUI components whose stylesheets assume
+   preflight — `border-*` width utilities need its `border-style: solid`
+   default, and `.button`/`.alert`/`.toast` all set `border-width` without a
+   style — so the full entry point is back. The four regressions are undone by
+   the `:where()` block at the very bottom of this file: see the comment there
+   for what is reverted, what is kept, and why. */
+@import "tailwindcss";
+
+/* HeroUI's own entry point imports this right after `tailwindcss`, and its
+   overlay stylesheets `@apply` the utilities it defines (`animate-in`,
+   `fade-in-0`, `zoom-in-95`, `slide-in-from-*`). Without it the build fails
+   outright with "Cannot apply unknown utility class `fade-in-0`", so it is not
+   optional once modal/drawer/toast/alert-dialog are imported below. It is a
+   transitive dependency of @heroui/styles, declared directly in package.json
+   because pnpm will not resolve a bare specifier this package does not own. */
+@import "tw-animate-css";
+
+/* HeroUI is pulled in selectively rather than as the `@import "@heroui/styles"`
+   barrel. The barrel also imports all 84 component stylesheets (2.8 MB of
+   source), and plain BEM rules are not something Tailwind can tree-shake, so
+   the built CSS went 40.29 kB -> 454.21 kB with no component actually in use.
+   Measured, not assumed. What is kept below is the reset, the semantic->
+   Tailwind bridge, the calculated colour derivations and the utilities/
+   variants — everything the tokens need and nothing else.
+   Add `@import "@heroui/styles/components/<name>.css" layer(components);`
+   here as each component is genuinely adopted. */
+@import "@heroui/styles/base" layer(base);
+@import "@heroui/styles/base/scrollbar.css" layer(base);
+@import "@heroui/styles/themes/shared/theme.css";
+@import "@heroui/styles/themes/default/variables.css" layer(theme);
+@import "@heroui/styles/utilities";
+@import "@heroui/styles/variants";
+
+/* Per-component stylesheets, one line per component actually adopted (T30).
+   Keep this list in sync with `src/components/ui/**` — an unimported component
+   renders completely unstyled, and an unused import is dead weight the barrel
+   experiment already proved expensive. */
+@import "@heroui/styles/components/button.css" layer(components);
+@import "@heroui/styles/components/close-button.css" layer(components);
+@import "@heroui/styles/components/modal.css" layer(components);
+@import "@heroui/styles/components/alert-dialog.css" layer(components);
+@import "@heroui/styles/components/drawer.css" layer(components);
+@import "@heroui/styles/components/toast.css" layer(components);
+@import "@heroui/styles/components/alert.css" layer(components);
+@import "@heroui/styles/components/skeleton.css" layer(components);
+
+/* --- T31 (CourseCard) additions. Keep this block contiguous: several agents
+   edit this file at once and the orchestrator merges by block. `button.css`
+   and `alert.css` are already above; these seven are the newly adopted ones.
+   `radio.css` and `radio-group.css` are two files, not one — the group only
+   styles orientation and the `secondary` variant, the control lives in the
+   other. --- */
+@import "@heroui/styles/components/card.css" layer(components);
+@import "@heroui/styles/components/chip.css" layer(components);
+@import "@heroui/styles/components/disclosure.css" layer(components);
+@import "@heroui/styles/components/tooltip.css" layer(components);
+@import "@heroui/styles/components/toggle-button.css" layer(components);
+@import "@heroui/styles/components/radio.css" layer(components);
+@import "@heroui/styles/components/radio-group.css" layer(components);
+/* --- end T31 imports --- */
+/* --- T32 (onboarding form) -------------------------------------------------
+   Adopted by src/pages/onboarding/OnboardingPage.tsx. Grouped so concurrent
+   page migrations can be merged without touching each other's lines; duplicate
+   @import of the same URL is a no-op in Tailwind's resolver, so an overlap with
+   another page's block is harmless.
+   Form itself ships no stylesheet — it renders a bare <form> and delegates all
+   appearance to the field components (confirmed in @heroui/styles 3.2.4: there
+   is no components/form.css). label/description/field-error back Label,
+   Description and FieldError; input + input-group back ComboBox.InputGroup;
+   list-box{,-item,-section} + header back every popover list, including the
+   ListBox.Section headers the department picker groups by; popover backs the
+   ComboBox/Select overlays; empty-state backs ListBox renderEmptyState. */
+@import "@heroui/styles/components/fieldset.css" layer(components);
+@import "@heroui/styles/components/label.css" layer(components);
+@import "@heroui/styles/components/description.css" layer(components);
+@import "@heroui/styles/components/field-error.css" layer(components);
+@import "@heroui/styles/components/input.css" layer(components);
+@import "@heroui/styles/components/input-group.css" layer(components);
+@import "@heroui/styles/components/popover.css" layer(components);
+@import "@heroui/styles/components/list-box.css" layer(components);
+@import "@heroui/styles/components/list-box-item.css" layer(components);
+@import "@heroui/styles/components/list-box-section.css" layer(components);
+@import "@heroui/styles/components/header.css" layer(components);
+@import "@heroui/styles/components/empty-state.css" layer(components);
+@import "@heroui/styles/components/combo-box.css" layer(components);
+@import "@heroui/styles/components/select.css" layer(components);
+@import "@heroui/styles/components/switch.css" layer(components);
+/* --- end T32 --------------------------------------------------------------- */
+/* === T33 recommend page — imports begin ===================================
+   Newly adopted by src/pages/recommend/**. Everything else the page uses
+   (button, card, chip, disclosure, drawer, close-button, label, description,
+   radio{,-group}, switch, toggle-button, alert, skeleton, empty-state) is
+   already imported above; a duplicate @import of the same URL is a no-op in
+   Tailwind's resolver, so the overlap with T31/T32 is harmless.
+   `tag.css` and `tag-group.css` are two files: the group only lays out the
+   list, the chip itself (and its remove button) lives in the other. Same split
+   as toggle-button / toggle-button-group. */
+@import "@heroui/styles/components/accordion.css" layer(components);
+@import "@heroui/styles/components/textarea.css" layer(components);
+@import "@heroui/styles/components/tag.css" layer(components);
+@import "@heroui/styles/components/tag-group.css" layer(components);
+@import "@heroui/styles/components/toggle-button-group.css" layer(components);
+@import "@heroui/styles/components/badge.css" layer(components);
+/* === T33 recommend page — imports end ===================================== */
+/* === T35 schedule workspace imports — begin ================================
+   Adopted by src/pages/schedule/**. `@import` has to stay in the import block
+   at the top of the file (CSS only allows it before other rules), so the T35
+   *rules* live in a second fence at the very bottom instead.
+   tabs backs the plan switcher, toolbar the two control strips, and
+   toggle-button-group the view-range + day-picker segmented controls
+   (toggle-button.css itself is already above, from T31). drawer/tooltip/alert
+   are likewise already imported and are re-used, not re-added. */
+@import "@heroui/styles/components/tabs.css" layer(components);
+@import "@heroui/styles/components/toolbar.css" layer(components);
+/* FIX51: `Tabs.ListContainer` renders its scroller as a `ScrollShadow`
+   (@heroui/react 3.2.4, components/tabs/tabs.js:137) — a *transitive* dependency
+   no `src/**` file imports by name, which is how it was missed. Unstyled, the
+   scroller's `overflow-x` stayed `visible`, so `.tabs__list` (`w-max`, 476px
+   with four plans) painted outside its 343px container and pushed the document
+   to 492px at a 375px viewport: 117px of page-level horizontal scroll in both
+   themes. `.scroll-shadow--horizontal{overflow-x:auto}` is the whole fix.
+   Audited the rest of the adopted set for the same class of miss: `surface`,
+   `textfield` and `combo-box` are imported by other components for their React
+   *context* only and emit no class; `spinner` only renders inside a Toast with
+   `isLoading` (unused); `button-group`/`separator` only via `ButtonGroup` /
+   `*.Separator` (unused). This is the only one that was actually rendering. */
+@import "@heroui/styles/components/scroll-shadow.css" layer(components);
+/* === T35 schedule workspace imports — end ================================== */
+/* === T36 data + assistant — begin (imports) ================================
+   `@import` is only legal before other rules, so the T36 block is split: the
+   three newly adopted component stylesheets live here with T30/T31/T32's, and
+   T36's actual rules are appended at the very bottom of this file behind the
+   same fence markers. Duplicate @import of an already-listed URL is a no-op in
+   Tailwind's resolver, so overlapping with a sibling page migration is safe.
+   meter -> storage usage; textarea -> the two composers; checkbox -> the
+   "想繼續深入" row toggle and the import-overwrite opt-in. */
+@import "@heroui/styles/components/meter.css" layer(components);
+@import "@heroui/styles/components/checkbox.css" layer(components);
+/* === T36 data + assistant — end (imports) ================================== */
+
+@import "./theme/fju.css" layer(theme);
+@import "./theme/typography.css" layer(theme);
+
+/* Deliberately UNLAYERED. @font-face is not a style rule, so cascade layers do
+   not apply to it — wrapping it in layer(theme) would only be misleading. See
+   the file header for the weight/subset choices and their measured cost. */
+@import "./theme/fonts.css";
+
+/* SHADOWING RESOLVED (T41a). The legacy stylesheet used to declare custom
+   properties on two UNLAYERED `:root` rules, which beat any layered theme
+   block regardless of specificity, so three names it shared with the design
+   system kept their old values: --muted #667069, --danger #a93232 and
+   --focus #0d5238. Both `:root` rules are gone; all three now resolve to
+   their §4.2 values in whichever theme is mounted. Measured after the
+   teardown, in Chrome, on real pixels:
+
+     --focus  = var(--accent)   #1A4E8A light (7.77:1 on --background)
+                                #8CB8F0 dark  (9.21:1 on --background)
+     --muted  6.39:1 on --surface light / 7.55:1 dark
+     --danger #B3261E light / #FF9A92 dark
+
+   The legacy-only names the old block also carried (--green, --lime, --ink,
+   --line, --paper, --control-border, --surface-muted) are re-declared per
+   theme in the `@layer base` block at the very bottom of this file. */
+
+/* This project switches themes with the data-theme attribute only (no `.dark`
+   class). Tailwind's built-in `dark:` variant matches `.dark`, and HeroUI's
+   replacement (variants/index.css) matches `.dark` / [data-theme="dark"] with
+   a prefers-color-scheme fallback — neither matches "fju-dark", so `dark:`
+   utilities would silently no-op and then flip on OS preference alone.
+   This must stay AFTER the HeroUI import to win. */
+@custom-variant dark (&:where([data-theme="fju-dark"], [data-theme="fju-dark"] *));
+
+@theme inline {
+  /* --info is not a HeroUI token; bridge it (and its hand-computed variants)
+     into Tailwind so bg-info / text-info-soft-foreground exist. */
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-hover: var(--info-hover);
+  --color-info-soft: var(--info-soft);
+  --color-info-soft-hover: var(--info-soft-hover);
+  --color-info-soft-foreground: var(--info-soft-foreground);
+
+  /* Load-bearing boundary colour (>=3:1). --border is decorative only. */
+  --color-border-strong: var(--border-strong);
+
+  /* Course category scale — deliberately not the semantic status colours. */
+  --color-category-home-required: var(--category-home-required);
+  --color-category-home-elective: var(--category-home-elective);
+  --color-category-general-education: var(--category-general-education);
+  --color-category-external-department: var(--category-external-department);
+
+  /* CJK-tuned type scale (§4.4 rule 4). 15px is the content floor; 13px
+     (--text-2xs) is reserved for the schedule secondary line. --text-display
+     caps at 36px rather than the 54px the old h1 clamp reached. */
+  --text-2xs: 0.8125rem;
+  --text-2xs--line-height: 1.4;
+  --text-xs: 0.875rem;
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.9375rem;
+  --text-sm--line-height: 1.6;
+  --text-base: 1rem;
+  --text-base--line-height: 1.75;
+  --text-lg: 1.125rem;
+  --text-lg--line-height: 1.7;
+  --text-xl: 1.25rem;
+  --text-xl--line-height: 1.6;
+  --text-2xl: 1.5rem;
+  --text-2xl--line-height: 1.45;
+  --text-3xl: 1.75rem;
+  --text-3xl--line-height: 1.35;
+  --text-4xl: 2.25rem;
+  --text-4xl--line-height: 1.3;
+  --text-display: clamp(1.75rem, 1.35rem + 1.6vw, 2.25rem);
+  --text-display--line-height: 1.3;
+
+  /* Tracking is 0 for anything that can contain Han (§4.4 rule 1). */
+  --tracking-cjk: 0em;
+  --leading-cjk: 1.75;
+}
+
+/* NOT `inline` (T41b), and that is the whole point. `@theme inline` inlines a
+   value into the utility and never emits the custom property, which is exactly
+   why `--font-sans` measured as the empty string from T11 through T34 and why
+   `html` had to hard-code its stack. A plain `@theme` emits `:root{--font-sans}`
+   AND wires the `font-sans` utility, so there is one declaration and one live
+   token. Inter is deliberately absent — see theme/typography.css. The three
+   tiers are one typeface split for transfer only (theme/fonts.css); the
+   platform faces after them are the no-webfont fallback. */
+@theme {
+  --font-sans:
+    "FJU Sans 1", "FJU Sans 2", "FJU Sans 3", "Noto Sans TC", "PingFang TC",
+    "Microsoft JhengHei UI", "Noto Sans CJK TC", "Heiti TC", sans-serif;
+  --font-mono: ui-monospace, "SFMono-Regular", "Menlo", "Consolas", monospace;
+}
+
+*{box-sizing:border-box}body{margin:0;min-width:320px}button,input,select,textarea{font:inherit}button:disabled{opacity:.5;cursor:not-allowed}a{color:inherit}.app-shell{min-height:100vh;display:flex;flex-direction:column}.topbar{height:72px;padding:0 clamp(1rem,5vw,4.5rem);display:flex;align-items:center;gap:2rem;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}.brand{display:flex;gap:.7rem;align-items:center;text-decoration:none}.brand span{display:grid;place-items:center;background:var(--green);color:#fff;border-radius:8px;width:38px;height:38px;font-size:.75rem;letter-spacing:.08em}.brand strong{font-size:1.1rem;white-space:nowrap}.topbar nav{display:flex;gap:.35rem;flex:1}.topbar nav a,.profile-link{padding:.65rem .8rem;text-decoration:none;color:var(--muted);border-radius:9px}.topbar nav a.active{background:#edf3ee;color:var(--green);font-weight:700}.profile-link{border:1px solid var(--line);color:var(--green)}main{flex:1}.page,.narrow-page{max-width:1200px;margin:0 auto;padding:3rem clamp(1rem,4vw,3rem) 5rem}.narrow-page{max-width:850px}.eyebrow{text-transform:uppercase;letter-spacing:.13em;font-size:.78rem;font-weight:800;color:#54715f}.lead{font-size:1.1rem;color:var(--muted);line-height:1.7}h1{font-size:clamp(2rem,4vw,3.4rem);line-height:1.08;margin:.5rem 0 1rem;letter-spacing:-.04em}h2{margin:.2rem 0 .5rem}textarea{resize:vertical;line-height:1.6}.check{flex-direction:row!important;align-items:center!important}.check input{width:auto}.primary{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}.hero{background:var(--green);color:#fff;border-radius:24px;padding:clamp(2rem,5vw,4rem);display:flex;align-items:flex-end;justify-content:space-between;gap:2rem}.hero p{color:#dbe7df;max-width:620px}.hero .eyebrow{color:var(--lime)}.privacy-pill{white-space:nowrap;border:1px solid #ffffff44;border-radius:999px;padding:.65rem 1rem;color:var(--lime)}.course-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem}.course-card{border:1px solid var(--line);border-radius:16px;padding:1.35rem;display:flex;flex-direction:column;gap:.65rem;min-width:0}.course-card h2{font-size:1.35rem}.course-top{display:flex;align-items:center;gap:.5rem}.rank{font-weight:900;font-size:1.1rem;color:var(--green)}.heart{margin-left:auto;border:0;padding:.25rem;background:none;color:#bec6c0;font-size:1.35rem}.heart.active{color:#c94b58}.meta{display:flex;gap:.45rem;flex-wrap:wrap}.meta span{font-size:.78rem;border:1px solid var(--line);padding:.28rem .48rem;border-radius:6px}.muted,.meeting{color:var(--muted);margin:0}.meeting{font-size:.9rem}.reasons{margin:.25rem 0;padding-left:1.2rem;color:#345c45}.reasons li{margin:.3rem 0}.course-card details{border-top:1px solid var(--line);padding-top:.7rem}.course-card summary{cursor:pointer;font-weight:700;color:var(--green)}.details{line-height:1.65}.details p{white-space:pre-line}.evidence{display:flex;flex-direction:column;background:#fff8df;border-left:3px solid #e1bd44;padding:.7rem;margin:.6rem 0}.evidence q{color:#68591f}.card-actions{display:flex;gap:.45rem;margin-top:auto;flex-wrap:wrap}.quiet{border:0;color:var(--muted)}.empty-panel,.empty-state{padding:4rem 2rem;text-align:center}.feature-grid{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap}.feature-grid span{background:#fff;border:1px solid var(--line);padding:1rem;border-radius:12px}.page-heading{display:flex;justify-content:space-between;align-items:end;margin-bottom:1.5rem}.schedule-summary{display:flex;gap:2rem;background:#fff;border-radius:14px;padding:1rem 1.3rem;margin:1rem 0}.timetable{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px}.timetable table{width:100%;border-collapse:collapse;min-width:760px}.timetable th,.timetable td{border:1px solid var(--line);padding:.5rem;vertical-align:top;min-width:125px}.class-block{background:#dcecdf;border-left:3px solid var(--green);border-radius:6px;padding:.45rem;font-size:.85rem;margin:.2rem 0}.class-block small{display:block;color:var(--muted)}.schedule-list{margin-top:1rem}.schedule-list>div{display:flex;align-items:center;gap:.6rem;background:#fff;border-bottom:1px solid var(--line);padding:.8rem 1rem}.schedule-list span{display:flex;flex-direction:column;flex:1}.schedule-list small{color:var(--muted)}.button-link{display:inline-block;text-decoration:none;padding:.75rem 1rem;border-radius:10px}footer{text-align:center;padding:1.3rem;color:var(--muted);font-size:.85rem;border-top:1px solid var(--line)}@media(max-width:800px){.topbar{height:auto;padding:.7rem 1rem;flex-wrap:wrap;gap:.5rem}.topbar nav{order:3;overflow:auto;width:100%}.topbar nav a{white-space:nowrap}.profile-link{margin-left:auto}.course-grid{grid-template-columns:1fr}.hero{border-radius:0;margin:-3rem -1rem 0}.page-heading{align-items:start}.schedule-summary{gap:.7rem;flex-wrap:wrap}}
+/* Recommendation hierarchy.
+   T41b deleted the `.category-tag*` and `.status*` families: T31 replaced both
+   with `CategoryChip` / `EligibilityChip`, and the last consumer outside a
+   course card (`SlotRecommendationDialog`) imports those components too. Their
+   runtime-composed class names (`category-tag ${category}`) were the R3 hazard
+   the plan called out; the colours now live on `[data-category]` selectors
+   further down. `.slot-category-filter ${category}` is the ONE runtime-composed
+   name still alive and its rules are deliberately kept. */
 .official-course-tags{display:flex;gap:.35rem;flex-wrap:wrap}.official-course-tags span{border-radius:999px;padding:.28rem .55rem;background:#e8f1ff;color:#255687;font-size:.76rem;font-weight:800}
 .course-top{flex-wrap:wrap}
-.query-understanding{display:grid;gap:.65rem;margin-top:1rem}
-.subject-query-field{display:grid;gap:.35rem}.subject-query-field label{font-weight:800;color:var(--green)}.subject-query-field small{color:var(--muted);line-height:1.45}.recommend-box>.primary{align-self:center}.filter-language-notice{display:grid;gap:.55rem;margin:-.75rem auto 1.25rem;width:calc(100% - 4rem);border-color:#dfc86a;background:#fffaf0}.filter-language-notice p{margin:0;color:#65551e;line-height:1.55}.detected-filter-list{display:grid;gap:.45rem}.detected-filter-list>span{display:flex;align-items:center;justify-content:space-between;gap:.65rem;padding:.45rem .55rem .45rem .7rem;border:1px solid #ead79b;border-radius:12px;background:#fff;font-size:.85rem}.detected-filter-text{display:inline-flex;gap:.4rem}.detected-filter-list b{color:#765d0b}.detected-filter-list button{flex:none;padding:.35rem .55rem;border-color:#d9bd5b;background:#fffaf0;color:#684f00;font-size:.8rem;font-weight:800}.search-execution-summary{display:flex;gap:.75rem;flex-wrap:wrap;margin:1rem 0}.search-execution-summary>span{display:flex;flex-direction:column;gap:.18rem;min-width:220px;padding:.75rem 1rem;border:1px solid var(--line);border-radius:12px;background:#fff}.search-execution-summary strong{font-size:.78rem;color:var(--muted)}.filter-section-heading{display:flex;align-items:end;justify-content:space-between;gap:1rem;margin:1.7rem 0 .4rem}.filter-section-heading span{font-size:.78rem;font-weight:900;letter-spacing:.12em;color:var(--green)}.filter-section-heading h2{margin:.2rem 0}.filter-section-heading p{max-width:480px;margin:0;color:var(--muted);text-align:right}.recommendation-preferences legend{padding:0 .25rem;font-weight:800}.recommendation-preferences>.check{font-weight:650}.safety-filter-summary{display:grid;gap:.65rem;margin:1rem 0;background:#f7faf7}.safety-filter-summary>div{display:flex;gap:.5rem;flex-wrap:wrap}.safety-filter-summary span{padding:.5rem .65rem;border-radius:10px;background:#fff;border:1px solid var(--line);font-size:.86rem}.safety-filter-summary b{color:var(--green);font-size:1.05rem}.safety-filter-summary small{color:var(--muted)}
-.understanding-chips{display:flex;flex-wrap:wrap;gap:.45rem}
-.query-chip{display:inline-flex!important;align-items:center;gap:.25rem}
-.query-chip.goal{background:#e3f2fd}
-.query-chip.context{background:#fff3cd}
-.query-chip.exclusion{background:#fde2e2}
-.query-chip button{border:0;background:transparent;padding:0 .15rem;cursor:pointer}
-.understanding-meta{color:var(--muted);font-size:.9rem}
-@media(max-width:800px){.filter-language-notice{width:100%;margin:.5rem 0 1rem}.detected-filter-list>span{align-items:flex-start;flex-direction:column}.filter-section-heading{align-items:start;flex-direction:column}.filter-section-heading p{text-align:left}.search-execution-summary>span{min-width:0;flex:1 1 100%}}
+.search-execution-summary{display:flex;gap:.75rem;flex-wrap:wrap;margin:1rem 0}.search-execution-summary>span{display:flex;flex-direction:column;gap:.18rem;min-width:220px;padding:.75rem 1rem;border:1px solid var(--line);border-radius:12px;background:#fff}.search-execution-summary strong{font-size:.78rem;color:var(--muted)}
+@media(max-width:800px){.search-execution-summary>span{min-width:0;flex:1 1 100%}}
 .assistant-page{max-width:1200px}
 .assistant-hero{margin-bottom:1rem}
 .assistant-consent{max-width:760px;margin:1rem auto;line-height:1.7}
@@ -32,7 +265,7 @@
 .assistant-composer textarea{min-height:100px;resize:vertical}
 .assistant-input-meta{display:flex;justify-content:space-between;align-items:center;color:var(--muted);font-size:.86rem}
 .assistant-examples,.assistant-followups{display:flex;gap:.45rem;flex-wrap:wrap;align-items:center}
-.assistant-examples button,.assistant-followups button{border-radius:999px;background:#f3f7f1;padding:.45rem .7rem;font-size:.86rem}
+.assistant-examples .button,.assistant-followups .button{border-radius:999px;font-size:.86rem}
 .assistant-thinking{display:flex;align-items:center;gap:.7rem;max-width:960px;margin:1rem auto;padding:.9rem 1.1rem;border:1px solid #d7e3d6;border-radius:14px;background:#f8fbf7;color:var(--green)}
 .assistant-thinking>span:last-child{color:var(--muted);font-size:.9rem}
 .thinking-dots{display:inline-flex;gap:.25rem}
@@ -59,26 +292,29 @@
 .cautions ul{margin:0;padding-left:1.1rem}
 @media (prefers-reduced-motion: reduce){.thinking-dots i{animation:none;opacity:.75}}
 @media(max-width:800px){.assistant-composer{margin:1rem 0}.assistant-toolbar{align-items:flex-start;flex-direction:column}.assistant-error{align-items:flex-start;flex-direction:column}.assistant-thinking{align-items:flex-start;flex-wrap:wrap}.assistant-thinking>span:last-child{width:100%}.assistant-user-message p{max-width:90%}}
-.schedule-add-card{margin-bottom:1rem}.schedule-add-card>p{color:var(--muted);margin:.35rem 0 1rem}.schedule-add-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin:.8rem 0}.schedule-add-grid label{display:flex;flex-direction:column;gap:.4rem;font-weight:700}.fixed-schedule-entry{background:#f8f6e7!important;border-left:3px solid #b88b22}.fixed-schedule-entry>span:last-child{color:#8a691f;font-size:.85rem;font-weight:700;white-space:nowrap}@media(max-width:800px){.schedule-add-grid{grid-template-columns:1fr}}
-.schedule-plan-actions{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:.75rem 1rem;margin-bottom:1rem}.schedule-plan-actions strong{margin-right:auto}.schedule-view-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:.8rem 0;padding:.8rem 1rem;border:1px solid var(--line);border-radius:12px;background:#fff}.schedule-view-toolbar>div:first-child{display:flex;flex-direction:column;gap:.2rem}.schedule-view-toolbar span{color:var(--muted);font-size:.85rem}.segmented-control{display:flex;border:1px solid var(--line);border-radius:10px;padding:3px;background:#f3f6f2}.segmented-control button{border:0;background:transparent;padding:.5rem .7rem}.segmented-control button.active{background:#fff;color:var(--green);font-weight:800;box-shadow:0 2px 8px #173b2615}.schedule-hidden-notice{display:flex;align-items:center;gap:.75rem}.schedule-hidden-notice button{margin-left:auto}.schedule-conflict-summary{color:#922b2b;font-weight:800}.mobile-day-picker,.mobile-schedule-list{display:none}.schedule-grid{position:relative;display:grid;min-width:max-content;background:#fff}.schedule-corner,.schedule-day-header,.schedule-section-label{display:grid;place-items:center;background:#f7f9f6;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-weight:800;z-index:3}.schedule-corner{position:sticky;left:0;top:0;z-index:6}.schedule-day-header{position:sticky;top:0;z-index:5}.schedule-section-label{position:sticky;left:0;z-index:4}.schedule-section-label.extended{background:#fff9e9;color:#7c6220}.schedule-cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}.schedule-grid .class-block{position:relative;z-index:2;align-self:stretch;display:flex;flex-direction:column;align-items:flex-start;gap:.18rem;overflow:hidden;margin-top:3px;margin-bottom:3px;padding:.5rem .48rem;border:1px solid #bfd6c4;border-left:4px solid var(--green);border-radius:8px;background:#dcecdf;text-align:left;color:var(--ink);box-shadow:0 2px 7px #173b2618}.schedule-grid .class-block:hover,.schedule-grid .class-block:focus-visible{z-index:7;outline:3px solid #7eaa8d;outline-offset:1px}.schedule-grid .class-block strong{line-height:1.3}.schedule-grid .class-block small{display:block;color:#4f6357;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.schedule-grid .class-block.fixed{background:#fff5ce;border-color:#d3b96b;border-left-color:#9b7420}.schedule-grid .class-block.conflict,.mobile-schedule-block.conflict{border-color:#b63a3a;border-left-color:#b63a3a;background:repeating-linear-gradient(135deg,#feeaea,#feeaea 8px,#fff5f5 8px,#fff5f5 16px)}.class-block-tags{display:flex;gap:.25rem;flex-wrap:wrap;margin-top:auto}.class-block-tags em,.manual-time-tag{font-style:normal;font-size:.7rem;font-weight:800;border-radius:999px;background:#fff8;padding:.15rem .35rem}.class-block-tags .conflict-tag{background:#a93232;color:#fff}.manual-time-tag{margin-left:.45rem;background:#e8e1f5;color:#59487b}.unplaced-courses{margin:1rem 0;padding:1rem;border:1px dashed #c09634;border-radius:14px;background:#fffaf0}.unplaced-courses h2,.unplaced-courses p{margin:.15rem 0}.unplaced-courses>button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:1rem;margin-top:.65rem;text-align:left}.undo-toast{position:fixed;right:1.25rem;bottom:1.25rem;z-index:30;display:flex;align-items:center;gap:.65rem;padding:.75rem 1rem;border-radius:12px;background:#18221d;color:#fff;box-shadow:0 12px 35px #0004}.undo-toast button{padding:.35rem .55rem}.schedule-dialog-backdrop{position:fixed;inset:0;z-index:40;display:flex;justify-content:flex-end;background:#14201988}.schedule-dialog{width:min(520px,100%);height:100%;overflow:auto;padding:1.4rem;background:#fff;box-shadow:-16px 0 50px #0003}.schedule-dialog-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;position:sticky;top:-1.4rem;margin:-1.4rem -1.4rem 1rem;padding:1.4rem;background:#fff;border-bottom:1px solid var(--line);z-index:2}.schedule-dialog-heading h2{font-size:1.6rem}.dialog-close{font-size:1.5rem;line-height:1;padding:.45rem .65rem}.schedule-detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin:1rem 0}.schedule-detail-meta span{display:flex;flex-direction:column;gap:.15rem;padding:.65rem;border-radius:9px;background:#f3f6f2}.schedule-dialog section{border-top:1px solid var(--line);padding-top:.8rem;margin-top:.8rem}.schedule-objective{white-space:pre-line;line-height:1.7}.schedule-outline-link{width:100%;margin-top:1rem;text-align:center}.mobile-schedule-block{width:100%;display:flex;align-items:center;justify-content:space-between;gap:.7rem;text-align:left;border-left:4px solid var(--green);background:#eef6ef}.mobile-schedule-block>span:first-child{display:flex;flex-direction:column}.mobile-schedule-block small{color:var(--muted)}
-@media(max-width:800px){.plan-tabs{justify-content:flex-start;overflow:auto;margin:1rem 0}.schedule-plan-actions{align-items:flex-start}.schedule-view-toolbar{align-items:stretch;flex-direction:column}.segmented-control{overflow:auto}.segmented-control button{white-space:nowrap;flex:1}.mobile-day-picker{display:block;margin:.75rem 0}.mobile-day-picker label{display:flex;align-items:center;gap:.7rem;font-weight:800}.mobile-day-picker select{width:auto;flex:1}.schedule-grid{display:none}.mobile-schedule-list{display:grid;gap:.55rem;padding:.75rem}.timetable{overflow:visible}.schedule-summary{display:grid;grid-template-columns:1fr 1fr}.unplaced-courses>button{align-items:flex-start;flex-direction:column}.schedule-list>div{align-items:flex-start;flex-wrap:wrap}.schedule-list>div>span{width:100%}.schedule-dialog-backdrop{align-items:flex-end}.schedule-dialog{height:min(88vh,760px);border-radius:18px 18px 0 0;padding:1rem}.schedule-dialog-heading{top:-1rem;margin:-1rem -1rem 1rem;padding:1rem}.schedule-detail-meta{grid-template-columns:1fr}.undo-toast{left:.75rem;right:.75rem;bottom:.75rem}.schedule-view-toolbar span{display:block}}
-@media print{.topbar,footer,.page-heading>button,.plan-tabs,.schedule-plan-actions,.schedule-add-card,.schedule-view-toolbar,.schedule-hidden-notice,.mobile-day-picker,.mobile-schedule-list,.unplaced-courses,.undo-toast,.schedule-list,.schedule-dialog-backdrop{display:none!important}.page{max-width:none;padding:0}.page-heading{margin-bottom:.5rem}.schedule-grid{display:grid!important;min-width:0}.timetable{overflow:visible;border:0}.schedule-grid .class-block{box-shadow:none}.schedule-summary{border:1px solid var(--line);margin:.5rem 0}body{background:#fff}}
-.department-field{display:flex;flex-direction:column;gap:.45rem}.department-field>label{font-weight:700}.department-combobox{position:relative}.department-combobox>input{padding-right:3.2rem}.department-combobox-toggle{position:absolute;top:50%;right:.35rem;transform:translateY(-50%);display:grid;place-items:center;width:2.4rem;height:2.4rem;padding:0;border:0;background:transparent;color:var(--green);font-size:1.35rem}.department-combobox:focus-within>input{border-color:#6c9980;box-shadow:0 0 0 3px #0d52381a;outline:0}.department-options{position:absolute;top:calc(100% + .35rem);left:0;right:0;z-index:35;max-height:340px;overflow:auto;border:1px solid #cdd5ce;border-radius:12px;background:#fff;box-shadow:0 16px 38px #173b2630}.department-result-count{position:sticky;top:0;z-index:2;padding:.65rem .8rem;border-bottom:1px solid var(--line);background:#f7faf7;color:var(--muted);font-size:.82rem}.department-option-group-label{position:sticky;top:2.35rem;z-index:1;padding:.45rem .8rem;background:#edf3ee;color:var(--green);font-size:.78rem;font-weight:800}.department-option-group>button{display:flex;align-items:center;justify-content:space-between;gap:.8rem;width:100%;padding:.68rem .8rem;border:0;border-radius:0;text-align:left}.department-option-group>button:hover,.department-option-group>button.active{background:#e6f0e8;color:var(--green)}.department-option-group>button[aria-selected="true"]{font-weight:800}.department-option-group>button small{flex:none;padding:.15rem .4rem;border-radius:999px;background:#edf1ed;color:var(--muted);font-size:.72rem}.field-error{color:var(--danger)!important;font-weight:700!important}
-.department-option-group>button small{max-width:62%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.department-selection-summary{display:flex;flex-wrap:wrap;align-items:center;gap:.35rem .65rem;padding:.6rem .75rem;border:1px solid #d6e1d8;border-radius:10px;background:#f7faf7;color:var(--green);font-size:.86rem}.department-selection-summary span{color:var(--muted)}.department-selection-summary small{width:100%;color:var(--muted)}
+.schedule-add-card{margin-bottom:1rem;position:relative;display:flex;flex-direction:column;gap:.75rem;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:1.4rem;box-shadow:0 10px 35px #183d2610}.schedule-add-card>p{color:var(--muted);margin:.35rem 0 1rem}.schedule-add-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin:.8rem 0}.schedule-add-grid label{display:flex;flex-direction:column;gap:.4rem;font-weight:700}.fixed-schedule-entry{background:#f8f6e7!important;border-left:3px solid #b88b22}.fixed-schedule-entry>span:last-child{color:#8a691f;font-size:.85rem;font-weight:700;white-space:nowrap}@media(max-width:800px){.schedule-add-grid{grid-template-columns:1fr}}
+.schedule-plan-actions{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:.75rem 1rem;margin-bottom:1rem}.schedule-plan-actions strong{margin-right:auto}.schedule-view-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:.8rem 0;padding:.8rem 1rem;border:1px solid var(--line);border-radius:12px;background:#fff}.schedule-view-toolbar>div:first-child{display:flex;flex-direction:column;gap:.2rem}.schedule-view-toolbar span{color:var(--muted);font-size:.85rem}.segmented-control{display:flex;border:1px solid var(--line);border-radius:10px;padding:3px;background:#f3f6f2}.schedule-hidden-notice{display:flex;align-items:center;gap:.75rem}.schedule-hidden-notice button{margin-left:auto}.mobile-day-picker,.mobile-schedule-list{display:none}.schedule-grid{position:relative;display:grid;min-width:max-content;background:#fff}.schedule-corner,.schedule-day-header,.schedule-section-label{display:grid;place-items:center;background:#f7f9f6;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-weight:800;z-index:3}.schedule-corner{position:sticky;left:0;top:0;z-index:6}.schedule-day-header{position:sticky;top:0;z-index:5}.schedule-section-label{position:sticky;left:0;z-index:4}.schedule-section-label.extended{background:#fff9e9;color:#7c6220}.schedule-cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}.schedule-grid .class-block{position:relative;z-index:2;align-self:stretch;display:flex;flex-direction:column;align-items:flex-start;gap:.18rem;overflow:hidden;margin-top:3px;margin-bottom:3px;padding:.5rem .48rem;border:1px solid #bfd6c4;border-left:4px solid var(--green);border-radius:8px;background:#dcecdf;text-align:left;color:var(--ink);box-shadow:0 2px 7px #173b2618}.schedule-grid .class-block:hover,.schedule-grid .class-block:focus-visible{z-index:7;outline:3px solid #7eaa8d;outline-offset:1px}.schedule-grid .class-block strong{line-height:1.3}.schedule-grid .class-block small{display:block;color:#4f6357;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.schedule-grid .class-block.fixed{background:#fff5ce;border-color:#d3b96b;border-left-color:#9b7420}.schedule-grid .class-block.conflict,.mobile-schedule-block.conflict{border-color:#b63a3a;border-left-color:#b63a3a;background:repeating-linear-gradient(135deg,#feeaea,#feeaea 8px,#fff5f5 8px,#fff5f5 16px)}.class-block-tags{display:flex;gap:.25rem;flex-wrap:wrap;margin-top:auto}.class-block-tags em,.manual-time-tag{font-style:normal;font-size:.7rem;font-weight:800;border-radius:999px;background:#fff8;padding:.15rem .35rem}.class-block-tags .conflict-tag{background:#a93232;color:#fff}.manual-time-tag{margin-left:.45rem;background:#e8e1f5;color:#59487b}.unplaced-courses{margin:1rem 0;padding:1rem;border:1px dashed #c09634;border-radius:14px;background:#fffaf0}.unplaced-courses h2,.unplaced-courses p{margin:.15rem 0}.unplaced-courses>button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:1rem;margin-top:.65rem;text-align:left}.schedule-detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin:1rem 0}.schedule-detail-meta span{display:flex;flex-direction:column;gap:.15rem;padding:.65rem;border-radius:9px;background:#f3f6f2}.schedule-dialog section{border-top:1px solid var(--line);padding-top:.8rem;margin-top:.8rem}.schedule-objective{white-space:pre-line;line-height:1.7}.schedule-outline-link{width:100%;margin-top:1rem;text-align:center}.mobile-schedule-block{width:100%;display:flex;align-items:center;justify-content:space-between;gap:.7rem;text-align:left;border-left:4px solid var(--green);background:#eef6ef}.mobile-schedule-block>span:first-child{display:flex;flex-direction:column}.mobile-schedule-block small{color:var(--muted)}
+@media(max-width:800px){.schedule-plan-actions{align-items:flex-start}.schedule-view-toolbar{align-items:stretch;flex-direction:column}.segmented-control{overflow:auto}.segmented-control button{white-space:nowrap;flex:1}.mobile-day-picker{display:block;margin:.75rem 0}.mobile-day-picker label{display:flex;align-items:center;gap:.7rem;font-weight:800}.mobile-day-picker select{width:auto;flex:1}.schedule-grid{display:none}.mobile-schedule-list{display:grid;gap:.55rem;padding:.75rem}.timetable{overflow:visible}.schedule-summary{display:grid;grid-template-columns:1fr 1fr}.unplaced-courses>button{align-items:flex-start;flex-direction:column}.schedule-list>div{align-items:flex-start;flex-wrap:wrap}.schedule-list>div>span{width:100%}.schedule-detail-meta{grid-template-columns:1fr}.schedule-view-toolbar span{display:block}}
+@media print{.topbar,footer,.page-heading>button,.schedule-plan-actions,.schedule-add-card,.schedule-view-toolbar,.schedule-hidden-notice,.mobile-day-picker,.mobile-schedule-list,.unplaced-courses,.schedule-list{display:none!important}.page{max-width:none;padding:0}.page-heading{margin-bottom:.5rem}.schedule-grid{display:grid!important;min-width:0}.timetable{overflow:visible;border:0}.schedule-grid .class-block{box-shadow:none}.schedule-summary{border:1px solid var(--line);margin:.5rem 0}body{background:#fff}}
+.field-error{color:var(--danger)!important;font-weight:700!important}
+/* `.department-*` deleted (T41b): the picker is a HeroUI ComboBox since T32
+   and no `department-` class name survives anywhere in src/**. */
+/* `.schedule-add-card` above absorbed the legacy `.card` box AND the flex
+   column HeroUI's own `.card` was handing `ManualCoursePanel` by accident (the
+   name collision cut both ways: the legacy section was picking up
+   `flex flex-col gap-3 relative` from `components/card.css` while the real
+   HeroUI Cards on /recommend, /data and /assistant were picking up the legacy
+   `padding:1.4rem` + radius + drop shadow). Copied verbatim so the panel
+   renders pixel-identically; verified by an A/B against the pre-change build. */
 
 /* Recommendation filter workspace */
-.filter-workspace{margin:1.7rem 0 1rem}.filter-workspace .filter-section-heading{margin:0 0 .85rem}.applied-filters{display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;padding:1rem 1.1rem;border:1px solid #cfe0d2;border-radius:14px;background:#f7faf7}.applied-filters>div{display:flex;align-items:flex-start;gap:.8rem;min-width:0}.applied-filters strong{flex:none;color:var(--green);font-size:.9rem;line-height:2.25}.applied-filter-list{display:flex;flex-wrap:wrap;gap:.4rem}.applied-filter-list button,.applied-filter-note{display:inline-flex;align-items:center;gap:.35rem;border:1px solid #c9ddce;border-radius:999px;background:#fff;padding:.38rem .62rem;color:#31583e;font-size:.82rem;font-weight:700}.applied-filter-list button:hover{border-color:#7ba98a;background:#edf5ee}.applied-filter-list button span{font-size:1rem;line-height:.8}.applied-filter-note{border-style:dashed;color:var(--muted);font-weight:500}.clear-filters{flex:none;border:0;background:transparent;padding:.38rem .2rem;color:var(--muted);font-size:.86rem;text-decoration:underline}.clear-filters:not(:disabled):hover{color:var(--green)}.filter-group{margin-top:.7rem;border:1px solid var(--line);border-radius:14px;background:#fff;overflow:hidden}.filter-group[open]{border-color:#c8d9cc;box-shadow:0 8px 24px #183d260b}.filter-group>summary{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem 1.1rem;cursor:pointer;list-style:none}.filter-group>summary::-webkit-details-marker,.filter-advanced>summary::-webkit-details-marker{display:none}.filter-group>summary::after{content:"⌄";margin-left:.15rem;color:var(--green);font-size:1.1rem;font-weight:800;transition:transform .18s ease}.filter-group[open]>summary::after{transform:rotate(180deg)}.filter-group>summary>span:first-child{display:flex;align-items:baseline;gap:.6rem;min-width:0}.filter-group summary b{font-size:1rem}.filter-group summary small{overflow:hidden;color:var(--muted);font-size:.84rem;text-overflow:ellipsis;white-space:nowrap}.filter-group-count{margin-left:auto;border-radius:999px;background:#edf3ee;padding:.27rem .55rem;color:var(--green);font-size:.76rem;font-weight:800;white-space:nowrap}.filter-group-content{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;border-top:1px solid var(--line);background:var(--line)}.filter-control{display:flex;flex-direction:column;align-items:flex-start;gap:.7rem;min-width:0;padding:1.05rem 1.1rem;background:#fff}.filter-control-heading{display:flex;align-items:baseline;justify-content:space-between;gap:.8rem;width:100%}.filter-control-heading strong,.filter-schedule-toggle strong{font-size:.94rem}.filter-control-heading span,.filter-schedule-toggle span{color:var(--muted);font-size:.82rem;text-align:right}.filter-chip-grid{display:flex;flex-wrap:wrap;gap:.45rem}.choice-chip,.filter-choice,.filter-toggle{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:999px;background:#fff;padding:.43rem .7rem;font-size:.86rem;font-weight:650}.choice-chip{background:#f3f6f2}.choice-chip.selected,.filter-choice.selected,.filter-toggle.active{border-color:var(--green);background:var(--green);color:#fff;box-shadow:0 2px 7px #0d523826}.choice-chip:hover:not(.selected),.filter-choice:hover:not(.selected),.filter-toggle:hover:not(.active){border-color:#7ba98a;background:#f4f8f4}.filter-toggle{align-self:flex-start;background:#f7faf7;color:#31583e}.filter-advanced{width:100%;border-top:1px dashed #d6ded6;padding-top:.7rem}.filter-advanced>summary{cursor:pointer;color:var(--green);font-size:.85rem;font-weight:800;list-style:none}.filter-advanced summary small{margin-left:.35rem;color:var(--muted);font-size:.78rem;font-weight:500}.filter-advanced[open]>summary{margin-bottom:.65rem}.filter-advanced .filter-toggle{margin-right:.4rem;margin-bottom:.4rem}.filter-schedule-toggle{grid-column:span 2;display:flex;align-items:center;justify-content:space-between;flex-direction:row}.filter-schedule-toggle>div{display:flex;flex-direction:column;gap:.2rem}
-@media(max-width:800px){.applied-filters,.applied-filters>div{align-items:stretch;flex-direction:column}.applied-filters strong{line-height:1.25}.clear-filters{align-self:flex-start}.filter-group>summary{align-items:flex-start;padding:.9rem}.filter-group>summary>span:first-child{align-items:flex-start;flex-direction:column;gap:.18rem}.filter-group summary small{white-space:normal}.filter-group-count{margin-left:0}.filter-group-content{grid-template-columns:1fr}.filter-control{padding:.95rem}.filter-control-heading{align-items:flex-start;flex-direction:column;gap:.2rem}.filter-control-heading span{text-align:left}.filter-schedule-toggle{grid-column:auto;align-items:flex-start;flex-direction:column}.filter-chip-grid{gap:.4rem}.choice-chip,.filter-choice,.filter-toggle{min-height:2.5rem}.filter-advanced summary small{display:block;margin:.15rem 0 0}}
 /* UX accessibility and responsive hardening */
-:root{
-  --control-border:#87958b;
-  --focus:#0d5238;
-  --surface-muted:#edf3ee;
-}
 html{scroll-behavior:smooth}
-[id]{scroll-margin-top:92px}
+/* T41b: matches the real sticky header. `.topbar` is `height:72px` above
+   800px and 64px below it (both measured in Chrome); the old 92/78 pair was
+   guessed and left a visible gap under every in-page anchor. */
+[id]{scroll-margin-top:72px}
 button,input,select,textarea,a{touch-action:manipulation}
-button,input,select,textarea{border-color:var(--control-border)}
 button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,summary:focus-visible,[tabindex]:focus-visible{
   outline:3px solid var(--focus);
   outline-offset:3px;
@@ -88,51 +324,26 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .icon-button{display:inline-grid;place-items:center;min-width:44px;min-height:44px;padding:.55rem}
 .icon-button svg{width:1.35rem;height:1.35rem}
 .menu-button,.profile-compact{display:none}
-.status-banner,.error-banner{display:flex;align-items:center;justify-content:center;gap:.75rem;padding:.75rem 1rem}
-.contents-fieldset{display:contents;border:0;padding:0;margin:0;min-inline-size:0}
 .field-error{display:block;color:#8a2323;font-weight:700}
 .error-summary:focus{outline:3px solid var(--focus);outline-offset:3px}
-.course-grid,.data-grid,.form-grid,.filter-group-content,.schedule-detail-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
-.course-card h2,.course-card .muted,.course-card .meeting,.course-card .meta span,.official-course-tags span,.category-tag,.status,.applied-filter-list button{overflow-wrap:anywhere;white-space:normal}
-.official-course-tags,.applied-filter-list,.meta,.card-actions{display:flex;flex-wrap:wrap;min-width:0}
-.radio-choice{position:relative;display:flex;align-items:center;min-height:44px}
-.radio-choice input{position:absolute;width:1px;height:1px;opacity:0}
-.radio-choice:has(input:focus-visible){outline:3px solid var(--focus);outline-offset:3px}
+.course-grid,.schedule-detail-meta{grid-template-columns:repeat(2,minmax(0,1fr))}
+.course-card h2,.course-card .muted,.course-card .meeting,.course-card .meta span,.official-course-tags span{overflow-wrap:anywhere;white-space:normal}
+.official-course-tags,.meta,.card-actions{display:flex;flex-wrap:wrap;min-width:0}
 .empty-actions,.dialog-actions{display:flex;justify-content:flex-end;gap:.7rem;flex-wrap:wrap}
-.notice>button,.error-banner>button{margin-left:.75rem}
-.filters-bar label{display:flex;flex-direction:column;gap:.35rem;font-weight:700;min-width:0}
-.filters-bar label span{font-size:.85rem}
 .results-region{position:relative}
 .updating-indicator{position:sticky;top:80px;z-index:4;width:max-content;margin:0 auto -2.5rem;background:var(--ink);color:#fff;border-radius:999px;padding:.45rem .8rem}
-.skeleton-grid{min-height:520px}
-.course-skeleton{height:245px;border:1px solid var(--line);border-radius:16px;background:#fff;padding:1.35rem}
-.course-skeleton span{display:block;height:18px;margin:.8rem 0;border-radius:6px;background:#e4e9e4;animation:skeleton-pulse 1.2s ease-in-out infinite alternate}
-.course-skeleton span:first-child{width:62%;height:26px}.course-skeleton span:last-child{width:78%}
-@keyframes skeleton-pulse{to{opacity:.42}}
 .sr-only{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
-.modal-backdrop{position:fixed;inset:0;z-index:100;display:flex;align-items:center;justify-content:center;padding:1rem;background:#142019aa}
-.modal-card{width:min(520px,100%);max-height:calc(100vh - 2rem);overflow:auto;background:#fff;border-radius:16px;padding:1.25rem;box-shadow:0 18px 60px #0005}
-.modal-heading{position:sticky;top:-1.25rem;z-index:2;display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;margin:-1.25rem -1.25rem 1rem;padding:1.25rem;background:#fff;border-bottom:1px solid var(--line)}
-.modal-heading h2{min-width:0;overflow-wrap:anywhere}
-.dialog-content{line-height:1.65}.dialog-actions{margin-top:1.25rem}.dialog-actions .danger,.danger{background:#9b2929;color:#fff;border-color:#9b2929}
-.toast{position:fixed;right:1rem;bottom:1rem;z-index:150;display:flex;align-items:center;gap:.75rem;max-width:min(440px,calc(100vw - 2rem));padding:.85rem 1rem;border-radius:12px;background:#18221d;color:#fff;box-shadow:0 12px 35px #0005}
-.toast-error{background:#7d2020}.toast button{color:inherit;background:transparent;border-color:#ffffff66}.toast-action{font-weight:800;text-decoration:underline}.toast-close{min-width:44px}
-.navigation-drawer{width:min(420px,calc(100vw - 2rem));margin-left:auto;height:calc(100vh - 2rem)}
+.dialog-content{line-height:1.65}.dialog-actions{margin-top:1.25rem}
 .navigation-drawer nav{display:flex;flex-direction:column;gap:.4rem}
 .navigation-drawer nav a{display:flex;justify-content:space-between;gap:1rem;padding:.9rem;border-radius:10px;text-decoration:none;font-weight:750}
 .navigation-drawer nav a.active{background:var(--surface-muted);color:var(--green)}
 .navigation-drawer nav a span{color:var(--muted);font-size:.85rem;text-align:right;overflow-wrap:anywhere}
-.modal-card.schedule-dialog{width:min(560px,100%);height:100vh;max-height:100vh;margin-left:auto;border-radius:0}
-.modal-card.schedule-dialog .modal-heading{top:-1.25rem}
 .completed-row{align-items:center}.completed-name{overflow-wrap:anywhere}.completed-actions{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}
-.inline-empty{text-align:center;display:block!important}.inline-empty p{color:var(--muted)}
 .class-block strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 .class-block small{min-width:0}
 .class-block svg,.schedule-conflict-summary svg,.schedule-list button svg,.assistant-limitations svg{vertical-align:-.15em;margin-right:.25rem}
-.plan-tabs{flex-wrap:wrap}
-.plan-tabs button{max-width:100%;overflow-wrap:anywhere}
 .heart{color:#6f7a73}.heart.active{color:#b52f47}
-.topbar{scroll-margin-top:80px}
+.topbar{scroll-margin-top:72px}
 .profile-full,.profile-compact{max-width:260px;overflow-wrap:anywhere;text-align:center}
 
 @media (min-width:801px) and (max-width:1199px){
@@ -145,50 +356,1007 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .page,.narrow-page{padding-inline:0}
 }
 @media (max-width:800px){
-  [id]{scroll-margin-top:78px}
+  [id]{scroll-margin-top:64px}
   .topbar{height:64px;padding:.55rem 1rem;flex-wrap:nowrap}
   .desktop-nav,.desktop-profile{display:none!important}
   .menu-button{display:inline-grid;margin-left:auto}
   .page,.narrow-page{padding:2rem 1rem 4rem}
   .hero{margin:-2rem -1rem 0}
-  .course-grid,.data-grid,.form-grid,.filters-bar,.filter-group-content,.schedule-detail-meta{grid-template-columns:1fr}
-  .navigation-drawer{height:calc(100vh - 2rem)}
-  .plan-tabs{overflow:visible}
-  .modal-card.schedule-dialog{width:100%;height:min(88vh,760px);max-height:88vh;margin:0;align-self:flex-end;border-radius:18px 18px 0 0}
-  .modal-backdrop:has(.schedule-dialog){align-items:flex-end;padding:0}
-  .schedule-view-toolbar,.filters-bar{align-items:stretch}
+  .course-grid,.schedule-detail-meta{grid-template-columns:1fr}
+  .schedule-view-toolbar{align-items:stretch}
 }
 @media (min-width:641px) and (max-width:800px){
-  .data-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .course-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-  .form-grid .wide{grid-column:1/-1}
 }
 @media (max-width:640px){
   .page,.narrow-page{padding-left:16px;padding-right:16px}
-  .course-grid,.data-grid,.form-grid{grid-template-columns:1fr}
-  .page-heading,.schedule-plan-actions,.schedule-view-toolbar,.filters-bar{align-items:stretch;flex-direction:column}
+  .page-heading,.schedule-plan-actions,.schedule-view-toolbar{align-items:stretch;flex-direction:column}
   .page-heading{gap:.8rem}
-  .recommend-box,.card-actions,.dialog-actions{grid-template-columns:1fr}
+  .card-actions,.dialog-actions{grid-template-columns:1fr}
   .card-actions>button,.dialog-actions>button{width:100%}
   .completed-row{align-items:stretch!important;flex-direction:column}
   .completed-actions{justify-content:space-between;width:100%}
-  .toast{left:.75rem;right:.75rem;bottom:.75rem}
 }
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
-  .course-skeleton span{animation:none}
+  /* T40, layer 1 of §4.6. Two things the `*` rule above cannot reach:
+
+     1. HeroUI's `Skeleton` picks its animation from the `--skeleton-animation`
+        token (`shimmer` | `pulse` | `none`) rather than from an `animation`
+        shorthand the `*` selector could shorten. It is declared per theme in
+        `theme/fju.css` inside `@layer base`; this block is UNLAYERED, so it
+        wins outright — no `!important` needed, and none used.
+     2. View transitions animate PSEUDO-ELEMENTS. `::view-transition-*` are not
+        descendants of anything, so `*,*::before,*::after` never matches them.
+        `ThemeToggle` also skips `startViewTransition` under reduced motion, and
+        that skip is the part that actually matters, because its reveal is
+        driven by `Element.animate()` whose duration is a JS number — CSS
+        cannot slow it down at all. This rule is the belt to that braces, and
+        covers any future CSS-declared transition. */
+  [data-theme="fju"],[data-theme="fju-dark"]{--skeleton-animation:none}
+  ::view-transition-group(*),
+  ::view-transition-image-pair(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*){animation:none!important}
 }
-.class-block[data-course-name]:is(:hover,:focus-visible)::after{content:attr(data-course-name);position:absolute;left:0;top:calc(100% + 5px);z-index:20;width:max-content;max-width:min(320px,70vw);padding:.45rem .6rem;border-radius:7px;background:#18221d;color:#fff;font-size:.8rem;line-height:1.4;box-shadow:0 6px 18px #0004}
+/* T35 deleted the `.class-block[data-course-name]::after` popup that lived here:
+   a `content: attr()` string is not in the accessibility tree, so it existed for
+   sighted mouse users only. Replaced by a real `Tooltip` in ClassBlock.tsx. */
 .mobile-schedule-block strong,.mobile-schedule-block small,.schedule-list strong,.schedule-list small{overflow-wrap:anywhere;white-space:normal}
 .brand{min-height:44px}
 
 
-/* Keep the profile setup controls aligned to the card's full usable width. */
-.profile-form{grid-template-columns:minmax(0,1fr)}
-.profile-form .wide{grid-column:auto}
-.schedule-cell{position:relative}.schedule-slot-button{display:flex;width:100%;height:100%;min-height:44px;align-items:center;justify-content:center;gap:.35rem;border:0;border-radius:0;background:transparent;color:#456a52;opacity:.42;transition:background-color .16s ease,color .16s ease,opacity .16s ease}.schedule-slot-button svg{width:1rem;height:1rem}.schedule-slot-button span{font-size:.75rem;font-weight:800;opacity:0}.schedule-slot-button:hover,.schedule-slot-button:focus-visible{background:#edf6ee;color:var(--green);opacity:1;outline:3px solid #6f9f7e;outline-offset:-3px}.schedule-slot-button:hover span,.schedule-slot-button:focus-visible span{opacity:1}.slot-recommendation-intro{display:grid;gap:.35rem;padding-bottom:.8rem}.slot-recommendation-intro .eyebrow{display:flex;align-items:center;gap:.35rem}.slot-recommendation-intro p{margin:0;color:var(--muted);line-height:1.6}.slot-recommendation-state{display:grid;gap:.35rem;margin:1rem 0;padding:1.25rem;border:1px dashed #b9c8bd;border-radius:14px;background:#f7faf7;text-align:center}.slot-recommendation-state span{color:var(--muted);line-height:1.55}.slot-recommendation-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:.5rem 0 1rem}.slot-recommendation-summary span{display:flex;min-width:0;flex-direction:column;gap:.1rem;padding:.7rem;border-radius:10px;background:#f1f6f1;color:var(--muted);font-size:.78rem;text-align:center}.slot-recommendation-summary strong{color:var(--green);font-size:1.2rem}.slot-confidence-note{display:flex;align-items:flex-start;gap:.45rem;padding:.65rem .75rem;border-radius:10px;background:#fff8df;color:#6b571d;line-height:1.5}.slot-confidence-note svg{flex:none;margin-top:.2rem}.slot-recommendation-list{display:grid;gap:.8rem}.slot-recommendation-list article{display:grid;grid-template-columns:2rem minmax(0,1fr);gap:.7rem;padding:1rem;border:1px solid var(--line);border-radius:14px;background:#fff}.slot-recommendation-rank{display:grid;width:2rem;height:2rem;place-items:center;border-radius:999px;background:var(--green);color:#fff;font-weight:900}.slot-recommendation-content{min-width:0}.slot-recommendation-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem}.slot-recommendation-heading h3{margin:0;font-size:1.1rem;overflow-wrap:anywhere}.slot-recommendation-heading p{margin:.15rem 0 0;color:var(--muted);font-size:.82rem;overflow-wrap:anywhere}.slot-recommendation-heading .status{flex:none}.slot-recommendation-meta{display:flex;gap:.35rem;flex-wrap:wrap;margin:.6rem 0}.slot-recommendation-meta span{padding:.25rem .42rem;border:1px solid var(--line);border-radius:6px;font-size:.76rem}.slot-recommendation-list .reasons{font-size:.88rem;line-height:1.45}.slot-recommendation-actions{display:flex;align-items:center;justify-content:flex-end;gap:.55rem;margin-top:.75rem}.slot-recommendation-actions a{padding:.65rem .75rem;color:var(--green);font-weight:700}.slot-recommendation-actions button{display:inline-flex;min-height:44px;align-items:center;gap:.35rem}.mobile-open-slots{display:grid;gap:.5rem;padding-top:.5rem;border-top:1px solid var(--line)}.mobile-open-slots>div{display:flex;gap:.45rem;flex-wrap:wrap}.mobile-open-slots button{display:inline-flex;min-width:58px;min-height:44px;align-items:center;justify-content:center;gap:.3rem;color:var(--green);font-weight:800}.slot-recommendation-dialog .notice{display:grid;gap:.45rem}.slot-recommendation-dialog .notice button{justify-self:start}@media(max-width:800px){.slot-recommendation-summary{grid-template-columns:1fr 1fr}.slot-recommendation-list article{grid-template-columns:1fr}.slot-recommendation-rank{width:1.75rem;height:1.75rem}.slot-recommendation-actions{align-items:stretch;flex-direction:column}.slot-recommendation-actions a,.slot-recommendation-actions button{width:100%;justify-content:center;text-align:center}}@media print{.schedule-slot-button{display:none!important}}
-.slot-recommendation-tags{display:flex;align-items:flex-start;justify-content:flex-end;gap:.35rem;flex-wrap:wrap}.slot-recommendation-tags .category-tag,.slot-recommendation-tags .status{flex:none}
+.schedule-cell{position:relative}.schedule-slot-button{display:flex;width:100%;height:100%;min-height:44px;align-items:center;justify-content:center;gap:.35rem;border:0;border-radius:0;background:transparent;color:#456a52;opacity:.42;transition:background-color .16s ease,color .16s ease,opacity .16s ease}.schedule-slot-button svg{width:1rem;height:1rem}.schedule-slot-button span{font-size:.75rem;font-weight:800;opacity:0}.schedule-slot-button:hover,.schedule-slot-button:focus-visible{background:#edf6ee;color:var(--green);opacity:1;outline:3px solid #6f9f7e;outline-offset:-3px}.schedule-slot-button:hover span,.schedule-slot-button:focus-visible span{opacity:1}.slot-recommendation-intro{display:grid;gap:.35rem;padding-bottom:.8rem}.slot-recommendation-intro .eyebrow{display:flex;align-items:center;gap:.35rem}.slot-recommendation-intro p{margin:0;color:var(--muted);line-height:1.6}.slot-recommendation-state{display:grid;gap:.35rem;margin:1rem 0;padding:1.25rem;border:1px dashed #b9c8bd;border-radius:14px;background:#f7faf7;text-align:center}.slot-recommendation-state span{color:var(--muted);line-height:1.55}.slot-recommendation-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin:.5rem 0 1rem}.slot-recommendation-summary span{display:flex;min-width:0;flex-direction:column;gap:.1rem;padding:.7rem;border-radius:10px;background:#f1f6f1;color:var(--muted);font-size:.78rem;text-align:center}.slot-recommendation-summary strong{color:var(--green);font-size:1.2rem}.slot-confidence-note{display:flex;align-items:flex-start;gap:.45rem;padding:.65rem .75rem;border-radius:10px;background:#fff8df;color:#6b571d;line-height:1.5}.slot-confidence-note svg{flex:none;margin-top:.2rem}.slot-recommendation-list{display:grid;gap:.8rem}.slot-recommendation-list article{display:grid;grid-template-columns:2rem minmax(0,1fr);gap:.7rem;padding:1rem;border:1px solid var(--line);border-radius:14px;background:#fff}.slot-recommendation-rank{display:grid;width:2rem;height:2rem;place-items:center;border-radius:999px;background:var(--green);color:#fff;font-weight:900}.slot-recommendation-content{min-width:0}.slot-recommendation-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:.6rem}.slot-recommendation-heading h3{margin:0;font-size:1.1rem;overflow-wrap:anywhere}.slot-recommendation-heading p{margin:.15rem 0 0;color:var(--muted);font-size:.82rem;overflow-wrap:anywhere}.slot-recommendation-meta{display:flex;gap:.35rem;flex-wrap:wrap;margin:.6rem 0}.slot-recommendation-meta span{padding:.25rem .42rem;border:1px solid var(--line);border-radius:6px;font-size:.76rem}.slot-recommendation-list .reasons{font-size:.88rem;line-height:1.45}.slot-recommendation-actions{display:flex;align-items:center;justify-content:flex-end;gap:.55rem;margin-top:.75rem}.slot-recommendation-actions a{padding:.65rem .75rem;color:var(--green);font-weight:700}.slot-recommendation-actions button{display:inline-flex;min-height:44px;align-items:center;gap:.35rem}.mobile-open-slots{display:grid;gap:.5rem;padding-top:.5rem;border-top:1px solid var(--line)}.mobile-open-slots>div{display:flex;gap:.45rem;flex-wrap:wrap}.mobile-open-slots button{display:inline-flex;min-width:58px;min-height:44px;align-items:center;justify-content:center;gap:.3rem;color:var(--green);font-weight:800}@media(max-width:800px){.slot-recommendation-summary{grid-template-columns:1fr 1fr}.slot-recommendation-list article{grid-template-columns:1fr}.slot-recommendation-rank{width:1.75rem;height:1.75rem}.slot-recommendation-actions{align-items:stretch;flex-direction:column}.slot-recommendation-actions a,.slot-recommendation-actions button{width:100%;justify-content:center;text-align:center}}@media print{.schedule-slot-button{display:none!important}}
+.slot-recommendation-tags{display:flex;align-items:flex-start;justify-content:flex-end;gap:.35rem;flex-wrap:wrap}.slot-recommendation-tags .category-chip,.slot-recommendation-tags .eligibility-chip{flex:none}
 .slot-category-filters{margin:.25rem 0 1rem;padding:.8rem;border:1px solid var(--line);border-radius:12px;background:#f7faf7}.slot-category-filters legend{padding:0 .35rem;color:var(--green);font-weight:800}.slot-category-filter-heading{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-bottom:.6rem;color:var(--muted);font-size:.85rem}.slot-category-filter-heading button{min-height:36px;padding:.35rem .6rem;color:var(--green);font-weight:800}.slot-category-filter-options{display:flex;gap:.45rem;flex-wrap:wrap}.slot-category-filter{display:inline-flex;min-height:44px;align-items:center;gap:.3rem;background:#fff;font-weight:800}.slot-category-filter.selected.home_required{border-color:#0d5238;background:#0d5238;color:#fff}.slot-category-filter.selected.home_elective{border-color:#b7cf52;background:#d9f078;color:#29411f}.slot-category-filter.selected.general_education{border-color:#a9cbe9;background:#dcecff;color:#21527c}.slot-category-filter.selected.external_department{border-color:#c8bddc;background:#ece8f4;color:#574a70}.slot-category-filter svg{flex:none}.slot-category-filters:disabled{opacity:.65}.slot-recommendation-state button{justify-self:center}
 .course-card .meta .study-level-badge{border-color:#b8ccbe;background:#edf5ef;color:var(--green);font-weight:800}
+
+/* Classes that JSX applies but the stylesheet never defined. */
+.secondary{background:#eef1eb;border-color:var(--control-border);color:var(--ink);font-weight:600}
+.secondary:not(:disabled):hover{background:#e3e8e0;border-color:#7ba98a}
+.schedule-cell.occupied{background:#f7faf7}
+.recommendation-reasons{border-left:3px solid var(--green);background:#f2f8f4;padding:.6rem .75rem;font-size:.87rem}
+.recommendation-reasons strong{display:block;margin-bottom:.25rem;color:var(--green)}
+/* T20: headings demoted from h1 to h2 so each route keeps exactly one h1 (plan R9). Renders identically to the global h1 rule. */
+.page-title{font-size:clamp(2rem,4vw,3.4rem);line-height:1.08;margin:.5rem 0 1rem;letter-spacing:-.04em}
+
+/* ---------------------------------------------------------------------------
+   T30: preflight compatibility shim.
+
+   Preflight (re-enabled above) is what makes `border-*` utilities and the
+   HeroUI component stylesheets work, but it also strips UA defaults the legacy
+   sheet below was silently relying on. T11 measured exactly four regressions;
+   three of them are pure loss and are reverted here, the fourth is kept on
+   purpose:
+
+     1. unstyled headings collapsed to 16px/400   -> reverted
+     2. `p`/list/`dl`/`fieldset` lost UA margins  -> reverted
+     3. `svg` went inline -> block                -> reverted
+     4. global line-height normal -> 1.5          -> KEPT
+
+   (4) is kept because plan §4.4 asks for CJK-tuned leading and 1.5 is inside
+   the 1.5–1.75 band the type scale already uses; reverting it to `normal`
+   would be undoing an improvement to restore an accident. It is declared
+   explicitly below rather than inherited from preflight so the value is
+   visible where the rest of the typography lives.
+
+   Every selector is wrapped in `:where()` (specificity 0) and left UNLAYERED:
+   unlayered beats any cascade layer, so this wins over preflight's
+   `layer(base)`, while zero specificity means every legacy rule below still
+   wins over this. `revert` rolls back to the user-agent origin, which is
+   precisely the pre-preflight rendering.
+
+   Deliberately NOT reverted: `border-width: 0`, `border-style: solid`,
+   `box-sizing`, and the form-control `font: inherit` reset — those are the
+   parts of preflight the HeroUI components need. */
+:where(html){line-height:1.5}
+:where(h1,h2,h3,h4,h5,h6){font-size:revert;font-weight:revert;margin-block:revert}
+:where(p,blockquote,figure,dl,dd,fieldset,pre,hr){margin:revert}
+:where(ul,ol){margin-block:revert;padding-inline-start:revert;list-style:revert}
+:where(fieldset){padding:revert;border:revert}
+:where(legend){padding:revert}
+:where(svg,img,video,canvas,audio,iframe,embed,object){display:revert;vertical-align:revert}
+/* Three more preflight effects the T11 note did not list, found by diffing the
+   computed styles of every element on /onboarding again: `small{font-size:80%}`
+   shrank every hint line 13.33px -> 12.8px, `*{padding:0}` flattened `<option>`
+   rows, and `*{margin:0}` removed the UA gap beside checkboxes and radios. */
+:where(small){font-size:revert}
+:where(option,optgroup){padding:revert}
+:where(input[type="checkbox"],input[type="radio"]){margin:revert}
+
+/* ---------------------------------------------------------------------------
+   T30 additions to the legacy sheet. Appended rather than edited in place: the
+   block above is minified source that must not be reformatted (plan R4), and
+   part of it died with the unlayered legacy rules in T41a. */
+
+/* Print hide-list follow-up (plan R10). `.undo-toast` and `.modal-backdrop` are
+   gone; React Aria portals every overlay to `document.body` with `data-rac`, so
+   the whole family is matched structurally instead of by class name. */
+@media print{[data-rac][role="dialog"],[data-rac][role="alertdialog"],.modal__backdrop,.drawer__backdrop,.toast__region,[data-slot="toast-region"]{display:none!important}}
+
+/* ---------------------------------------------------------------------------
+   T31: CourseCard. Appended, never edited in place — the minified block above
+   is legacy source that must not be reformatted (plan R4). Everything here is
+   UNLAYERED, matching that block, so it wins over HeroUI's `components` layer
+   for the handful of places where the card's own look has to survive until
+   T41 deletes the legacy sheet.
+
+   PLAN R3 — runtime-composed class names.
+   The old markup built its class names from TS union values at render time:
+     `category-tag ${recommendation.category}` and `status ${eligibility.status}`
+   Tailwind v4 scans source text for candidates; a template literal yields none,
+   so `.category-tag.home_required` and friends only survive because this whole
+   legacy sheet is emitted verbatim. The moment T41 rewrites these rules as
+   utilities they vanish, silently, with no build error — a status chip loses its
+   colour in production and nothing fails.
+   Fixed structurally rather than with `@source inline(...)`: the values now ride
+   on `data-category` / `data-eligibility` attributes and every selector below
+   spells the value out literally, so there is nothing left for a purge to miss.
+   `CourseCard.test.tsx` pins the attribute, the icon and the HeroUI colour class
+   for all four eligibility values and all four categories. */
+
+/* Course category (§4.3): neutral chip, 4px leading bar from the SEPARATE
+   category scale. Reusing --success/--warning/--danger here would make "本系必修"
+   compete with "條件已符合" for the same visual meaning. */
+.category-chip{position:relative;padding-inline-start:.75rem;overflow:hidden}
+.category-chip::before{content:"";position:absolute;inset-block:0;inset-inline-start:0;width:4px;background:var(--category-bar,var(--border-strong))}
+.category-chip[data-category="home_required"]{--category-bar:var(--category-home-required)}
+.category-chip[data-category="home_elective"]{--category-bar:var(--category-home-elective)}
+.category-chip[data-category="general_education"]{--category-bar:var(--category-general-education)}
+.category-chip[data-category="external_department"]{--category-bar:var(--category-external-department)}
+
+/* Eligibility chip. Colour comes from HeroUI's own .chip--soft.chip--{success,
+   warning,danger,default}; these rules only size the glyph and stop the icon
+   being squeezed out when the label wraps. */
+.eligibility-chip{flex:none;gap:.25rem}
+.eligibility-chip svg{flex:none;width:1em;height:1em}
+/* §4.4-4 again: HeroUI's `.chip` is `text-xs` (14px, and 12.16px once the
+   legacy `.official-course-tags{font-size:.76rem}` cascades in). A status
+   wording like "目前不可修" is content, not chrome — it gets the 15px floor.
+   Measured in Chrome at 375px, not assumed. */
+.eligibility-chip,.category-chip,.course-card .official-course-tags .chip,.course-card .official-course-tags .chip__label{font-size:.9375rem;padding-block:.2rem}
+
+/* §4.4-4: no content text below 15px. `.meta span` was .78rem (12.5px) and the
+   card description inherits HeroUI's `.card__description{text-sm}` (14px). */
+.course-card .meta span{font-size:.9375rem}
+.course-card .card__description{font-size:.9375rem;color:var(--muted)}
+.course-card .card__title{font-size:1.35rem;line-height:1.4;font-weight:600;color:inherit}
+.course-card .card__header{display:flex;flex-direction:column;gap:.35rem}
+.course-card .card__content{display:flex;flex-direction:column;gap:.65rem;min-width:0}
+.course-card .matched-fields,.course-card .recommendation-reasons,.course-card .meeting{font-size:.9375rem}
+
+/* §4.4-5: CJK wraps freely, English course names are not sliced mid-word. The
+   legacy sheet says `overflow-wrap:anywhere` for these, which breaks "Machine
+   Learning" across lines as "Mach / ine". Scoped to .course-card so the other
+   users of that shared rule stay untouched — they belong to other tasks. */
+.course-card h2,.course-card .card__title,.course-card .card__description,.course-card .meeting,.course-card .meta span,.course-card .official-course-tags .chip,.course-card .category-chip,.course-card .eligibility-chip{overflow-wrap:break-word;line-break:strict;word-break:normal;white-space:normal}
+/* HeroUI's .tooltip is `text-xs break-all` — 12px and mid-word breaking, both
+   against §4.4. This tooltip only ever holds the favourite label. */
+.course-card-tooltip{font-size:.9375rem;overflow-wrap:break-word;line-break:strict;word-break:normal}
+
+/* Disclosure trigger, styled to read as the `<summary>` it replaced. The global
+   unlayered `button{border;padding;background}` rule would otherwise turn both
+   disclosures into boxed buttons. 44px min-height per §5.3. */
+.course-disclosure-trigger{display:flex;width:100%;align-items:center;gap:.5rem;min-height:2.75rem;padding:.5rem 0;border:0;border-radius:0;background:none;color:var(--accent);font-weight:700;font-size:.9375rem;text-align:left}
+.course-card .card__content>.disclosure{border-top:1px solid var(--separator);padding-top:.25rem}
+.course-disclosure-trigger .disclosure__indicator{margin-inline-start:auto}
+.course-card .disclosure__content{width:100%}
+.course-card .details{line-height:1.65;padding-bottom:.5rem}
+.course-card .details h4{margin:.6rem 0 .2rem;font-size:1rem;font-weight:600}
+
+/* Course variants. Replaces the deleted courseVariants.css: the old rules
+   styled `.variant-list button`, and those buttons are radios now. */
+.course-variants .variant-list{display:grid;gap:.45rem;margin:0 0 .65rem;padding:0}
+.course-variants .radio{width:100%;margin:0;padding:.65rem .75rem;border:1px solid var(--field-border);border-radius:10px;background:var(--surface)}
+.course-variants [data-orientation="vertical"] [data-slot="radio"]{margin-top:0}
+/* Selection is the one decorative-looking colour §4.1 allows, and it is the
+   single accent — not a status green, which would collide with "條件已符合". */
+.course-variants .radio[data-selected="true"]{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent)}
+.course-variants .radio__content{width:100%;align-items:flex-start;min-height:2.75rem}
+.variant-option{display:flex;flex-direction:column;gap:.2rem;min-width:0;font-size:.9375rem;font-weight:400}
+.variant-option strong{font-weight:600}
+.variant-option>span{color:var(--muted)}
+.variant-option .eligibility-chip{align-self:flex-start;margin-top:.15rem}
+
+/* Cautions: `Alert status="warning"` brings the indicator glyph the old
+   `role="note"` div never had, so severity is no longer colour-only (§4.3). */
+.course-card .cautions{border-left:3px solid var(--warning);font-size:.9375rem}
+.course-card .cautions .alert__description ul{margin:0;padding-left:1.1rem}
+
+/* Favourite toggle. The 44px floor is set with `min-h-11 min-w-11` in the TSX
+   (§5.3) — HeroUI's md toggle is 40px and drops to 36px from `md:` up.
+   The selected colour was a literal (#b52f47) while `--danger` was shadowed by
+   the legacy `#a93232`; T41a un-shadowed it, so it is bound to the token and
+   is now theme-aware. */
+.course-card .heart{margin-left:auto;border:0;background:none}
+.course-card .heart svg{width:1.35rem;height:1.35rem}
+.course-card .heart[data-selected="true"]{background:none;color:var(--danger)}
+
+/* Card shell: keep the legacy box geometry, drop HeroUI's shadow — the
+   reading-room direction builds structure from rules, not elevation.
+   `background`/`color` DO move to the §4.2 tokens, and that is a deliberate
+   correction rather than scope creep: the legacy `.course-card{background:#fff}`
+   is light-only, so under `[data-theme="fju-dark"]` the chips inside took their
+   dark foregrounds while the card stayed white — measured at 2.56:1, a real
+   failure. In light the tokens resolve to the same white/near-black, so nothing
+   visible changes there (title contrast measured 16.34:1 before, 17.4:1 after). */
+.course-card{background:var(--surface);color:var(--surface-foreground);box-shadow:none}
+/* .5rem, not the legacy .45rem: §5.3 puts the floor for adjacent touch targets
+   at 8px and .45rem measured 7.2px in Chrome. */
+.course-card .card__footer{flex-wrap:wrap;gap:.5rem;margin-top:auto}
+.course-top{display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;min-width:0}
+
+/* ---------------------------------------------------------------------------
+   T32 (onboarding form) — legacy-shadowing repairs. Appended, not edited in
+   place: the block above is minified source that must not be reformatted
+   (plan R4).
+
+   Both rules exist for the same reason: the legacy sheet and T30's
+   preflight-revert shim are UNLAYERED, and an unlayered declaration beats a
+   layered one no matter how specific the layered selector is. So HeroUI's
+   `components` layer loses to `button{...}` and to `:where(fieldset){...}` on
+   every property those name. `revert-layer` rather than hard-coded values,
+   exactly as T30 did for `.modal__dialog` and `.toast`: it rolls each property
+   back to whatever the `components` layer — HeroUI's own rule — would set. */
+
+/* `:where(fieldset){padding:revert;border:revert}` in the shim restores the UA
+   `2px groove` border and UA padding on every <fieldset>, HeroUI's included
+   (measured: `border: 2px groove rgb(239,239,239)`). Only HeroUI's own
+   `.fieldset` is neutralised here, so bare legacy fieldsets keep what the shim
+   gives them and the shim itself stays untouched. */
+.fieldset[data-slot="fieldset"]{border:0;padding:0;margin:0;min-inline-size:0}
+
+/* The button and input/select repairs this block used to carry died with the
+   unlayered legacy `button{}` / `input,select,textarea{}` rules in T41a. */
+
+/* === T33 recommend page — begin ============================================
+   One contiguous appended block; nothing above is reformatted (plan R4).
+   Three sibling page migrations are in flight, so every rule here is scoped to
+   `.recommend-page` / `[data-page="recommend"]` and cannot reach another page.
+
+   Deleted from the legacy sheet by this task (nothing else referenced them):
+     .recommend-box            the `margin:-1.5rem auto` + `width:calc(100% - 4rem)`
+                               negative-margin hack, and its two media-query overrides
+     .subject-query-field      superseded by Card + Label + TextArea + Description
+     .filter-section-heading   superseded by the sidebar heading below
+     .filter-workspace / .applied-filters / .applied-filter-* / .filter-group*
+     .filter-control* / .filter-chip-grid / .choice-chip / .filter-choice
+     .filter-toggle / .filter-advanced / .filter-schedule-toggle   (4.93 kB)
+     .radio-choice{...} + .radio-choice input{position:absolute;opacity:0}
+                               the hidden-native-input trick, now RadioGroup/Radio
+   `.hero` and `.privacy-pill` are NOT deleted: AssistantPage still uses them
+   and belongs to T36. */
+
+/* --- Intro. Replaces `.hero`. -------------------------------------------- */
+.recommend-intro{display:flex;flex-direction:column;gap:.35rem;margin-bottom:1rem}
+.recommend-intro-title{display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+/* The global `h1{font-size:clamp(2rem,4vw,3.4rem)}` is 32px at 375px with
+   `letter-spacing:-.04em` — §4.4-1 wants 0 tracking for anything that can hold
+   Han, and the display step already caps at 36px. Both together are most of
+   the first-screen height this task is here to hand back. */
+.recommend-page>.recommend-intro h1{margin:0;font-size:var(--text-display);line-height:1.3;letter-spacing:var(--tracking-cjk)}
+.recommend-intro p{margin:0;color:var(--muted);line-height:var(--leading-cjk);max-width:60ch}
+.recommend-privacy-chip{flex:none;white-space:nowrap}
+
+/* --- Query box. Replaces `.recommend-box`. ------------------------------- */
+/* `background`/`color` are not cosmetic here: HeroUI's `.card` loses to the
+   legacy UNLAYERED `.card{background:var(--paper)}`, which is light-only, so
+   under [data-theme="fju-dark"] the query box stayed rgb(255,255,255) with
+   rgb(24,34,29) text inside a dark page while the TextArea inside it correctly
+   went dark — measured. Same repair T31 made for `.course-card`. */
+.recommend-query{gap:.75rem;margin-bottom:1.25rem;background:var(--surface);color:var(--surface-foreground);border-color:var(--border-strong);box-shadow:none}
+.recommend-query-body{display:flex;flex-direction:column;gap:.4rem;min-width:0}
+.recommend-query-body .textarea{min-height:5.5rem;line-height:var(--leading-cjk)}
+/* §4.4-4 content floor: HeroUI's `.description` is text-xs, measured 14px. */
+.recommend-page .description,.recommend-filter-sheet .description{font-size:.9375rem}
+.recommend-query-actions{justify-content:flex-end}
+
+/* --- lg split: 320px filter column beside the results (plan §5.1). ------- */
+.recommend-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:1.25rem;align-items:start}
+.recommend-sidebar{display:none}
+.recommend-results{min-width:0}
+@media (min-width:1024px){
+  .recommend-layout{grid-template-columns:320px minmax(0,1fr)}
+  .recommend-sidebar{display:block;position:sticky;top:88px;max-height:calc(100dvh - 7rem);overflow:auto;overscroll-behavior:contain}
+}
+.recommend-sidebar-heading{margin:0 0 .6rem;font-size:1rem;font-weight:700;color:var(--accent)}
+
+/* --- Sticky drawer trigger, sub-lg only. --------------------------------- */
+.recommend-filter-launcher{position:sticky;bottom:1rem;z-index:20;display:flex;justify-content:flex-end;margin-top:1rem;pointer-events:none}
+.recommend-filter-launcher>*{pointer-events:auto}
+.recommend-filter-launcher .button{box-shadow:0 10px 30px #183d2633}
+/* AFTER the base rule, not folded into the layout media block above: same
+   specificity, so source order is what decides and `display:flex` would
+   otherwise win at every width. Measured at 1024px before the move. */
+@media (min-width:1024px){.recommend-filter-launcher{display:none}}
+/* The button / toggle-button / accordion / disclosure / close-button /
+   drawer-close and textarea repairs this block used to carry died with the
+   unlayered legacy `button{}` / `input,select,textarea{}` rules in T41a. */
+
+/* --- Applied filters. Always on the page, never only in the sheet. ------- */
+/* Column, not a row: at 375px a row left the TagGroup 216px of the 343px
+   available and wrapped every chip onto two lines. Measured, not assumed. */
+.recommend-page .applied-filters{display:flex;flex-direction:column;align-items:stretch;gap:.6rem;margin-bottom:1rem;padding:.75rem .85rem;border:1px solid var(--border-strong);border-radius:14px;background:var(--surface);color:var(--surface-foreground)}
+.recommend-page .applied-filter-tags{display:flex;flex-direction:column;gap:.4rem;min-width:0}
+.recommend-page .applied-filter-tags .label{margin:0;color:var(--accent);font-weight:700}
+.recommend-page .tag-group__list{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;min-width:0}
+/* §4.4-4: no content text below 15px. HeroUI's `.tag` is text-xs (14px) and
+   the chip wording is content, not chrome. §5.3: the *remove button* is the
+   tap target, so it carries the 44px floor (now applied globally, see FIX50 at
+   the end of this file) and the tag follows it. */
+.recommend-page .tag{flex:0 1 auto;max-width:100%;min-height:2.75rem;padding-inline-end:.25rem;font-size:.9375rem;overflow-wrap:break-word;line-break:strict;word-break:normal;white-space:normal}
+.recommend-page .applied-filters>.button{align-self:flex-start}
+.applied-filter-note{color:var(--muted);font-size:.9375rem}
+
+/* --- Filter panel, shared by the sidebar and the sheet. ------------------ */
+/* `color` alongside the layout: every surface on this page has to re-establish
+   its own foreground because the legacy UNLAYERED `:root{color:#18221d}` is
+   inherited by anything that does not. Measured under [data-theme="fju-dark"]:
+   the group titles inside the surface accordion came out rgb(24,34,29) on a
+   dark panel. Same fix as `.recommend-query` / `.applied-filters`. */
+.filter-accordion{width:100%;color:var(--surface-foreground)}
+.filter-accordion-trigger{display:flex;width:100%;align-items:center;gap:.6rem;min-height:2.75rem;text-align:left}
+.filter-accordion-label{display:flex;flex-direction:column;gap:.1rem;min-width:0;flex:1}
+.filter-accordion-label b{font-size:1rem;font-weight:700}
+.filter-accordion-label small{color:var(--muted);font-size:.9375rem;overflow-wrap:break-word}
+.filter-group-body{display:flex;flex-direction:column;gap:1.1rem}
+.filter-control{display:flex;flex-direction:column;gap:.5rem;min-width:0}
+.filter-control-head{display:flex;flex-direction:column;gap:.1rem}
+/* HeroUI's `.accordion__body` is `text-muted`, so a control's *title* inherited
+   the same grey as its summary line — measured 5.14:1 in light where the title
+   is the thing being labelled. Titles take the foreground, summaries keep the
+   muted grey, which is the distinction the two lines exist to make. */
+.filter-control-head strong,.filter-accordion-label b{color:var(--surface-foreground)}
+.filter-control-head strong{font-size:.9375rem;font-weight:700}
+.filter-control-head span{color:var(--muted);font-size:.9375rem}
+/* `isDetached` gives the group real gaps; §5.3 puts the floor for adjacent
+   touch targets at 8px, and the wrap is what keeps 7+ weekday chips off a
+   horizontal scrollbar at 375px. */
+.filter-chips{flex-wrap:wrap;gap:.5rem}
+.filter-chips .toggle-button{font-size:.9375rem}
+.filter-radio-group{gap:.3rem}
+.filter-switch .label{font-size:.9375rem;font-weight:400}
+.filter-advanced-disclosure{width:100%;border-top:1px dashed var(--separator);padding-top:.4rem}
+.filter-advanced-trigger{display:flex;width:100%;align-items:center;gap:.4rem;min-height:2.75rem;padding:.4rem 0;border:0;border-radius:0;background:none;color:var(--accent);font-weight:700;font-size:.9375rem;text-align:left}
+.filter-advanced-trigger small{color:var(--muted);font-weight:400}
+.filter-advanced-trigger .disclosure__indicator{margin-inline-start:auto}
+.filter-advanced-body{display:flex;flex-direction:column;gap:.35rem}
+
+/* --- Bottom sheet. ------------------------------------------------------- */
+.recommend-filter-sheet{max-height:85dvh}
+.recommend-filter-sheet .drawer__body{overscroll-behavior:contain}
+.recommend-filter-sheet .drawer__footer{display:flex;gap:.5rem;align-items:center}
+/* === T33 recommend page — end ============================================== */
+/* === T35 schedule workspace — begin =======================================
+   Appended, never edited in place: the minified block far above is legacy
+   source that must not be reformatted (plan R4). Everything here is UNLAYERED
+   to match it, and scoped to `[data-page="schedule"]` for the same reason T32
+   scoped its repairs to `[data-page="onboarding"]` — the sibling page
+   migrations are in flight on their own branches and a bare `.button` /
+   `.toggle-button` rule here would silently restyle them mid-review. */
+
+/* The button / toggle-button / tabs__tab repair this block used to carry — the
+   one that restored the *selected* ToggleButtonGroup segment against both the
+   legacy `button{...}` rule and `.segmented-control button{background:transparent}`
+   — died in T41a: the legacy `button{}` moved into `@layer base` and the
+   `.segmented-control button` child rules (which only ever described the
+   pre-HeroUI markup) were deleted. `.segmented-control` itself is NOT dead and
+   is still applied to the view-range ToggleButtonGroup. */
+
+/* Empty-slot affordance contrast. Was `color:#456a52;opacity:.42`, which
+   composites to roughly 2.6:1 on the white cell — under the 4.5:1 floor, on the
+   one control whose entire job is to say "there is something to do here".
+   `--muted` at full opacity is the fix. Re-measured after T41a un-shadowed the
+   token: 6.39:1 on the light cell, 7.55:1 on the dark one. The `找課` wording is
+   no longer hidden until hover — FIX51 rests it visible at the same colour. */
+[data-page="schedule"] .schedule-slot-button{color:var(--muted);opacity:1}
+
+/* The real Tooltip that replaced the deleted `::after` popup. Same width cap the
+   CSS version used, so long CJK course names still wrap rather than run off. */
+.class-block-tooltip{max-width:min(320px,70vw)}
+
+/* Plan §5.3's 44x44 floor for `.tabs__tab` / `.button` / `.toggle-button` moved
+   into the one global expression of it (FIX50, end of file). */
+
+/* HeroUI's `.toolbar` is `width: fit-content`, which the legacy rules for these
+   two strips never had to override because they were plain divs. Measured: the
+   plan-actions bar collapsed from full width to 519px. */
+[data-page="schedule"] .schedule-plan-actions,[data-page="schedule"] .schedule-view-toolbar{width:100%}
+
+/* Day picker: `<select>` -> ToggleButtonGroup, so the old `label`/`select` flex
+   pair no longer describes the DOM. Mobile-first (plan §5.1): declared visible
+   here and hidden at `md` below, rather than adding another `max-width` query. */
+[data-page="schedule"] .mobile-day-picker{display:flex;align-items:center;gap:.7rem;margin:.75rem 0}
+[data-page="schedule"] .mobile-day-picker>strong{flex:none}
+[data-page="schedule"] .mobile-day-picker .toggle-button-group{flex:1}
+
+/* Plan §5.1 puts the timetable grid at `md` (768px). The legacy sheet switches
+   at 800px, which left 768-800 on the single-day list; this is the corrected
+   boundary, expressed as `min-width` so it overrides the legacy `max-width:800`
+   block without editing it. */
+@media (min-width:768px){
+  [data-page="schedule"] .schedule-grid{display:grid}
+  [data-page="schedule"] .mobile-schedule-list,[data-page="schedule"] .mobile-day-picker{display:none}
+  [data-page="schedule"] .timetable{overflow:auto}
+}
+
+/* Print hide-list: the plan switcher is navigation, not schedule content. Its
+   class changed from `.plan-tabs` to HeroUI's `.tabs__list-container`, so the
+   legacy `@media print` list no longer reaches it. Only the tab strip is hidden
+   — `.tabs__panel` holds the timetable and must stay. */
+@media print{[data-page="schedule"] .tabs__list-container{display:none!important}}
+/* === T35 schedule workspace — end ========================================= */
+/* === T36 data + assistant — begin ==========================================
+   The legacy sheet above is UNLAYERED, so it beats HeroUI's `components` layer
+   on every property it names, no matter how specific the layered selector is.
+   The repair below reverts BY LAYER rather than to hard-coded values, so the
+   property lands on whatever HeroUI's own rule would have given it. */
+
+/* RETIRED BY T41b. This was a `revert-layer` patch undoing the legacy unlayered
+   `.card{...}` box that HeroUI's own `.card` kept losing to. Both halves of the
+   collision are gone: `ManualCoursePanel` — the only consumer of the bare
+   legacy class — now carries `.schedule-add-card` alone, and the legacy
+   `.card{...}` rule is deleted, so `/data` and `/assistant` get HeroUI's Card
+   from HeroUI with nothing to revert. The `color` half is unnecessary too: the
+   unlayered `:root{color:#18221d}` it was compensating for died in T41a, and
+   text now inherits `html{color:var(--foreground)}` from `@layer base`. */
+
+/* The button and textarea repairs this block used to carry died with the
+   unlayered legacy `button{}` / `input,select,textarea{}` rules in T41a. */
+
+/* `.big-stats` replaced by a `<dl>` (the old span/strong pair carried no
+   relationship between label and number). Three across from `sm` up, stacked
+   below so the numbers stay readable at 375px. */
+.data-stats{display:grid;gap:.5rem;margin:0}
+/* Bordered rather than filled: a 1px rule is the §4.1 "structure, not
+   elevation" treatment. Re-measured after T41a un-shadowed `--muted`: the
+   label reads 6.39:1 light / 7.55:1 dark on `--surface`. */
+.data-stats>div{display:flex;flex-direction:column-reverse;gap:.15rem;padding:1rem;border:1px solid var(--separator);border-radius:10px;background:var(--surface);text-align:center}
+.data-stats dt{color:var(--muted);font-size:.9375rem}
+.data-stats dd{margin:0;color:var(--accent);font-size:1.8rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+@media (min-width:640px){.data-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* §5.3 touch floor. HeroUI's `md` button is 40px and shrinks to 36px from the
+   `md:` breakpoint up; the page's own buttons carry `min-h-11` in the TSX, but
+   the confirm dialog's two controls come from the shared `ConfirmDialog` and
+   measured 36px. Raised here rather than in the component so the sibling page
+   migrations touching it are not edited from this branch. */
+[data-rac][role="alertdialog"] .button[data-slot="button"]{min-height:2.75rem}
+
+/* §5.3 touch floor, SearchField. `SearchField.Input` carries `min-h-11` in the
+   TSX, but HeroUI's `.search-field__group` is 36px with `overflow:hidden`, so it
+   clipped the 44px input back down — hit-testing confirmed the real target was
+   36px, the only 44px violation left in the app and visibly inconsistent with
+   the 44px Selects beside it. Raising the group is the fix; the input's own
+   floor was never the problem. Found by the final verification sweep. */
+.search-field__group{min-height:2.75rem}
+
+/* HeroUI's `.meter` is a grid of label / output / track; the output holds a byte
+   figure here rather than a bare percent, so it needs room not to wrap. */
+.data-storage-meter{width:100%}
+.data-storage-meter .meter__output{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* §4.4-4: no content text below 15px. HeroUI's `.card__description` is 14px. */
+[data-page="data"] .card__description,[data-page="assistant"] .card__description{font-size:.9375rem;color:var(--muted)}
+[data-page="data"] .card__title,[data-page="assistant"] .card__title{font-size:1.25rem;line-height:1.45;font-weight:600;color:inherit}
+[data-page="data"] .card,[data-page="assistant"] .card{gap:.8rem}
+[data-page="data"] .card__content{display:flex;flex-direction:column;min-width:0}
+/* Legacy `.completed-row{align-items:center}` and its `!important` column flip
+   at <=640px both fight the Tailwind classes the row now carries. */
+[data-page="data"] .completed-row{align-items:revert}
+[data-page="data"] .completed-name{overflow-wrap:break-word;line-break:strict;word-break:normal}
+[data-page="data"] .empty-panel{padding:2rem 1rem}
+
+/* The assistant page keeps its legacy layout classes; only the controls moved
+   to HeroUI. These rules stop the legacy chip/composer styling from flattening
+   the HeroUI buttons that replaced the bare `<button>`s. */
+[data-page="assistant"] .assistant-examples .button,[data-page="assistant"] .assistant-followups .button{min-height:2.75rem;border-radius:999px}
+[data-page="assistant"] .assistant-composer{display:flex;flex-direction:column}
+/* === T36 data + assistant — end ============================================ */
+/* === T34 explore page — begin === */
+/* Per-component stylesheets for what src/pages/explore/** newly adopts.
+   Everything else the page uses (button, chip, input, input-group, label,
+   description, list-box*, popover, combo-box, select, skeleton, alert, card,
+   disclosure, tooltip, toggle-button, radio*) is already imported at the top of
+   this file by T30/T31/T32, and a duplicate @import of the same URL is a no-op
+   in Tailwind's resolver, so these are the only additions.
+
+   They sit at the END of the file rather than up in the import block because
+   three sibling page migrations are editing this file concurrently and the task
+   asks for one contiguous appended fence. That Tailwind honours a trailing
+   @import was verified in the built CSS, not assumed. */
+@import "@heroui/styles/components/table.css" layer(components);
+@import "@heroui/styles/components/pagination.css" layer(components);
+@import "@heroui/styles/components/search-field.css" layer(components);
+
+/* The button / pagination / clear-button / combo-box-trigger and the
+   input / search-field-input / select-trigger repairs this block used to carry
+   died with the unlayered legacy `button{}` / `input,select,textarea{}` rules
+   in T41a. */
+
+
+/* `.table__scroll-container` is the only element on this page allowed to scroll
+   horizontally, and it can only do so *inside* the content well — what stops a
+   wide table widening the document is `.table-root`'s own
+   `grid-template-columns: minmax(0,1fr)`. Recorded here because a future
+   `overflow:visible` on either would reintroduce document-level horizontal
+   scroll silently, which §5.5 forbids at every width. */
+/* === T34 explore page — end === */
+
+/* ===========================================================================
+   TOUCH-TARGET FLOOR (was FIX50 rules 3 and 4).
+
+   FIX50 rules 1 and 2 are GONE (T41a). They existed only to outrank the
+   unlayered legacy `button{...}` and `input,select,textarea{...}`; those two
+   now live in `@layer base` at the end of this file, so HeroUI's own
+   `layer(components)` rules win by cascade order and no `revert-layer` repair
+   is needed anywhere. That also covers every HeroUI control the hand-written
+   selector list had missed, which is the point of using a layer instead.
+
+   What stays is plan §5.3's 44x44 floor and the Tag.RemoveButton glyph fix.
+   Neither is repair scaffolding: they are design policy that HeroUI's own
+   sizing (40px controls, 32px tabs, 24px close buttons) does not meet, and
+   deleting them would change LIGHT rendering too.
+   =========================================================================== */
+
+/* --- 3. Plan §5.3's 44x44 touch floor, expressed ONCE. Previously written
+   three ways: `min-h-11` utilities in TSX, `min-height:44px` (T35) and
+   `width/height:2.75rem` (T33's tag remove button). HeroUI's `md` controls are
+   40px, its tabs 32px and its close button 24px, so every family here needs it
+   raised. `min-*` rather than `width`/`height` so a control is still free to
+   grow. The TSX `min-h-11`/`min-w-11` classes are now redundant but harmless —
+   same 2.75rem — and are left in place so this stays a CSS-only change. --- */
+:is(.button[data-slot="button"],
+    .close-button,
+    .tag__remove-button,
+    .toggle-button[data-slot="toggle-button"],
+    .tabs__tab,
+    .accordion__trigger,
+    .disclosure__trigger,
+    .pagination__link,
+    .search-field__clear-button,
+    .autocomplete__clear-button,
+    .combo-box__trigger,
+    .select__trigger,
+    .number-field__increment-button,
+    .number-field__decrement-button){min-height:2.75rem}
+
+/* The WIDTH half of the floor is only for controls whose content is a glyph, so
+   it cannot supply 44px on its own. It must NOT go on text controls: `min-width`
+   also replaces a flex item's `min-width:auto`, and `.segmented-control button`
+   is `flex:1`. Measured at 375px with the floor applied to every control: the
+   schedule view toggles went from 64/96/96 (each at least its min-content) to a
+   flat 85.3/85.4/85.3, i.e. the two four-character labels were forced narrower
+   than their own text under `white-space:nowrap`. --- */
+:is(.close-button,
+    .tag__remove-button,
+    .button--icon-only,
+    .toggle-button--icon-only,
+    .pagination__link,
+    .search-field__clear-button,
+    .autocomplete__clear-button,
+    .combo-box__trigger,
+    .calendar__nav-button,
+    .range-calendar__nav-button,
+    .number-field__increment-button,
+    .number-field__decrement-button){min-width:2.75rem}
+
+/* --- 4. `Tag.RemoveButton` inherits `.close-button--default`'s `bg-default`,
+   which is right at HeroUI's own 12px but reads as a filled slab once the box is
+   raised to the 44px touch floor. Measured before this rule: an opaque 44x44
+   rounded rect, rgb(243,242,240) light / rgb(36,39,45) dark. (Review reported it
+   as a *white* box; that did not reproduce — T33's `[data-page="recommend"]
+   .close-button` arm already reverted the legacy `background:#fff`, because a
+   RemoveButton IS a CloseButton. The box was real, the colour was not.)
+   The tap target is the button, the *visual* is the glyph — so the paint is
+   dropped and the icon is pinned.
+   Without the svg rule the icon inherits the 44px box (HeroUI's own
+   `.tag__remove-button svg{@apply size-[inherit]}`) and the chip reads as one
+   giant X. (0,2,0) to match rule 1, and after it in source order. --- */
+.tag .tag__remove-button{background:transparent;flex:none}
+.tag .tag__remove-button svg{width:1rem;height:1rem}
+/* === FIX51 schedule — begin ================================================
+   Wave-3 review defects on /schedule, all measured in a real browser. Appended,
+   never edited in place: everything above is either minified legacy source
+   (plan R4) or another agent's fence. Unlayered and page-scoped for the same
+   reason T35 gave — sibling migrations are in flight and a bare
+   `.toggle-button` rule here would restyle their pages mid-review. The one
+   `@import` this task needs is up in the import region, where CSS requires it. */
+
+/* P1-c. The new `role="row"` wrappers must not become grid items, or the whole
+   `gridColumn`/`gridRow` placement collapses into a single-column stack and the
+   multi-row `.class-block` spans stop resolving. `display:contents` hoists their
+   children back into `.schedule-grid`'s own grid formatting context, so the
+   rendered geometry is identical to T35's. Same for the per-block gridcell
+   wrapper: the `.class-block` button stays the grid item and keeps carrying its
+   inline `grid-row: N / span M`. */
+[data-page="schedule"] .schedule-row,[data-page="schedule"] .schedule-block-cell{display:contents}
+
+/* P1-b. Seven day buttons, not five. The plan (§5.4) sized this control for
+   一~五 and put the "查看星期" label on the same row; the catalog has real
+   weekend sessions (微積分 meets 星期六 D7–D8), so `visibleDays` is 7 and the
+   group needed 7 x 48px = 336px inside a 327px box with `flex-wrap:nowrap`.
+   Measured right edge 426px against a 375px viewport: 六 and 日 were simply off
+   screen and unreachable. Stacking the label gives the group the full content
+   width, which is ~49px per button — over the 44px floor with the group still
+   one unbroken row. `flex-wrap` is the belt and braces for the 320px
+   `body{min-width}` floor, where 7 x 44 no longer fits: it wraps to two rows
+   rather than overflowing, and the target size survives either way. */
+/* Confined to the mobile range. Unscoped, this `display:flex` had the same
+   (0,2,0) specificity as the `display:none` in the `min-width:768px` block far
+   above and came later in source order, so it won at every width and the day
+   picker reappeared above the full 7-day desktop grid. */
+@media (max-width:767.98px){
+  [data-page="schedule"] .mobile-day-picker{display:flex;flex-direction:column;align-items:stretch;gap:.4rem}
+  [data-page="schedule"] .mobile-day-picker .toggle-button-group{flex-wrap:wrap}
+  [data-page="schedule"] .mobile-day-picker .toggle-button{flex:1 1 auto;min-width:44px;padding-inline:.3rem}
+}
+
+/* P2-d. The 找課 label rests visible (the legacy rule hid it until hover, so 97
+   interactive cells had no sighted affordance beyond a faint icon) at 13px, the
+   §4.4-4 floor. T41a repainted the timetable from tokens, so the hover/focus
+   reveal is token-driven too and no longer pinned to a white cell. */
+[data-page="schedule"] .schedule-slot-button span{opacity:1;font-size:.8125rem}
+
+/* P2-e. `.class-block{font-size:.85rem}` x the UA's `small{font-size:smaller}`
+   landed the teacher and room at 11.33px, under the same floor T31 already
+   applied to `.course-card .meta span` — the legacy `.meta span{font-size:.78rem}`
+   still catches everything outside a course card. The colour goes with it: the
+   inherited pair measured 4.25:1, and the tile also renders over the `fixed`
+   (#fff5ce) and conflict-hatch (#feeaea/#fff5f5) backgrounds, so the value below
+   is the one that clears 4.5:1 on all three rather than only on #dcecdf. */
+[data-page="schedule"] .schedule-grid .class-block small,[data-page="schedule"] .mobile-schedule-block small{font-size:.8125rem;color:var(--muted)}
+
+/* P3-h. The two overflow chevrons `Tabs.ListContainer` renders are hit by the
+   legacy unlayered `button{border:1px solid var(--line);background:#fff;
+   padding:.68rem 1rem;border-radius:10px}`, which beats their layered `size-4
+   border-0 bg-transparent p-0` and left them at a measured 34 x 23.8px. Reverted
+   by layer as T30/T32/T35 did elsewhere, then given the 44px target §5.3 asks
+   for; the opaque puck matches `.tabs__list-container`'s own `bg-default` so the
+   tab text they overlap does not read through them. Their aria-labels are fixed
+   in ScheduleWorkspace.tsx — HeroUI hard-codes those in English. */
+[data-page="schedule"] .tabs__list-container__scroll-prev,[data-page="schedule"] .tabs__list-container__scroll-next{width:44px;height:44px;border-radius:999px;background:var(--default)}
+
+/* P3-i. 12.48px, under the floor. */
+[data-page="schedule"] .eyebrow{font-size:.8125rem}
+
+/* P2-g. The grid's seven day tracks have a 150px floor, so they totalled
+   72 + 7x150 = 1122px against a 778px print box: 星期六 sat at x=833–977, off
+   the page entirely, and even the five-day case needed 822px against 794px.
+   `.unplaced-courses` is in the legacy print hide-list, so nothing caught the
+   dropped columns — the printed sheet lost data silently. Landscape supplies the
+   room; dropping the track floor to 0 (the inline
+   `minmax(var(--schedule-col-min,150px),1fr)` in ScheduleWorkspace.tsx exists
+   for exactly this) makes the day columns divide whatever width the page has, so
+   it cannot clip at any day count or paper size. `!important` because the track
+   list and `min-width` are competing with an inline style and the legacy sheet. */
+@media print{
+  @page{size:A4 landscape;margin:10mm}
+  [data-page="schedule"] .schedule-grid{--schedule-col-min:0px;min-width:0!important;width:100%}
+  [data-page="schedule"] .schedule-grid .class-block strong{-webkit-line-clamp:3}
+}
+/* === FIX51 schedule — end ================================================== */
+/* === T41a legacy CSS teardown — begin ======================================
+   The unlayered legacy `:root` blocks, `button{...}`, `input,select,textarea{...}`
+   and the hard-coded `background:#fff` on `header.topbar` are deleted above.
+   What they were doing is re-expressed here from the §4.2 tokens.
+
+   THE LAYER IS THE WHOLE POINT. The element-level control rules move into
+   `@layer base`, which sits below `components`, so:
+     - every HeroUI control is styled by HeroUI, with no `revert-layer` patch,
+       including the ones no hand-written selector list ever enumerated;
+     - the app's remaining NON-HeroUI controls (`.icon-button`, `button.primary`,
+       `button.secondary`, `.slot-category-filter`, `.schedule-slot-button`,
+       the 鎖定/移除 pair, ErrorBoundary's two, ManualCoursePanel's native
+       input/select) keep exactly the box they had, because nothing else claims
+       them;
+     - the class-scoped legacy rules further up are still UNLAYERED and still
+       outrank this, so `.primary`, `.quiet`, `.class-block` and friends are
+       unaffected.
+
+   Several of these custom properties are LEGACY-ONLY names (`--ink`, `--paper`,
+   `--line`, `--green`, `--lime`, `--control-border`, `--surface-muted`). They
+   are aliased onto the design tokens instead of being search-and-replaced
+   through 7 kB of minified source: one definition makes several hundred legacy
+   declarations theme-aware at once. `--muted`, `--danger` and `--focus` are NOT
+   re-declared — dropping them is what un-shadows the §4.2 values.
+
+   `--green` is the legacy brand green. §4.2 reserves green for "condition met",
+   so it is deliberately not aliased to `--success` or to `--accent`: in light it
+   keeps its exact legacy value (a repaint would be a light-mode regression this
+   task must not make) and in dark it becomes a legible light green. Renaming it
+   out of the app belongs to T41b. `--on-green` is new and exists because the
+   legacy sheet hard-codes `color:#fff` on top of it in six places. */
+@layer base {
+  html {
+    /* T41b: `--font-sans` is a real, emitted custom property now (see
+       theme/typography.css), so the hard-coded stack T34 had to keep is gone
+       and the three self-hosted tiers are what actually renders. */
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    color: var(--foreground);
+    background: var(--background);
+  }
+
+  [data-theme="fju"],
+  [data-theme="fju-dark"] {
+    --ink: var(--foreground);
+    --paper: var(--surface);
+    --line: var(--border);
+    --control-border: var(--border-strong);
+  }
+  [data-theme="fju"] {
+    --green: #0d5238;
+    --on-green: #fff;
+    --lime: #d9f078;
+    --surface-muted: #edf3ee;
+  }
+  [data-theme="fju-dark"] {
+    --green: oklch(78.49% 0.1338 159.95);
+    --on-green: oklch(17.68% 0.007 258.37);
+    --lime: oklch(90.5% 0.152 118);
+    --surface-muted: color-mix(in oklab, var(--green) 16%, var(--surface));
+  }
+
+  /* `:not([data-rac])` is load-bearing, and was added after a real-pixel A/B
+     of the light build caught the regression it prevents. Every HeroUI /
+     React Aria control renders `data-rac` (verified in the DOM on /recommend:
+     button, accordion__trigger, disclosure__trigger, toggle-button,
+     tag__remove-button, select__trigger, textarea — all carry it; the app's
+     own `<button class="icon-button">` carries none). Several of those
+     controls declare no border of their own and rely on Tailwind preflight's
+     `border-width: 0`, which also lives in `layer(base)` but EARLIER in
+     source order — so an unqualified `button{border:...}` here would out-rank
+     it and paint a box around the filter accordion triggers, the weekday
+     toggles and every Tag remove button. That is precisely what FIX50 rule 1
+     used to undo with `revert-layer`; excluding React Aria at the selector is
+     the version that needs no undo.
+     ClassBlock is the one HeroUI Button rendered through `render` with the
+     legacy class names, so it also carries `data-rac` and is excluded here;
+     `.schedule-grid .class-block` already declares a complete box and
+     `.mobile-schedule-block` is given one in the T41a block below. */
+  button:not([data-rac]) {
+    cursor: pointer;
+    border: 1px solid var(--control-border);
+    border-radius: 10px;
+    background: var(--surface);
+    padding: 0.68rem 1rem;
+    color: var(--foreground);
+  }
+  input:not([data-rac]),
+  select:not([data-rac]),
+  textarea:not([data-rac]) {
+    border: 1px solid var(--control-border);
+    border-radius: 9px;
+    background: var(--field-background);
+    padding: 0.78rem 0.85rem;
+    color: var(--field-foreground);
+    width: 100%;
+  }
+}
+
+/* --- Chrome that was painted with literals ------------------------------- */
+.topbar{background:var(--surface)}
+.topbar nav a.active{background:var(--surface-muted);color:var(--green)}
+.brand span{color:var(--on-green)}
+.eyebrow{color:var(--muted)}
+.skip-link{background:var(--surface)}
+.primary{color:var(--on-green)}
+.secondary{background:var(--default);color:var(--foreground)}
+.secondary:not(:disabled):hover{background:var(--default-hover);border-color:var(--border-strong)}
+.feature-grid span{background:var(--surface)}
+.updating-indicator{background:var(--foreground);color:var(--background)}
+.hero{color:var(--on-green)}
+.hero p{color:color-mix(in oklab,var(--on-green) 82%,var(--green))}
+
+/* --- CourseCard body copy that still came from the legacy sheet ----------- */
+.reasons{color:var(--surface-foreground)}
+.recommendation-reasons{background:color-mix(in oklab,var(--green) 8%,var(--surface))}
+.evidence{background:color-mix(in oklab,var(--warning) 14%,var(--surface));border-left-color:var(--warning)}
+.evidence q{color:var(--surface-foreground)}
+
+/* --- Timetable palette ---------------------------------------------------
+   Every colour below was a hard-coded light hex, which is why `/schedule`
+   measured 94.5% light pixels under `fju-dark`. The mixes are taken against
+   `--surface`, so the whole grid follows the theme.
+
+   The conflict signal keeps all three of its channels (plan §4.3): the
+   `repeating-linear-gradient` TEXTURE is retained deliberately — it is the
+   non-colour channel — alongside the `衝堂` text chip and the Warning glyph
+   that `ClassBlock.tsx` renders. Only the two stripe colours are tokenised. */
+.timetable,.schedule-grid{background:var(--surface)}
+.schedule-corner,.schedule-day-header,.schedule-section-label{background:var(--default);color:var(--foreground)}
+.schedule-section-label.extended{background:color-mix(in oklab,var(--warning) 16%,var(--surface));color:var(--surface-foreground)}
+.schedule-cell.occupied{background:var(--background)}
+.class-block,.schedule-grid .class-block,.mobile-schedule-block{background:color-mix(in oklab,var(--green) 14%,var(--surface));border-color:color-mix(in oklab,var(--green) 34%,var(--surface));border-left-color:var(--green);color:var(--surface-foreground)}
+/* The box `.mobile-schedule-block` used to inherit from the legacy `button{}`. */
+.mobile-schedule-block{border:1px solid var(--border);border-left:4px solid var(--green);border-radius:10px;padding:.68rem 1rem}
+.schedule-grid .class-block:hover,.schedule-grid .class-block:focus-visible{outline-color:var(--focus)}
+.schedule-grid .class-block.fixed,.mobile-schedule-block.fixed{background:color-mix(in oklab,var(--warning) 18%,var(--surface));border-color:color-mix(in oklab,var(--warning) 42%,var(--surface));border-left-color:var(--warning)}
+.schedule-grid .class-block.conflict,.mobile-schedule-block.conflict{border-color:var(--danger);border-left-color:var(--danger);background:repeating-linear-gradient(135deg,color-mix(in oklab,var(--danger) 16%,var(--surface)),color-mix(in oklab,var(--danger) 16%,var(--surface)) 8px,color-mix(in oklab,var(--danger) 7%,var(--surface)) 8px,color-mix(in oklab,var(--danger) 7%,var(--surface)) 16px)}
+.class-block-tags em,.manual-time-tag{background:color-mix(in oklab,var(--surface) 55%,transparent);color:var(--surface-foreground)}
+.class-block-tags .conflict-tag{background:var(--danger);color:var(--danger-foreground)}
+.manual-time-tag{background:color-mix(in oklab,var(--accent) 16%,var(--surface));color:var(--surface-foreground)}
+.schedule-summary,.schedule-plan-actions,.schedule-view-toolbar,.schedule-list>div{background:var(--surface)}
+.segmented-control,.schedule-detail-meta span{background:var(--default)}
+.fixed-schedule-entry{background:color-mix(in oklab,var(--warning) 12%,var(--surface))!important;border-left-color:var(--warning)}
+.fixed-schedule-entry>span:last-child{color:var(--surface-foreground)}
+.unplaced-courses{border-color:color-mix(in oklab,var(--warning) 55%,var(--surface));background:color-mix(in oklab,var(--warning) 8%,var(--surface))}
+/* Empty-slot affordance: resting state is `--muted` (T35), the hover/focus
+   reveal is the accent — §4.2 reserves green for "condition met", so the
+   clearest state on an empty cell must not be a success colour. */
+.schedule-slot-button:hover,.schedule-slot-button:focus-visible{background:color-mix(in oklab,var(--accent) 12%,var(--surface));color:var(--accent);outline-color:var(--focus)}
+
+/* --- Slot recommendation dialog (same page, same literals) ---------------- */
+.slot-recommendation-list article,.slot-recommendation-state,.slot-category-filters,.slot-category-filter{background:var(--surface)}
+.slot-recommendation-summary span{background:var(--default)}
+.slot-recommendation-rank{background:var(--green);color:var(--on-green)}
+.slot-confidence-note{background:color-mix(in oklab,var(--warning) 14%,var(--surface));color:var(--surface-foreground)}
+
+/* --- Round 2: legacy literals still painting inside migrated components ---
+   Found by a real-pixel contrast sweep of all six routes under `fju-dark`,
+   not by reading the sheet: each of these is an unlayered legacy rule whose
+   selector still matches markup a page migration replaced. */
+/* `.cautions` is a HeroUI `Alert status="warning"` since T31; the legacy rule
+   was still painting it #fff9e6/#69551d, measured 1.41:1 in dark. */
+.cautions{background:color-mix(in oklab,var(--warning) 14%,var(--surface));color:var(--surface-foreground);border-left-color:var(--warning)}
+/* `.official-course-tags span` reaches inside HeroUI's accent-soft `Chip`. */
+.official-course-tags span{background:var(--accent-soft);color:var(--accent-soft-foreground)}
+/* CourseCard study-level badge: measured 1.68:1 in dark, 24 occurrences. */
+.course-card .meta .study-level-badge{border-color:color-mix(in oklab,var(--green) 34%,var(--surface));background:color-mix(in oklab,var(--green) 10%,var(--surface));color:var(--surface-foreground)}
+.search-execution-summary>span{background:var(--surface)}
+.heart{color:var(--muted)}
+/* === T41a legacy CSS teardown — end ======================================== */
+
+/* === T40 dark mode + motion — begin ========================================
+   Three small things: the theme reveal, where the toggle sits, and the box the
+   result-card entrance wrapper needs. */
+
+/* --- Theme reveal (ThemeToggle) -------------------------------------------
+   The default root view transition is a cross-fade of the old and new
+   snapshots. That is exactly wrong here: both snapshots are full-page, so a
+   cross-fade is a whole-screen flash, and it would fight the clip-path reveal
+   the component animates on top of it. Cancelling the built-in animation
+   leaves the new snapshot painted over the old one and lets the clip-path be
+   the entire effect. (This rule is the one piece of CSS Magic UI does ship in
+   the registry item; the clip-path pin below is not — the component sets the
+   custom property but expects the consumer to consume it.) */
+::view-transition-old(root),
+::view-transition-new(root){animation:none;mix-blend-mode:normal}
+/* Hold the new snapshot at its collapsed clip from the very first frame.
+   Without this there is a gap between the snapshot being taken and the
+   `ready.then()` callback starting the animation, and in that gap Firefox
+   paints the incoming theme unclipped — a flash of the destination theme
+   immediately before it wipes in. `ThemeToggle` sets both custom properties on
+   <html> for the life of the transition and removes them on cleanup. */
+html[data-fju-theme-vt="active"]::view-transition-new(root){clip-path:var(--fju-theme-vt-clip-from)}
+
+/* --- Toggle placement ------------------------------------------------------ */
+.theme-toggle{color:var(--foreground);background:transparent;border-color:transparent}
+.theme-toggle:not(:disabled):hover{background:var(--default-hover);border-color:var(--border-strong)}
+@media (max-width:800px){
+  /* `.menu-button` already carries `margin-left:auto`. With two of them the
+     free space would be split and the toggle would float mid-row, so the
+     toggle takes the auto margin and the menu button gives it up. Equal
+     specificity, later in source order — no `!important`. */
+  .theme-toggle{margin-left:auto}
+  .menu-button{margin-left:0}
+}
+
+/* --- Result-card entrance wrapper -----------------------------------------
+   `BlurFade` inserts a div between `.course-grid` and `.course-card`, so the
+   grid item is now the wrapper. `.course-card` is `display:flex` and used to
+   stretch to the row height as a grid item itself; without these two rules the
+   cards in a row stop matching heights. */
+.course-grid>.result-reveal{display:flex;min-width:0}
+.result-reveal>.course-card{flex:1}
+/* === T40 dark mode + motion — end ========================================== */
+
+/* === T41b forced colours + print re-audit — begin ==========================
+   Appended, never edited in place: everything above is either minified legacy
+   source (plan R4) or another agent's fence. */
+
+/* --- Windows high contrast (plan §4.3, "colour is never the only channel") --
+   `forced-colors: active` replaces every background-colour with Canvas and
+   every foreground with CanvasText. Everything this app uses to say "you can
+   take this course" — the eligibility chip, the category bar, the conflict
+   hatch, the fixed-slot fill — is carried by FILL, so in high contrast the
+   whole eligibility signal collapses into identical grey boxes. The mode does
+   keep border WIDTH and STYLE and honours the system colour keywords, so the
+   signal is re-expressed in those two channels here.
+   The wording and the Phosphor glyphs (`EligibilityChip`, `ClassBlock`) are
+   untouched by the mode and remain the primary channel; this is the third. */
+@media (forced-colors: active) {
+  /* Every status/category chip gets a box, so it still reads as a chip once
+     its soft fill has been flattened away. */
+  .eligibility-chip,
+  .category-chip,
+  .official-course-tags .chip,
+  .recommend-page .tag,
+  .study-level-badge,
+  .class-block-tags em,
+  .manual-time-tag,
+  .slot-category-filter,
+  .skip-link {
+    border: 1px solid CanvasText;
+  }
+  /* The 4px category bar is a background on a pseudo-element, so it vanishes
+     outright; CanvasText keeps it as a visible rule. */
+  .category-chip::before {
+    background: CanvasText;
+  }
+
+  /* Timetable. `border-style` is the only channel left once the green fill,
+     the amber fixed fill and the red conflict hatch are all flattened to
+     Canvas, so the three states take three distinguishable styles. */
+  .class-block,
+  .schedule-grid .class-block,
+  .mobile-schedule-block {
+    border: 1px solid CanvasText;
+  }
+  .schedule-grid .class-block.fixed,
+  .mobile-schedule-block.fixed {
+    border: 2px dashed CanvasText;
+  }
+  .schedule-grid .class-block.conflict,
+  .mobile-schedule-block.conflict {
+    border: 3px double CanvasText;
+  }
+  .class-block-tags .conflict-tag {
+    border: 2px double CanvasText;
+  }
+
+  /* Selection is the SYSTEM highlight, not the app accent: an accent border
+     would be forced to the same CanvasText as everything else, making selected
+     indistinguishable from unselected. `outline` sits on top of whatever
+     border the control already carries. */
+  .slot-category-filter.selected,
+  .course-variants .radio[data-selected="true"],
+  .toggle-button[data-selected="true"],
+  .topbar nav a.active {
+    outline: 2px solid Highlight;
+    outline-offset: -2px;
+  }
+
+  /* The focus ring is `var(--focus)`, which the mode would otherwise flatten
+     into the same CanvasText as every border added above. */
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* --- Print re-audit (plan R10) ---------------------------------------------
+   Re-verified standing after this task: the legacy hide-list, the portalled
+   `[data-rac][role="dialog"|"alertdialog"]` / backdrop / toast-region family
+   (R10), `.schedule-slot-button`, `.tabs__list-container`, and FIX51's
+   `@page{size:A4 landscape}` + `--schedule-col-min:0px` — which together are
+   what keep all seven day columns on the sheet.
+   Three things were still wrong, all of them introduced after the legacy
+   hide-list was written, which is why none of them were on it. */
+@media print {
+  /* The skip link is `position:fixed`, so it prints on every sheet, landing on
+     top of the DN row of the A4-landscape timetable. It is a keyboard
+     affordance for the live page and has no meaning on paper. Found by the
+     final verification sweep. */
+  .skip-link,
+  .recommend-filter-launcher,
+  .updating-indicator {
+    display: none !important;
+  }
+  /* The route focus manager focuses the h1 on navigation, so the focus ring
+     printed with it. */
+  #main-content :focus,
+  #main-content :focus-visible {
+    outline: none !important;
+  }
+  /* `position:sticky` resolves against the print box, so the header row and
+     the section labels re-pin on every printed page and overlap the rows
+     underneath them. */
+  .schedule-corner,
+  .schedule-day-header,
+  .schedule-section-label {
+    position: static;
+  }
+}
+/* === T41b forced colours + print re-audit — end ============================ */

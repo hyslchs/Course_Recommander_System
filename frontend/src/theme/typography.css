@@ -1,0 +1,55 @@
+/*
+ * FJU typography tokens (plan §4.4)
+ *
+ * ONE font, Noto Sans TC (not SC/HK): it uses the Taiwanese Ministry of
+ * Education standard glyph skeleton — the shapes students already see in
+ * textbooks and university systems — and its own Latin is a Source Sans
+ * derivative, so it sets the whole UI without a second family.
+ *
+ * INTER IS GONE (T41b). T11 planned a Latin-first stack with Inter in front
+ * for "real tabular figures". Three measurements killed it: `--font-sans`
+ * resolved to the empty string so nothing ever consumed the token; Inter was
+ * never installed, and a probe set in "Inter var","Inter" measured exactly the
+ * same width as a nonexistent family; and the justification is wrong at the
+ * binary level — all ten of Noto Sans TC's digits are 555/1000 em already, and
+ * the shipped Latin GSUB has no `tnum` feature for `tabular-nums` to enable.
+ *
+ * The three tiers below are one typeface, split for transfer only — see
+ * ./fonts.css. They are listed in tier order because that fallback chain IS
+ * the subsetting mechanism.
+ *
+ * CJK hard rules encoded here (§4.4):
+ *   1. letter-spacing 0 everywhere. Negative tracking collides Han strokes.
+ *   2. Weights 400/500/600/700 only. 650/750/900 have no Noto Sans TC
+ *      instance and font-synthesis:none blocks synthesis, so they are dead.
+ *   3. h1 caps at 36px, not 54px — 54px Han pushes the filters below the fold.
+ *   4. Content text >= 15px; 13px is the absolute floor (schedule secondary
+ *      line only).
+ *   5. overflow-wrap:break-word + line-break:strict + word-break:normal, so
+ *      CJK still wraps freely but English course titles are not sliced.
+ *   6. font-synthesis: none is kept.
+ *
+ * The faces are self-hosted — see ./fonts.css. Still no CDN.
+ */
+
+@layer base {
+  :root {
+    /* The stacks themselves are declared in styles.css's `@theme` block, which
+       is the only place Tailwind will both emit `--font-sans` into :root AND
+       point the `font-sans` utility at it. Declaring them here as well would
+       give two sources of truth for one token. */
+
+    /* Weights — 400/500/600/700 only (rule 2) */
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+
+    /* Wrapping — CJK wraps freely, English course titles are not sliced
+       mid-word (rule 5). Held as a token so T4x can apply it in one place. */
+    --wrap-cjk-overflow-wrap: break-word;
+    --wrap-cjk-line-break: strict;
+    --wrap-cjk-word-break: normal;
+  }
+}
+

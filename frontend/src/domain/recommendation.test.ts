@@ -1,13 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   classifyRecommendationCategory,
-  getPrerequisiteDataStatus,
-  inferCourseLevel,
   rankCourses,
   reciprocalRankFusion,
   sameCourseFamily,
 } from "./recommendation";
-import { isNoPrerequisiteText } from "./eligibility";
 import type { Course, Profile } from "./types";
 
 const profile: Profile = {
@@ -57,20 +54,6 @@ const courses = [
 ];
 
 describe("query-only recommendation ranking", () => {
-  it("normalizes explicit no-prerequisite labels", () => {
-    for (const value of ["無先修課程", "無需先修課程。", "None.", "（無，None）", "No specific prerequisites are required."]) {
-      expect(isNoPrerequisiteText(value)).toBe(true);
-      expect(getPrerequisiteDataStatus({ prerequisite: value, eligibility_rules: [] })).toBe("none_stated");
-    }
-  });
-
-  it("keeps prerequisite caveats as ambiguous", () => {
-    expect(getPrerequisiteDataStatus({
-      prerequisite: "無先修課程，但具備統計基礎有助於學習",
-      eligibility_rules: [],
-    })).toBe("ambiguous");
-  });
-
   it("classifies courses using the student's official department", () => {
     expect(courses.map((item) => classifyRecommendationCategory(item, profile))).toEqual([
       "home_required",
@@ -362,7 +345,7 @@ describe("query-only recommendation ranking", () => {
     expect(results[0].reasons).not.toContain("有擋修條件，請展開查看原始依據");
   });
 
-  it("can explicitly exclude courses with unmet formal prerequisites", () => {
+  it("keeps unmet formal prerequisites visible for card-level review", () => {
     const prerequisiteCourse = {
       ...course("prerequisite-strict", "資工", "必修", "進階資料庫"),
       eligibility_rules: [{
@@ -385,9 +368,9 @@ describe("query-only recommendation ranking", () => {
       completed: [],
       dismissedIds: [],
       scheduledCourses: [],
-      prerequisiteFilter: "exclude_unmet",
     });
-    expect(results).toHaveLength(0);
+    expect(results).toHaveLength(1);
+    expect(results[0].eligibility).toBe("blocked_confirmed");
   });
 
   it("groups master's and doctoral courses under the official graduate division", () => {
@@ -441,45 +424,6 @@ describe("query-only recommendation ranking", () => {
     };
     expect(rankCourses(input).map((item) => item.course.course_id)).toEqual(["doctoral-level"]);
     expect(rankCourses({ ...input, includeUnknownStudyLevel: true })).toHaveLength(2);
-  });
-
-  it("can conservatively exclude introductory and unknown-level courses", () => {
-    const introductory = course("intro", "心理博", "選修", "心理學導論");
-    const advanced = course("advanced", "心理博", "選修", "高等研究方法");
-    const unknown = course("unknown", "心理博", "選修", "研究方法");
-    expect(inferCourseLevel(introductory)).toBe("introductory");
-    expect(inferCourseLevel(advanced)).toBe("advanced");
-    const results = rankCourses({
-      catalog: [introductory, advanced, unknown],
-      courseIds: [introductory.course_id, advanced.course_id, unknown.course_id],
-      vectors: new Float32Array([1, 1, 1]),
-      dimension: 1,
-      query: new Float32Array([1]),
-      courseLevelFilter: "exclude_introductory",
-      includeUnknownCourseLevel: false,
-      completed: [],
-      dismissedIds: [],
-      scheduledCourses: [],
-    });
-    expect(results.map((item) => item.course.course_id)).toEqual(["advanced"]);
-  });
-
-  it("excludes unstructured prerequisite descriptions in safe mode", () => {
-    const ambiguous = { ...course("ambiguous-prerequisite", "護理", "選修", "兒科護理"), prerequisite: "須具備基礎護理相關能力" };
-    expect(getPrerequisiteDataStatus(ambiguous)).toBe("ambiguous");
-    const results = rankCourses({
-      catalog: [ambiguous],
-      courseIds: [ambiguous.course_id],
-      vectors: new Float32Array([1]),
-      dimension: 1,
-      query: new Float32Array([1]),
-      prerequisiteFilter: "exclude_unmet",
-      includeUnknownPrerequisite: false,
-      completed: [],
-      dismissedIds: [],
-      scheduledCourses: [],
-    });
-    expect(results).toHaveLength(0);
   });
 
   it("gives an exact Python title match the best query-only rank", () => {

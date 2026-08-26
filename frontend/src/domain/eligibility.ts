@@ -141,6 +141,11 @@ export function getEligibilityRules(course: Course): EligibilityRule[] {
   const studyLevel = inferCourseStudyLevel(course);
   const audienceGrade = inferAudienceGrade(course);
   if (studyLevel === "undergraduate" && audienceGrade !== null && audienceGrade >= 3) {
+    const hasEquivalentGradeRule = rules.some((rule) =>
+      ["audience_grade_only", "minimum_grade", "exact_grade"].includes(rule.kind)
+      && Number(rule.value.grade) === audienceGrade,
+    );
+    if (hasEquivalentGradeRule) return rules;
     return [...rules, {
       kind: "audience_grade_only",
       reason_code: "audience_grade_restriction",

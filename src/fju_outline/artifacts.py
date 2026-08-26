@@ -23,8 +23,19 @@ from .query_routes import build_route_embeddings, route_data
 
 
 ARTIFACT_VERSION = "fju_recommender_v3"
-CATALOG_SCHEMA_VERSION = "fju_catalog_v3"
-CATALOG_SCHEMA_FIELDS = ("study_level", "audience_grade", "course_tags")
+CATALOG_SCHEMA_VERSION = "fju_catalog_v4"
+CATALOG_SCHEMA_FIELDS = (
+    "study_level",
+    "audience_grade",
+    "course_tags",
+    "relations",
+    "teaching_methods",
+    "assessments",
+    "teaching_language",
+    "material_language",
+    "online_teaching",
+    "instructors",
+)
 DEFAULT_MODEL = "intfloat/multilingual-e5-small"
 SECTION_WEIGHTS = {
     "objective": 0.45,
@@ -93,6 +104,7 @@ def build_artifacts(
 ) -> dict[str, Any]:
     output_dir.mkdir(parents=True, exist_ok=True)
     catalog = [build_catalog_course(record) for record in records]
+    _compact_repeated_catalog_labels(catalog)
     if not catalog:
         raise ValueError("Cannot build artifacts from an empty catalog")
 
@@ -172,6 +184,18 @@ def normalize_catalog_course_schema(
     normalized["course_tags"] = _normalize_catalog_course_tags(
         normalized.get("course_tags") or []
     )
+    normalized["relations"] = normalized.get("relations") or []
+    normalized["teaching_methods"] = normalized.get("teaching_methods") or []
+    normalized["assessments"] = normalized.get("assessments") or []
+    normalized.setdefault("teaching_language", None)
+    normalized.setdefault("material_language", None)
+    normalized["online_teaching"] = normalized.get("online_teaching") or {
+        "sync": False,
+        "async": False,
+    }
+    normalized["instructors"] = normalized.get("instructors") or _legacy_instructors(
+        normalized
+    )
     if is_no_prerequisite_text(normalized.get("prerequisite")):
         normalized["eligibility_rules"] = [
             rule
@@ -182,6 +206,42 @@ def normalize_catalog_course_schema(
             )
         ]
     return normalized
+
+
+def refresh_catalog_artifact(
+    records: Iterable[dict[str, Any]], output_dir: Path
+) -> dict[str, Any]:
+    """Refresh catalog metadata without recomputing any embedding vectors."""
+
+    manifest = validate_artifacts(output_dir)
+    index = orjson.loads((output_dir / "embedding-index.json").read_bytes())
+    catalog = [build_catalog_course(record) for record in records]
+    _compact_repeated_catalog_labels(catalog)
+    course_ids = [item["course_id"] for item in catalog]
+    if not catalog:
+        raise ValueError("Cannot refresh an empty catalog")
+    if course_ids != index.get("course_ids"):
+        raise ValueError("Canonical course IDs/order do not match embedding index")
+    if len(catalog) != int(manifest.get("course_count", 0)):
+        raise ValueError("Canonical course count does not match artifact manifest")
+
+    catalog_path = output_dir / "catalog.json"
+    manifest_path = output_dir / "artifact-manifest.json"
+    catalog_tmp = catalog_path.with_suffix(".json.tmp")
+    manifest_tmp = manifest_path.with_suffix(".json.tmp")
+    catalog_tmp.write_bytes(orjson.dumps(catalog))
+    manifest["catalog_schema_version"] = CATALOG_SCHEMA_VERSION
+    manifest["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    manifest.setdefault("files", {})["catalog.json"] = {
+        "sha256": _sha256(catalog_tmp),
+        "bytes": catalog_tmp.stat().st_size,
+    }
+    manifest_tmp.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    catalog_tmp.replace(catalog_path)
+    manifest_tmp.replace(manifest_path)
+    return validate_artifacts(output_dir)
 
 
 def migrate_catalog_artifact(output_dir: Path) -> dict[str, Any]:
@@ -296,6 +356,17 @@ def build_catalog_course(record: dict[str, Any]) -> dict[str, Any]:
         "division": organization.get("division_name_zh"),
         "teacher": primary.get("name_zh"),
         "teacher_en": primary.get("name_en"),
+        "instructors": _catalog_instructors(teachers),
+        "teaching_language": _as_optional_text(primary.get("teaching_language_zh")),
+        "material_language": _as_optional_text(primary.get("material_language_zh")),
+        "relations": _catalog_relations(outline),
+        "teaching_methods": _catalog_weighted_options(
+            outline.get("teaching_methods") or []
+        ),
+        "assessments": _catalog_weighted_options(outline.get("assessments") or []),
+        "online_teaching": _catalog_online_teaching(
+            outline.get("weekly_progress") or []
+        ),
         "meetings": [
             {
                 "weekday": item.get("weekday"),
@@ -312,6 +383,93 @@ def build_catalog_course(record: dict[str, Any]) -> dict[str, Any]:
         "eligibility_rules": rules,
         "source_url": (record.get("source") or {}).get("source_url"),
     }
+
+
+def _catalog_relations(outline: dict[str, Any]) -> list[dict[str, str]]:
+    result: list[dict[str, str]] = []
+    for source_group in ("literacy", "core_competencies", "special_issues"):
+        for item in outline.get(source_group) or []:
+            relation = item.get("relation")
+            if relation not in {1, 3}:
+                continue
+            core_no = item.get("core_no")
+            item_no = item.get("item_no")
+            if core_no is None or item_no is None:
+                continue
+            group = source_group
+            if source_group == "core_competencies":
+                group = "core_knowledge" if core_no == 6 else "core_skills_attitudes"
+            result.append({
+                "id": f"{core_no}:{item_no}",
+                "group": group,
+                "label": str(item.get("name") or ""),
+                "strength": "direct" if relation == 3 else "indirect",
+            })
+    return result
+
+
+def _catalog_weighted_options(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return [
+        {
+            "id": str(item.get("method_sn")),
+            "label": str(item.get("name_zh") or ""),
+            "percent": float(item["percent"]),
+        }
+        for item in rows
+        if item.get("method_sn") is not None and (item.get("percent") or 0) > 0
+    ]
+
+
+def _catalog_online_teaching(rows: list[dict[str, Any]]) -> dict[str, bool]:
+    return {
+        "sync": any((item.get("sync_online_hours") or 0) > 0 for item in rows),
+        "async": any((item.get("async_online_hours") or 0) > 0 for item in rows),
+    }
+
+
+def _catalog_instructors(teachers: list[dict[str, Any]]) -> list[dict[str, str]]:
+    instructors: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for teacher in teachers:
+        name_zh = str(teacher.get("name_zh") or "").strip()
+        name_en = str(teacher.get("name_en") or "").strip()
+        teacher_id = str(teacher.get("teacher_id") or "").strip()
+        if not name_zh and not name_en:
+            continue
+        identity = teacher_id or f"name:{name_zh or name_en}"
+        if identity in seen:
+            continue
+        seen.add(identity)
+        instructors.append({"id": identity, "name_zh": name_zh})
+    return instructors
+
+
+def _legacy_instructors(course: dict[str, Any]) -> list[dict[str, str]]:
+    name_zh = str(course.get("teacher") or "").strip()
+    name_en = str(course.get("teacher_en") or "").strip()
+    if not name_zh and not name_en:
+        return []
+    return [{"id": f"name:{name_zh or name_en}", "name_zh": name_zh, "name_en": name_en}]
+
+
+def _compact_repeated_catalog_labels(catalog: list[dict[str, Any]]) -> None:
+    """Keep option display metadata once while every course retains stable IDs."""
+
+    for field, label_keys in (
+        ("relations", ("label",)),
+        ("teaching_methods", ("label", "label_en")),
+        ("assessments", ("label", "label_en")),
+        ("instructors", ("name_zh", "name_en")),
+    ):
+        seen: set[str] = set()
+        for course in catalog:
+            for option in course.get(field) or []:
+                option_id = str(option.get("id") or "")
+                if not option_id or option_id in seen:
+                    for key in label_keys:
+                        option.pop(key, None)
+                else:
+                    seen.add(option_id)
 
 
 def _catalog_course_tags(record: dict[str, Any]) -> list[dict[str, Any]]:

@@ -25,6 +25,7 @@ function emptySnapshot(): LocalDataSnapshot {
 
 const LocalDataContext = createContext<LocalDataSnapshot>(emptySnapshot());
 export const ProfileContext = createContext<Profile | undefined>(undefined);
+const LocalDataReadyContext = createContext(false);
 
 /**
  * One subscription per store for the whole app (plan §6.3-1).
@@ -36,6 +37,7 @@ export const ProfileContext = createContext<Profile | undefined>(undefined);
  */
 export function LocalDataProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState(emptySnapshot);
+  const [ready, setReady] = useState(false);
 
   useEffect(() => {
     let subscribed = true;
@@ -48,11 +50,13 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
         return next;
       });
     };
-    void reload(LOCAL_DATA_STORES);
+    void reload(LOCAL_DATA_STORES).catch(() => undefined).finally(() => {
+      if (subscribed) setReady(true);
+    });
     const listener = (event: Event) => {
       const detail = (event as CustomEvent<string>).detail;
-      if (detail === "all") void reload(LOCAL_DATA_STORES);
-      else if ((LOCAL_DATA_STORES as readonly string[]).includes(detail)) void reload([detail as LocalDataStore]);
+      if (detail === "all") void reload(LOCAL_DATA_STORES).catch(() => undefined);
+      else if ((LOCAL_DATA_STORES as readonly string[]).includes(detail)) void reload([detail as LocalDataStore]).catch(() => undefined);
     };
     window.addEventListener("fju-local-data", listener);
     return () => {
@@ -68,7 +72,9 @@ export function LocalDataProvider({ children }: { children: ReactNode }) {
 
   return (
     <LocalDataContext.Provider value={snapshot}>
-      <ProfileContext.Provider value={profile}>{children}</ProfileContext.Provider>
+      <LocalDataReadyContext.Provider value={ready}>
+        <ProfileContext.Provider value={profile}>{children}</ProfileContext.Provider>
+      </LocalDataReadyContext.Provider>
     </LocalDataContext.Provider>
   );
 }
@@ -81,4 +87,9 @@ export function useLocalRecords<T>(store: LocalDataStore): T[] {
 /** The single saved profile, or `undefined` before onboarding. */
 export function useProfile(): Profile | undefined {
   return useContext(ProfileContext);
+}
+
+/** Whether the first read of personal data has completed. */
+export function useLocalDataReady(): boolean {
+  return useContext(LocalDataReadyContext);
 }

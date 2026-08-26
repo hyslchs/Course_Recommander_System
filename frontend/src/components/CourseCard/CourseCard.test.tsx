@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import { eligibilityStatusLabels, eligibilityStatusShortLabels } from "@/domain/eligibility";
 import { recommendationCategoryLabels } from "@/domain/recommendation";
 import type { Course, EligibilityStatus, RecommendationCategory } from "@/domain/types";
-import { CourseCard } from "./CourseCard";
+import { CourseCard, dcardCourseSearchUrl } from "./CourseCard";
 import { CategoryChip, EligibilityChip } from "./statusPresentation";
 
 /**
@@ -128,7 +128,7 @@ describe("CourseCard", () => {
     expect(within(card).getByText("Introduction to Machine Learning")).toBeInTheDocument();
     // No runtime-composed class names left on the card at all.
     expect(card.querySelector(".category-tag, .status")).toBeNull();
-    expect(card.querySelector("[data-eligibility]")).not.toBeNull();
+    expect(card.querySelector("[data-eligibility]")).toBeNull();
   });
 
   it("exposes the favourite toggle as a named, pressable icon-only control", async () => {
@@ -150,6 +150,8 @@ describe("CourseCard", () => {
     expect(screen.getByRole("button", { name: "加入 我的課表" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "標記已修" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "不感興趣" })).toBeEnabled();
+    expect(screen.getByRole("link", { name: "到 Dcard 查詢課程評價" })).toHaveAttribute("href", dcardCourseSearchUrl("機器學習概論"));
+    expect(screen.getByRole("link", { name: "到 Dcard 查詢課程評價" })).toHaveAttribute("target", "_blank");
   });
 
   it("shows syllabus evidence behind a disclosure rather than a bare details element", async () => {

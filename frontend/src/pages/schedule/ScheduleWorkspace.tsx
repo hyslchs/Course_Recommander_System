@@ -1,27 +1,31 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
-import { Lock, Sparkle, Warning } from "@phosphor-icons/react";
+import { Sparkle, Warning, X } from "@phosphor-icons/react";
 import { Button, Tabs, ToggleButton, ToggleButtonGroup, Toolbar } from "@heroui/react";
 import { getCatalog, getEmbeddingBundle } from "@/data/api";
-import { getAllRecords, putRecord } from "@/data/db";
+import { deleteRecord, getAllRecords, putRecord } from "@/data/db";
+import { track } from "@/analytics/client";
+import { RecommendationSurface, useRecommendationRun } from "@/analytics/recommendation";
 import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
 import {
   buildScheduleBlocks,
-  CORE_SCHEDULE_SECTIONS,
   EXTENDED_SCHEDULE_SECTIONS,
+  FULL_SCHEDULE_SECTIONS,
   formatMeetings,
+  getDefaultScheduleSections,
   hasUnscheduledMeeting,
-  SCHEDULE_SECTIONS,
+  SCHEDULE_SECTION_TIMES,
   sectionGridSpan,
   unplacedBlock,
   weekdayLabels,
   type ScheduleBlock,
+  type ScheduleSection,
 } from "@/domain/schedule";
 import { coursesInPlan } from "@/domain/scheduleUtils";
 import { rankScheduleSlotCourses } from "@/domain/scheduleRecommendation";
 import type { ScheduleSlotRecommendationResult } from "@/domain/scheduleRecommendation";
 import { useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
-import { Modal, StateAlert, useFeedback } from "@/components/ui";
+import { ConfirmDialog, Modal, StateAlert, useFeedback } from "@/components/ui";
 import type { CompletedCourse, Course, FixedScheduleEntry, RecommendationCategory, ScheduleEntry, SchedulePlan } from "@/domain/types";
 import { ClassBlock } from "./ClassBlock";
 import { CourseDetails } from "./CourseDetails";
@@ -53,8 +57,9 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
   // rather than the ones captured when the course was removed.
   const plansRef = useRef(plans);
   plansRef.current = plans;
-  const [viewMode, setViewMode] = useState<"auto" | "core" | "full">("auto");
+  const [viewMode, setViewMode] = useState<"default" | "full">("default");
   const [selectedBlock, setSelectedBlock] = useState<ScheduleBlock>();
+  const [removeRequest, setRemoveRequest] = useState<{ courseId: string; courseName: string; conflicting: boolean }>();
   const [selectedSlot, setSelectedSlot] = useState<SelectedScheduleSlot>();
   const [slotRecommendation, setSlotRecommendation] = useState<ScheduleSlotRecommendationResult>();
   const [slotCategoryFilters, setSlotCategoryFilters] = useState<RecommendationCategory[]>([...scheduleRecommendationCategories]);
@@ -75,15 +80,21 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
   const [planDialog, setPlanDialog] = useState<"create" | "rename" | "">("");
   const [planName, setPlanName] = useState("");
   const planNameRef = useRef<HTMLInputElement>(null);
+  const [planDeleteRequest, setPlanDeleteRequest] = useState<SchedulePlan>();
+  const [planDeleteBusy, setPlanDeleteBusy] = useState(false);
   const { notify } = useFeedback();
+  // The empty-slot dialog is the schedule page's recommendation surface. Each
+  // opening is one run, so its impressions, clicks and adds join up the same way
+  // 為你推薦's do — and are told apart on the dashboard by `method`.
+  const slotRun = useRecommendationRun("schedule_slot");
   const courses = coursesInPlan(catalog, active);
   const fixedEntries: FixedScheduleEntry[] = active?.fixedEntries ?? [];
   const blocks = buildScheduleBlocks(courses, fixedEntries);
-  const hasWeekendCourse = blocks.some((block) => block.weekday > 5);
-  const hasExtendedCourse = blocks.some((block) => block.sections.some((section) => EXTENDED_SCHEDULE_SECTIONS.includes(section as typeof EXTENDED_SCHEDULE_SECTIONS[number])));
-  const visibleDays = viewMode === "full" || (viewMode === "auto" && hasWeekendCourse) ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5];
-  const visibleSections: readonly string[] = viewMode === "full" || (viewMode === "auto" && hasExtendedCourse) ? SCHEDULE_SECTIONS : CORE_SCHEDULE_SECTIONS;
-  const hiddenSourceIds = new Set(blocks.filter((block) => !visibleDays.includes(block.weekday) || block.sections.some((section) => !visibleSections.includes(section))).map((block) => block.sourceId));
+  const lockedCourseIds = new Set(active?.entries.filter((entry) => entry.locked).map((entry) => entry.courseId));
+  const defaultSections = getDefaultScheduleSections(profile?.division);
+  const visibleDays = viewMode === "full" ? [1, 2, 3, 4, 5, 6, 7] : [1, 2, 3, 4, 5];
+  const visibleSections: readonly ScheduleSection[] = viewMode === "full" ? FULL_SCHEDULE_SECTIONS : defaultSections;
+  const hiddenSourceIds = new Set(blocks.filter((block) => !visibleDays.includes(block.weekday) || block.sections.some((section) => !visibleSections.includes(section as ScheduleSection))).map((block) => block.sourceId));
   const conflictCount = new Set(blocks.filter((block) => block.conflict).map((block) => block.sourceId)).size;
   const unplacedCourses = courses.filter(hasUnscheduledMeeting);
   const credits = courses.reduce((sum, course) => sum + (course.credits ?? 0), 0);
@@ -97,7 +108,7 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
   // (FIX51 P2-g). With `minmax(150px,1fr)` the seven tracks total 1122px against
   // a 778px print box and 星期六/日 fell off the page entirely — and
   // `.unplaced-courses` is print-hidden, so nothing caught the dropped courses.
-  const gridStyle = { gridTemplateColumns: `72px repeat(${visibleDays.length}, minmax(var(--schedule-col-min, 150px), 1fr))`, gridTemplateRows: `44px repeat(${visibleSections.length}, 72px)` } satisfies CSSProperties;
+  const gridStyle = { gridTemplateColumns: `96px repeat(${visibleDays.length}, minmax(var(--schedule-col-min, 150px), 1fr))`, gridTemplateRows: `44px repeat(${visibleSections.length}, 72px)` } satisfies CSSProperties;
 
   // FIX51 P3-h. `Tabs.ListContainer` hard-codes its two overflow chevrons'
   // accessible names as the English "Scroll tabs left"/"Scroll tabs right"
@@ -153,6 +164,8 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
     setLoadedSlotRecommendationData(undefined);
     setSlotRecommendationError("");
     setSlotRecommendationLoading(true);
+    track("feature_clicked", { feature: "open_slot_recommendation" });
+    slotRun.start();
     const requestId = ++slotRequestRef.current;
     try {
       const [fullCatalog, bundle, completed, dismissed] = await Promise.all([
@@ -171,9 +184,14 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
         dismissedIds: dismissed.map((item) => item.id),
       };
       setLoadedSlotRecommendationData(loadedData);
-      setSlotRecommendation(rankLoadedSlotRecommendations(slot, loadedData, categoryFilters));
+      const ranked = rankLoadedSlotRecommendations(slot, loadedData, categoryFilters);
+      setSlotRecommendation(ranked);
+      slotRun.settle(ranked.recommendations.length);
     } catch (error) {
-      if (requestId === slotRequestRef.current) setSlotRecommendationError((error as Error).message || "無法讀取課程向量");
+      if (requestId === slotRequestRef.current) {
+        setSlotRecommendationError((error as Error).message || "無法讀取課程資料");
+        track("error", { component: "schedule", error_code: "CATALOG_LOAD_FAILED" });
+      }
     } finally {
       if (requestId === slotRequestRef.current) setSlotRecommendationLoading(false);
     }
@@ -190,7 +208,10 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
   const applySlotCategoryFilters = (categoryFilters: RecommendationCategory[]) => {
     setSlotCategoryFilters(categoryFilters);
     if (selectedSlot && loadedSlotRecommendationData) {
-      setSlotRecommendation(rankLoadedSlotRecommendations(selectedSlot, loadedSlotRecommendationData, categoryFilters));
+      const ranked = rankLoadedSlotRecommendations(selectedSlot, loadedSlotRecommendationData, categoryFilters);
+      setSlotRecommendation(ranked);
+      // A category toggle re-ranks the same run; it does not start a new one.
+      slotRun.settle(ranked.recommendations.length);
     }
   };
   const toggleSlotCategoryFilter = (category: RecommendationCategory) => {
@@ -218,9 +239,17 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
     setAddingRecommendedCourseId(courseId);
     try {
       await putRecord("schedulePlans", { ...active, entries: [...active.entries, { courseId, locked: false }], updatedAt: new Date().toISOString() });
+      const position = (slotRecommendation?.recommendations.findIndex((item) => item.course.course_id === courseId) ?? -1) + 1;
+      slotRun.surface?.markEngaged();
+      track(
+        "course_added",
+        { course_id: courseId, source: "schedule_slot", ...(position > 0 ? { position } : {}) },
+        { interactionId: slotRun.surface?.interactionId },
+      );
       notify(`已將「${course.name_zh}」加入「${active.name}」`);
       closeSlotRecommendations();
     } catch (error) {
+      track("error", { component: "schedule", error_code: "SCHEDULE_WRITE_FAILED" });
       notify("加入課表失敗：" + (error as Error).message, "error");
     } finally {
       setAddingRecommendedCourseId("");
@@ -289,7 +318,29 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
     await putRecord("schedulePlans", plan);
     await selectPlan(plan.id);
   };
+  const requestDeletePlan = () => {
+    if (!active || plans.length <= 1 || planDeleteBusy) return;
+    setPlanDeleteRequest(active);
+  };
+  const deletePlan = async () => {
+    const plan = planDeleteRequest;
+    if (!plan || plans.length <= 1 || planDeleteBusy) return;
+    const nextPlan = plans.find((item) => item.id !== plan.id);
+    if (!nextPlan) return;
+    setPlanDeleteBusy(true);
+    try {
+      await deleteRecord("schedulePlans", plan.id);
+      await selectPlan(nextPlan.id);
+      notify(`已刪除課表方案「${plan.name}」`);
+      setPlanDeleteRequest(undefined);
+    } catch (error) {
+      notify("刪除課表方案失敗：" + (error as Error).message, "error");
+    } finally {
+      setPlanDeleteBusy(false);
+    }
+  };
   const printSchedule = () => {
+    track("feature_clicked", { feature: "export_schedule" });
     setViewMode("full");
     window.setTimeout(() => window.print(), 0);
   };
@@ -297,11 +348,18 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
     if (!active) return;
     await putRecord("schedulePlans", { ...active, entries: active.entries.map((item) => item.courseId === courseId ? { ...item, locked: !item.locked } : item), updatedAt: new Date().toISOString() });
   };
-  const removeEntry = async (courseId: string) => {
+  const removeEntry = async (courseId: string, { resolvingConflict = false } = {}) => {
     if (!active) return;
     const entry = active.entries.find((item) => item.courseId === courseId);
     if (!entry) return;
     await putRecord("schedulePlans", { ...active, entries: active.entries.filter((item) => item.courseId !== courseId), updatedAt: new Date().toISOString() });
+    // Course-level only, and deliberately *not* linked to whichever add it
+    // undoes: there is no identifier that would survive long enough to do that,
+    // which is the point. The dashboard labels it aggregate behaviour.
+    track("course_removed", { course_id: courseId });
+    // Only when the block being removed was actually drawn as a clash — every
+    // other removal is ordinary schedule editing, not conflict resolution.
+    if (resolvingConflict) track("schedule_conflict_action", { action: "remove_course" });
     // Was a bespoke `.undo-toast` rendered next to the timetable. It is now the
     // one shared queue (plan §6.3-3), which also gets it the 6s timeout and the
     // politeness mapping for free.
@@ -310,6 +368,10 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
       detailTriggerRef.current = null;
       setSelectedBlock(undefined);
     }
+  };
+  const requestRemove = (block: ScheduleBlock) => {
+    if (block.source !== "course") return;
+    setRemoveRequest({ courseId: block.sourceId, courseName: block.name, conflicting: Boolean(block.conflict) });
   };
   const undoRemove = async (removed: { planId: string; entry: ScheduleEntry }) => {
     const plan = plansRef.current.find((item) => item.id === removed.planId);
@@ -341,23 +403,22 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
       <Tabs selectedKey={active.id} onSelectionChange={(key) => void selectPlan(String(key))}>
       <Tabs.ListContainer ref={planTabsRef}><Tabs.List aria-label="課表方案" className="schedule-plan-tabs">{plans.map((plan) => <Tabs.Tab id={plan.id} key={plan.id}>{plan.name}<Tabs.Indicator /></Tabs.Tab>)}</Tabs.List></Tabs.ListContainer>
       <Tabs.Panel id={active.id}>
-      <Toolbar aria-label="課表方案操作" className="schedule-plan-actions"><strong>目前方案：{active.name}</strong><Button variant="secondary" onPress={renamePlan}>重新命名</Button><Button variant="secondary" onPress={() => void duplicatePlan()}>建立副本</Button><Button variant="secondary" onPress={printSchedule}>列印／另存 PDF</Button></Toolbar>
+      <Toolbar aria-label="課表方案操作" className="schedule-plan-actions"><strong>目前方案：{active.name}</strong><Button variant="secondary" onPress={renamePlan}>重新命名</Button><Button variant="secondary" onPress={() => void duplicatePlan()}>建立副本</Button><Button variant="secondary" onPress={printSchedule}>列印／另存 PDF</Button><Button aria-describedby={plans.length <= 1 ? "schedule-plan-delete-hint" : undefined} aria-label={plans.length <= 1 ? "無法刪除課表方案，至少保留一個方案" : `刪除課表方案「${active.name}」`} isDisabled={plans.length <= 1 || planDeleteBusy} variant="danger" onPress={requestDeletePlan}>{planDeleteBusy ? "刪除中…" : plans.length <= 1 ? "無法刪除" : "刪除方案"}</Button>{plans.length <= 1 && <span className="schedule-plan-delete-hint" id="schedule-plan-delete-hint">至少保留一個課表方案，無法刪除。</span>}</Toolbar>
       <ManualCoursePanel catalog={catalog} plan={active} />
       <div className="schedule-summary"><strong>{courses.length} 門課</strong><span>{credits} 學分</span>{fixedEntries.length > 0 && <span>{fixedEntries.length} 個固定時段</span>}</div>
       {/* Was a `.schedule-conflict-summary` span wedged into the count strip, i.e.
           a warning that looked like a statistic and was announced as one. */}
       {conflictCount > 0 && <StateAlert className="schedule-conflict-alert" live="polite" title="課表有衝堂" tone="danger">{conflictCount} 門課的上課時間互相重疊，格線上以紅色斜線標示。</StateAlert>}
-      <Toolbar aria-label="課表顯示設定" className="schedule-view-toolbar"><div><strong>點空白時段找適合的課</strong><span>系統會依目前課表推測興趣，並檢查課程的所有上課節次。</span></div>
+      <Toolbar aria-label="課表顯示設定" className="schedule-view-toolbar"><div><strong>點空白時段找適合的課</strong><span>預設範圍依你的部別顯示；完整課表可查看所有星期與時段。</span></div>
         {/* `selectionMode="single"` makes React Aria emit `radiogroup`/`radio` +
             `aria-checked` instead of the old `group` + `aria-pressed`. That is the
             APG pattern for a mutually exclusive segmented control and is why the
             workspace test now queries by those roles. */}
-        <ToggleButtonGroup aria-label="課表顯示範圍" className="segmented-control" disallowEmptySelection selectedKeys={[viewMode]} selectionMode="single" onSelectionChange={(keys) => { const next = [...keys][0]; if (next) setViewMode(next as typeof viewMode); }}>
-          <ToggleButton id="auto">智慧</ToggleButton>
-          <ToggleButton id="core">核心時段{viewMode === "core" && hiddenSourceIds.size > 0 ? `（隱藏 ${hiddenSourceIds.size} 門）` : ""}</ToggleButton>
+        <ToggleButtonGroup aria-label="課表顯示範圍" className="segmented-control" disallowEmptySelection selectedKeys={[viewMode]} selectionMode="single" onSelectionChange={(keys) => { const next = [...keys][0]; if (next) { track("feature_clicked", { feature: "switch_schedule_view" }); setViewMode(next as typeof viewMode); } }}>
+          <ToggleButton id="default">預設</ToggleButton>
           <ToggleButton id="full">完整課表</ToggleButton>
         </ToggleButtonGroup></Toolbar>
-      {viewMode === "core" && hiddenSourceIds.size > 0 && <StateAlert action={<Button className="mt-2 min-h-11" variant="secondary" onPress={() => setViewMode("auto")}>顯示有課時段</Button>} className="schedule-hidden-notice" tone="info">目前折疊範圍內有 {hiddenSourceIds.size} 門課。</StateAlert>}
+      {viewMode === "default" && hiddenSourceIds.size > 0 && <StateAlert action={<Button className="mt-2 min-h-11" variant="secondary" onPress={() => setViewMode("full")}>顯示完整課表</Button>} className="schedule-hidden-notice" tone="info">目前預設範圍外有 {hiddenSourceIds.size} 門課。</StateAlert>}
       <div className="mobile-day-picker"><strong id="mobile-day-picker-label">查看星期</strong><ToggleButtonGroup aria-labelledby="mobile-day-picker-label" disallowEmptySelection fullWidth selectedKeys={[String(mobileDay)]} selectionMode="single" onSelectionChange={(keys) => { const next = [...keys][0]; if (next) setMobileDay(Number(next)); }}>{visibleDays.map((day) => <ToggleButton aria-label={`星期${weekdayLabels[day - 1]}`} id={String(day)} key={day}>{weekdayLabels[day - 1]}</ToggleButton>)}</ToggleButtonGroup></div>
       {/* `aria-rowcount`/`aria-colcount` count the header row and the section-label
           column, so the indices below are 1-based over the whole grid.
@@ -392,10 +453,11 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
           are what the grid structure is for, and the label was the only reason
           the cell had a name that could mismatch its content. Measured: 196
           findings -> 6. */}
-      <div className="timetable" aria-label={`${active.name}課表`}><div className="schedule-grid" style={gridStyle} role="grid" aria-colcount={visibleDays.length + 1} aria-rowcount={visibleSections.length + 1}>
+      <p className="schedule-scroll-hint" id="schedule-scroll-hint" role="note">課表可左右、上下滑動查看完整內容；星期與節次標題會固定顯示。</p>
+      <div className="timetable" role="region" tabIndex={0} aria-label={`${active.name}課表，可左右及上下捲動查看`} aria-describedby="schedule-scroll-hint"><div className="schedule-grid" style={gridStyle} role="grid" aria-colcount={visibleDays.length + 1} aria-rowcount={visibleSections.length + 1}>
         <div className="schedule-row" role="row" aria-rowindex={1}><div className="schedule-corner" role="columnheader" aria-colindex={1} aria-rowindex={1}>節次</div>{visibleDays.map((day, dayIndex) => <div className="schedule-day-header" role="columnheader" aria-colindex={dayIndex + 2} aria-rowindex={1} key={day} style={{ gridColumn: dayIndex + 2, gridRow: 1 }}>星期{weekdayLabels[day - 1]}</div>)}</div>
         {visibleSections.map((section, sectionIndex) => <div className="schedule-row" role="row" aria-rowindex={sectionIndex + 2} key={section}>
-          <div className={`schedule-section-label ${EXTENDED_SCHEDULE_SECTIONS.includes(section as typeof EXTENDED_SCHEDULE_SECTIONS[number]) ? "extended" : ""}`} role="rowheader" aria-colindex={1} aria-rowindex={sectionIndex + 2} style={{ gridColumn: 1, gridRow: sectionIndex + 2 }}>{section}</div>
+          <div className={`schedule-section-label ${EXTENDED_SCHEDULE_SECTIONS.includes(section as typeof EXTENDED_SCHEDULE_SECTIONS[number]) ? "extended" : ""}`} role="rowheader" aria-label={`${section} ${SCHEDULE_SECTION_TIMES[section]}`} aria-colindex={1} aria-rowindex={sectionIndex + 2} style={{ gridColumn: 1, gridRow: sectionIndex + 2 }}><strong>{section}</strong><time>{SCHEDULE_SECTION_TIMES[section]}</time></div>
           {visibleDays.map((day, dayIndex) => {
             const key = `${day}-${section}`;
             const occupied = occupiedSlotKeys.has(key);
@@ -404,14 +466,13 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
           {blocks.map((block) => {
             const dayIndex = visibleDays.indexOf(block.weekday); const span = sectionGridSpan(block, visibleSections); if (dayIndex === -1 || !span || span.start !== sectionIndex) return null;
             const blockStyle = { gridColumn: dayIndex + 2, gridRow: `${span.start + 2} / span ${span.span}`, width: `calc(${100 / block.laneCount}% - 6px)`, marginLeft: `calc(${block.lane * 100 / block.laneCount}% + 3px)` } as CSSProperties;
-            return <div className="schedule-block-cell" role="gridcell" aria-colindex={dayIndex + 2} key={block.id}><ClassBlock block={block} style={blockStyle} variant="grid" onSelect={openDetails} /></div>;
+            return <div className="schedule-block-cell" role="gridcell" aria-colindex={dayIndex + 2} key={block.id}><ClassBlock block={block} locked={lockedCourseIds.has(block.sourceId)} onRemove={() => requestRemove(block)} onSelect={openDetails} onToggleLock={() => void toggleLock(block.sourceId)} style={blockStyle} variant="grid" /></div>;
           })}
         </div>)}
-      </div><div className="mobile-schedule-list">{!mobileBlocks.length && <p className="muted">星期{weekdayLabels[mobileDay - 1]}目前沒有課程。</p>}{mobileBlocks.map((block) => <ClassBlock block={block} key={block.id} variant="list" onSelect={openDetails} />)}<div className="mobile-open-slots"><strong>點空堂找課</strong><div>{mobileOpenSections.map((section) => <button type="button" key={section} onClick={() => void loadSlotRecommendations({ weekday: mobileDay, section })}><Sparkle aria-hidden="true" />{section}</button>)}</div></div></div></div>
-      {unplacedCourses.length > 0 && <section className="unplaced-courses"><h2>時間未定／待安排</h2><StateAlert live="polite" tone="warning">{unplacedCourses.length} 門課的上課時間未定。它們不會被誤放進星期一，指定時間後才會出現在格狀課表。</StateAlert>{unplacedCourses.map((course) => <button key={course.course_id} onClick={(event) => openDetails(unplacedBlock(course), event.currentTarget)}><strong>{course.name_zh}</strong><span>{formatMeetings(course)}</span></button>)}</section>}
-      <div className="schedule-list">{fixedEntries.map((entry) => <div key={entry.id} className="fixed-schedule-entry"><span><strong>{entry.name}</strong><small>{formatMeetings(entry)} · {entry.teacher ?? "固定時段"}</small></span><span>固定時段</span></div>)}{courses.map((course) => { const entry = active.entries.find((item) => item.courseId === course.course_id)!; return <div key={course.course_id}><span><strong>{course.name_zh}{entry.meetingsOverride && <em className="manual-time-tag">手動時間</em>}</strong><small>{formatMeetings(course)}</small></span><button onClick={() => void toggleLock(course.course_id)}>{entry.locked ? <><Lock aria-hidden="true" />已鎖定</> : "鎖定"}</button><button onClick={() => void removeEntry(course.course_id)}>移除</button></div>; })}</div>
+      </div><div className="mobile-schedule-list">{!mobileBlocks.length && <p className="muted">星期{weekdayLabels[mobileDay - 1]}目前沒有課程。</p>}{mobileBlocks.map((block) => <ClassBlock block={block} key={block.id} locked={lockedCourseIds.has(block.sourceId)} onRemove={() => requestRemove(block)} onSelect={openDetails} onToggleLock={() => void toggleLock(block.sourceId)} variant="list" />)}<div className="mobile-open-slots"><strong>點空堂找課</strong><div>{mobileOpenSections.map((section) => <button type="button" key={section} aria-label={`找課：星期${weekdayLabels[mobileDay - 1]} ${section} ${SCHEDULE_SECTION_TIMES[section]} 可以排入的課程`} onClick={() => void loadSlotRecommendations({ weekday: mobileDay, section })}><Sparkle aria-hidden="true" /><span><strong>{section}</strong><time>{SCHEDULE_SECTION_TIMES[section]}</time></span></button>)}</div></div></div></div>
+      {unplacedCourses.length > 0 && <section className="unplaced-courses"><h2>時間未定／待安排</h2><StateAlert live="polite" tone="warning">{unplacedCourses.length} 門課的上課時間未定。它們不會被誤放進星期一，指定時間後才會出現在格狀課表。</StateAlert>{unplacedCourses.map((course) => <div className="unplaced-course-row" key={course.course_id}><button onClick={(event) => openDetails(unplacedBlock(course), event.currentTarget)}><strong>{course.name_zh}</strong><span>{formatMeetings(course)}</span></button><button aria-label={`移除課程：${course.name_zh}`} className="unplaced-course-remove" type="button" onClick={(event) => { event.stopPropagation(); setRemoveRequest({ courseId: course.course_id, courseName: course.name_zh, conflicting: false }); }}><X aria-hidden="true" /></button></div>)}</section>}
       {selectedBlock && <CourseDetails block={selectedBlock} catalog={catalog} scheduledCourses={courses} plan={active} onClose={closeDetails} />}
-      <SlotRecommendationContext.Provider value={slotRecommendationValue}><SlotRecommendationDialog /></SlotRecommendationContext.Provider>
+      <RecommendationSurface value={slotRun.surface}><SlotRecommendationContext.Provider value={slotRecommendationValue}><SlotRecommendationDialog /></SlotRecommendationContext.Provider></RecommendationSurface>
       </Tabs.Panel>
     </Tabs>}
     <Modal open={Boolean(planDialog)} title={planDialog === "create" ? "建立課表方案" : "重新命名課表方案"} onClose={() => setPlanDialog("")} initialFocusRef={planNameRef}>
@@ -419,5 +480,29 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
       <input ref={planNameRef} id="plan-name" value={planName} maxLength={80} onChange={(event) => setPlanName(event.target.value)} />
       <div className="dialog-actions"><button type="button" className="secondary" onClick={() => setPlanDialog("")}>取消</button><button type="button" disabled={!planName.trim()} onClick={() => void savePlanName()}>儲存</button></div>
     </Modal>
+    <ConfirmDialog
+      busy={planDeleteBusy}
+      confirmLabel="刪除方案"
+      description={<p>確定要刪除課表方案「{planDeleteRequest?.name ?? ""}」嗎？此方案中的課程與固定時段也會一併移除，且無法復原。</p>}
+      destructive
+      onCancel={() => { if (!planDeleteBusy) setPlanDeleteRequest(undefined); }}
+      onConfirm={() => void deletePlan()}
+      open={Boolean(planDeleteRequest)}
+      title="刪除課表方案？"
+    />
+    <ConfirmDialog
+      busy={false}
+      confirmLabel="移除課程"
+      description={<p>確定要將「{removeRequest?.courseName ?? ""}」從目前課表移除嗎？</p>}
+      onCancel={() => setRemoveRequest(undefined)}
+      onConfirm={() => {
+        if (!removeRequest) return;
+        const request = removeRequest;
+        setRemoveRequest(undefined);
+        void removeEntry(request.courseId, { resolvingConflict: request.conflicting });
+      }}
+      open={Boolean(removeRequest)}
+      title="從課表移除課程？"
+    />
   </section>;
 }

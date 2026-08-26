@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { useCourses } from "@/data/queries";
 import { putRecord } from "@/data/db";
+import { track } from "@/analytics/client";
 import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
 import { formatMeetings, parseManualSections, weekdayLabels } from "@/domain/schedule";
 import { coursesInPlan } from "@/domain/scheduleUtils";
@@ -41,12 +42,14 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
     setAdding(true);
     try {
       await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, entry], updatedAt: new Date().toISOString() });
+      track("course_added", { course_id: entry.courseId, source: "manual" });
       setSelectedCourseId("");
       setQuery("");
       setUseCustomTime(false);
       showMessage(warning ? warning + "你仍選擇加入，請再確認課表。" : "已加入「" + courseName + "」。", warning ? "error" : "success");
       setPendingConflict(undefined);
     } catch (error) {
+      track("error", { component: "schedule", error_code: "SCHEDULE_WRITE_FAILED" });
       showMessage("加入課表失敗：" + (error as Error).message, "error");
     } finally {
       setAdding(false);
@@ -68,6 +71,7 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
     const fixedConflict = meetingsConflict(meetings, (plan.fixedEntries ?? []).flatMap((item) => item.meetings));
     if (courseConflict.conflict || fixedConflict.conflict || courseConflict.uncertain || fixedConflict.uncertain) {
       const reason = courseConflict.conflict || fixedConflict.conflict ? "這門課與目前課表或固定時段衝堂。" : "這門課的週次資料不完整，可能與目前課表衝堂。";
+      track("schedule_conflict", { conflict_count: 1, action: "course_added" });
       setPendingConflict({ entry, courseName: selectedCourse.name_zh, reason });
       return;
     }
@@ -90,6 +94,6 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
       {customTimeActive && <div className="schedule-add-grid"><label>星期<select value={customWeekday} onChange={(event) => setCustomWeekday(Number(event.target.value))}>{weekdayLabels.map((day, index) => <option key={index + 1} value={index + 1}>星期{day}</option>)}</select></label><label>節次<input value={customSections} onChange={(event) => setCustomSections(event.target.value)} placeholder="例如 D5,D6 或 DN" /></label></div>}
     </>}
     <button className="primary" type="button" onClick={() => void addCourse()} disabled={!selectedCourse || adding} aria-busy={adding}>{adding ? "加入中…" : "加入「" + plan.name + "」"}</button>
-    <ConfirmDialog open={Boolean(pendingConflict)} title="確認加入衝堂課程" description={<p>{pendingConflict?.reason}仍要加入課表嗎？</p>} confirmLabel="仍要加入" busy={adding} onCancel={() => setPendingConflict(undefined)} onConfirm={() => pendingConflict && saveEntry(pendingConflict.entry, pendingConflict.courseName, pendingConflict.reason)} />
+    <ConfirmDialog open={Boolean(pendingConflict)} title="確認加入衝堂課程" description={<p>{pendingConflict?.reason}仍要加入課表嗎？</p>} confirmLabel="仍要加入" busy={adding} onCancel={() => { track("schedule_conflict_action", { action: "cancel_add" }); setPendingConflict(undefined); }} onConfirm={() => { track("schedule_conflict_action", { action: "keep_conflict" }); if (pendingConflict) void saveEntry(pendingConflict.entry, pendingConflict.courseName, pendingConflict.reason); }} />
   </section>;
 }

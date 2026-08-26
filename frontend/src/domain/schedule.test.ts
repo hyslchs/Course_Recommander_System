@@ -2,9 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   buildScheduleBlocks,
   compareSections,
+  DEFAULT_DAYTIME_SCHEDULE_SECTIONS,
+  DEFAULT_NIGHT_SCHEDULE_SECTIONS,
   formatMeetings,
+  FULL_SCHEDULE_SECTIONS,
+  getDefaultScheduleSections,
   hasUnscheduledMeeting,
   parseManualSections,
+  SCHEDULE_SECTION_TIMES,
   SCHEDULE_SECTIONS,
   sortSections,
   unplacedBlock,
@@ -36,6 +41,33 @@ describe("schedule section ordering", () => {
       "D0", "D1", "D2", "D3", "D4", "DN", "D5", "D6", "D7", "D8",
       "E0", "E1", "E2", "E3", "E4",
     ]);
+  });
+
+  it("uses daytime D1-D8 including DN as the daytime default", () => {
+    expect(DEFAULT_DAYTIME_SCHEDULE_SECTIONS).toEqual(["D1", "D2", "D3", "D4", "DN", "D5", "D6", "D7", "D8"]);
+    expect(getDefaultScheduleSections("日間部")).toEqual(DEFAULT_DAYTIME_SCHEDULE_SECTIONS);
+    expect(getDefaultScheduleSections("研究所")).toEqual(DEFAULT_DAYTIME_SCHEDULE_SECTIONS);
+    expect(getDefaultScheduleSections("二年制")).toEqual(DEFAULT_DAYTIME_SCHEDULE_SECTIONS);
+  });
+
+  it("uses E0-E4 as the night default and D1-E4 for the complete view", () => {
+    expect(DEFAULT_NIGHT_SCHEDULE_SECTIONS).toEqual(["E0", "E1", "E2", "E3", "E4"]);
+    expect(getDefaultScheduleSections("進修部")).toEqual(DEFAULT_NIGHT_SCHEDULE_SECTIONS);
+    expect(getDefaultScheduleSections("夜間部")).toEqual(DEFAULT_NIGHT_SCHEDULE_SECTIONS);
+    expect(FULL_SCHEDULE_SECTIONS).toEqual([
+      "D1", "D2", "D3", "D4", "DN", "D5", "D6", "D7", "D8",
+      "E0", "E1", "E2", "E3", "E4",
+    ]);
+  });
+
+  it("maps every section to its official class time", () => {
+    expect(Object.keys(SCHEDULE_SECTION_TIMES)).toEqual([...SCHEDULE_SECTIONS]);
+    expect(SCHEDULE_SECTION_TIMES).toMatchObject({
+      D0: "07:10–08:00",
+      DN: "12:40–13:30",
+      E0: "17:40–18:30",
+      E4: "21:25–22:10",
+    });
   });
 
   it("merges adjacent sections and splits gaps on the canonical timeline", () => {

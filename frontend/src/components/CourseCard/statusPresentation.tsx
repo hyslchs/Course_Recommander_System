@@ -48,6 +48,8 @@ const LABEL_SETS: Record<EligibilityLabelSet, Record<EligibilityStatus, string>>
 
 export interface EligibilityChipProps {
   status: EligibilityStatus;
+  /** Omit the chip when evaluation found no meaningful restriction. */
+  hideWhenNoKnown?: boolean;
   /** @default "long" */
   labels?: EligibilityLabelSet;
   /**
@@ -66,7 +68,8 @@ export interface EligibilityChipProps {
  * whose *selector* is written out literally in the stylesheet cannot be purged by
  * accident, and it is also what the render test asserts on.
  */
-export function EligibilityChip({ status, labels = "long", overrideLabel, className }: EligibilityChipProps) {
+export function EligibilityChip({ status, labels = "long", overrideLabel, className, hideWhenNoKnown = false }: EligibilityChipProps) {
+  if (hideWhenNoKnown && status === "no_known_restriction") return null;
   const { Icon, color, iconName } = eligibilityPresentation[status];
   return (
     <Chip className={["eligibility-chip", className].filter(Boolean).join(" ")} color={color} data-eligibility={status} variant="soft">

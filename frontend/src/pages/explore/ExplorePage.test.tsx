@@ -191,7 +191,7 @@ describe("ExplorePage — layout switches at lg", () => {
 
     await screen.findByRole("grid", { name: "課程查詢結果" });
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("課程資料庫");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("探索課程");
   });
 
   it("reserves table-shaped space while the first page loads, so nothing jumps", async () => {

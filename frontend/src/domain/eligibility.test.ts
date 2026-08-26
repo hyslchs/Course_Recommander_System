@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eligibilityStatusLabels, eligibilityStatusShortLabels, evaluateEligibility, formatCourseStudyLevelLabel, inferAudienceDepartment, inferAudienceGrade, inferCourseStudyLevel, inferProfileStudyLevel, meetingsConflict, studyLevelsMatch } from "./eligibility";
+import { eligibilityStatusLabels, eligibilityStatusShortLabels, evaluateEligibility, formatCourseStudyLevelLabel, getEligibilityRules, inferAudienceDepartment, inferAudienceGrade, inferCourseStudyLevel, inferProfileStudyLevel, meetingsConflict, studyLevelsMatch } from "./eligibility";
 import type { Course, EligibilityStatus, Profile } from "./types";
 
 const profile: Profile = { id: "current", division: "日間部", department: "資訊工程學系", grade: 2, admissionYear: 115, interests: "AI", preferredWeekdays: [], updatedAt: "now" };
@@ -39,6 +39,15 @@ describe("eligibility", () => {
     const highGradeCourse = { raw_department: "資工三甲", division: "日間部", eligibility_rules: [] } as unknown as Course;
     expect(inferAudienceGrade({ audience_grade: null, grade: 3, raw_department: "資工三甲" })).toBe(3);
     expect(evaluateEligibility(highGradeCourse, { ...profile, grade: 2 }, new Set()).status).toBe("blocked_confirmed");
+  });
+  it("does not duplicate an equivalent grade restriction", () => {
+    const courseWithExistingRule = {
+      raw_department: "資工三甲",
+      division: "日間部",
+      eligibility_rules: [{ kind: "minimum_grade", reason_code: "minimum_grade", message: "限三年級以上", source_field: "note", evidence: "三年級以上", value: { grade: 3 } }],
+    } as unknown as Course;
+    expect(getEligibilityRules(courseWithExistingRule)).toHaveLength(1);
+    expect(getEligibilityRules(courseWithExistingRule)[0].kind).toBe("minimum_grade");
   });
   it("detects overlapping weekday and section", () => {
     expect(meetingsConflict(

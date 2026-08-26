@@ -3,6 +3,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { AppShell } from "./AppShell";
 import { createQueryClient } from "./queryClient";
 import { AppRoutes } from "./routes";
+import { AnalyticsRouteTracker } from "@/analytics/RouteTracker";
 import { LocalDataProvider } from "@/hooks/localData";
 import { SchedulePlanProvider } from "@/hooks/useSchedulePlans";
 
@@ -17,6 +18,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <LocalDataProvider>
         <SchedulePlanProvider>
+          {/* Renders nothing; it is the single `page_view` producer. */}
+          <AnalyticsRouteTracker />
           <AppShell>
             <AppRoutes />
           </AppShell>

@@ -35,5 +35,6 @@ backups/
 *.tar.gz
 
 # local tooling / workflow scratch
+/node_modules/
 .codegraph/
 .claude/worktrees/

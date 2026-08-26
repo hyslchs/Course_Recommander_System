@@ -106,6 +106,13 @@ beforeEach(() => {
 });
 afterEach(() => cleanup());
 
+describe("OnboardingPage — first-use defaults", () => {
+  it("starts with required courses enabled for a new profile", async () => {
+    renderPage();
+    expect(await screen.findByRole("switch", { name: /儲存後自動將本系／共同必修/ })).toBeChecked();
+  });
+});
+
 describe("OnboardingPage — class group load failure", () => {
   /**
    * The defect this task exists to fix: `getClassGroups` rejecting used to be

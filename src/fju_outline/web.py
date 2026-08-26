@@ -5,6 +5,7 @@ import logging
 import math
 import mimetypes
 import os
+import secrets
 import threading
 import time
 from collections import defaultdict, deque
@@ -17,10 +18,19 @@ import orjson
 import uvicorn
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Response
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, PlainTextResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .analytics import (
+    MAX_EVENTS_PER_BATCH,
+    AnalyticsRejection,
+    AnalyticsStore,
+    assert_no_forbidden_keys,
+    build_store,
+    validate_batch,
+)
+from .analytics_dashboard import DASHBOARD_HTML
 from .artifacts import (
     CATALOG_SCHEMA_VERSION,
     DEFAULT_MODEL,
@@ -157,6 +167,17 @@ class ArtifactStore:
                 item.get("required_elective_name") for item in self.catalog
             ),
             "course_tags": _course_tag_options(self.catalog),
+            "relations": _relation_options(self.catalog),
+            "teaching_methods": _weighted_options(self.catalog, "teaching_methods"),
+            "assessments": _weighted_options(self.catalog, "assessments"),
+            "teaching_languages": _counted_options(
+                item.get("teaching_language") for item in self.catalog
+            ),
+            "material_languages": _counted_options(
+                item.get("material_language") for item in self.catalog
+            ),
+            "teachers": _teacher_options(self.catalog),
+            "sections": _section_options(self.catalog),
             "eligibility_statuses": [
                 {"value": "no_known_restriction", "label": "尚未判定出明確限制"},
                 {"value": "needs_confirmation", "label": "需要確認"},
@@ -270,10 +291,23 @@ def create_app(
     store: ArtifactStore | None = None,
     query_encoder: QueryEncoder | Any | None = None,
     rag_service: CourseRagService | Any | None = None,
+    analytics_store: AnalyticsStore | None = None,
     load_runtime: bool = True,
 ) -> FastAPI:
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        if load_runtime and app.state.analytics_store is None:
+            try:
+                app.state.analytics_store = build_store()
+            except Exception as exc:  # noqa: BLE001 - analytics must never block boot
+                logger.warning("Analytics store unavailable: %s", exc)
+        if app.state.analytics_store is not None:
+            # Retention is enforced on every boot as well as during traffic, so a
+            # service that sits idle past a window still expires its rows.
+            try:
+                app.state.analytics_store.maintain(force=True)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Analytics maintenance failed: %s", exc)
         if load_runtime and app.state.store is None:
             try:
                 artifact_dir = Path(
@@ -305,10 +339,18 @@ def create_app(
     application.state.store = store
     application.state.query_encoder = query_encoder
     application.state.rag_service = rag_service
+    application.state.analytics_store = analytics_store
     application.state.runtime_error = None
     application.state.rate_limiter = RateLimiter()
     application.state.ai_rate_limiter = RateLimiter(
         requests=max(1, _env_int("FJU_AI_REQUESTS_PER_MINUTE", 10, minimum=1, maximum=1000))
+    )
+    # A batch carries up to 40 events, so 60 batches/minute is ~2400 events per
+    # client per minute — far above any real session and low enough that a
+    # single client cannot flood the table. The limiter keys on the client
+    # address and keeps nothing but a deque of monotonic timestamps in memory.
+    application.state.analytics_rate_limiter = RateLimiter(
+        requests=_env_int("FJU_ANALYTICS_REQUESTS_PER_MINUTE", 60, minimum=1, maximum=1000)
     )
     application.state.ai_error = None
     application.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
@@ -490,10 +532,90 @@ def register_routes(application: FastAPI) -> None:
         return {
             "compound_query_enabled": _compound_enabled(),
             "query_analysis_version": ANALYSIS_VERSION,
+            "analytics_enabled": application.state.analytics_store is not None,
             "ai_assistant_enabled": application.state.rag_service is not None,
             "ai_model": os.environ.get("FJU_AI_MODEL", "gpt-5.6-luna"),
             "ai_max_question_chars": _ai_max_question_chars(),
         }
+
+    # ----------------------------------------------------------------- #
+    # Analytics
+    #
+    # `AnalyticsBatch` is deliberately *not* a nested Pydantic model of the
+    # event shape. Each event is validated by `analytics.validate_event`
+    # against a per-event allowlist, because a single Pydantic model able to
+    # describe fifteen different `data` shapes ends up permissive at the union
+    # boundaries. Pydantic's job here is only "a list of objects, bounded".
+    # ----------------------------------------------------------------- #
+
+    @application.post("/api/v1/analytics/events", status_code=202)
+    async def analytics_events(request: Request) -> Response:
+        store = request.app.state.analytics_store
+        if store is None:
+            # 202 with a no-op body: the client is fire-and-forget and an error
+            # status would only make it retry work that has nowhere to land.
+            return JSONResponse({"accepted": 0, "rejected": 0}, status_code=202)
+
+        client = request.client.host if request.client else "unknown"
+        if not request.app.state.analytics_rate_limiter.allow(client):
+            raise HTTPException(status_code=429, detail="Too many analytics requests")
+
+        try:
+            payload = orjson.loads(await request.body())
+        except orjson.JSONDecodeError:
+            raise HTTPException(status_code=400, detail="Invalid JSON") from None
+        if not isinstance(payload, dict) or not isinstance(payload.get("events"), list):
+            raise HTTPException(status_code=400, detail="Expected {\"events\": [...]}")
+        events = payload["events"]
+        if len(events) > MAX_EVENTS_PER_BATCH:
+            raise HTTPException(status_code=413, detail="Too many events in one batch")
+
+        # Denylist first, on the raw body, before anything is projected. A
+        # payload carrying `email`/`student_id`/`token`/`schedule` is a bug or an
+        # attack; either way it fails loudly rather than being silently trimmed.
+        try:
+            assert_no_forbidden_keys(payload)
+        except AnalyticsRejection as error:
+            raise HTTPException(status_code=400, detail=str(error)) from None
+
+        catalog = request.app.state.store
+        course_exists = (lambda course_id: course_id in catalog.by_id) if catalog else None
+        accepted, rejected = validate_batch(events, course_exists=course_exists)
+        try:
+            written = store.record(accepted, user_agent=request.headers.get("user-agent"))
+            store.maintain()
+        except Exception as exc:  # noqa: BLE001 - analytics never breaks the app
+            logger.warning("Analytics write failed: %s", exc)
+            written = 0
+        return JSONResponse({"accepted": written, "rejected": len(rejected)}, status_code=202)
+
+    def _require_analytics_admin(request: Request) -> AnalyticsStore:
+        expected = os.environ.get("FJU_ANALYTICS_ADMIN_TOKEN", "").strip()
+        if not expected:
+            # Never open by default: an unset token means the report is off, not
+            # that anyone may read it.
+            raise HTTPException(status_code=503, detail="FJU_ANALYTICS_ADMIN_TOKEN is not configured")
+        supplied = request.headers.get("x-analytics-token", "")
+        if not secrets.compare_digest(supplied, expected):
+            raise HTTPException(status_code=401, detail="Invalid analytics token")
+        store = request.app.state.analytics_store
+        if store is None:
+            raise HTTPException(status_code=503, detail="Analytics storage is disabled")
+        return store
+
+    @application.get("/api/v1/analytics/report")
+    def analytics_report(
+        request: Request,
+        days: int = Query(30, ge=1, le=400),
+        course_limit: int = Query(25, ge=1, le=500),
+    ) -> dict[str, Any]:
+        return _require_analytics_admin(request).report(days=days, course_limit=course_limit)
+
+    @application.get("/api/v1/analytics/dashboard", include_in_schema=False)
+    def analytics_dashboard() -> Response:
+        # The page itself is data-free; it prompts for the token and calls the
+        # report endpoint above, which is the thing that is actually guarded.
+        return HTMLResponse(DASHBOARD_HTML, headers={"Cache-Control": "no-store"})
 
     @application.post("/api/v1/ai/ask")
     def ai_ask(payload: AIAskRequest, request: Request) -> dict[str, Any]:
@@ -813,6 +935,108 @@ def _ai_max_question_chars() -> int:
 def _options(values) -> list[dict[str, str]]:
     unique = sorted({str(value) for value in values if value is not None and str(value).strip()})
     return [{"value": value, "label": value} for value in unique]
+
+
+def _counted_options(values) -> list[dict[str, Any]]:
+    counts: dict[str, int] = {}
+    for value in values:
+        label = str(value or "").strip()
+        if label:
+            counts[label] = counts.get(label, 0) + 1
+    return [
+        {"value": value, "label": value, "count": count}
+        for value, count in sorted(counts.items())
+    ]
+
+
+def _relation_options(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    options: dict[str, dict[str, Any]] = {}
+    seen_related: dict[str, set[str]] = {}
+    seen_direct: dict[str, set[str]] = {}
+    for course in items:
+        course_id = str(course.get("course_id") or "")
+        for relation in course.get("relations") or []:
+            value = str(relation.get("id") or "")
+            if not value:
+                continue
+            options.setdefault(value, {
+                "value": value,
+                "label": str(relation.get("label") or value),
+                "group": str(relation.get("group") or ""),
+            })
+            seen_related.setdefault(value, set()).add(course_id)
+            if relation.get("strength") == "direct":
+                seen_direct.setdefault(value, set()).add(course_id)
+    return [
+        {
+            **option,
+            "count": len(seen_related.get(value, set())),
+            "direct_count": len(seen_direct.get(value, set())),
+        }
+        for value, option in sorted(
+            options.items(), key=lambda pair: (pair[1]["group"], pair[1]["label"])
+        )
+    ]
+
+
+def _weighted_options(items: list[dict[str, Any]], field: str) -> list[dict[str, Any]]:
+    options: dict[str, dict[str, Any]] = {}
+    courses: dict[str, set[str]] = {}
+    for course in items:
+        course_id = str(course.get("course_id") or "")
+        for option in course.get(field) or []:
+            value = str(option.get("id") or "")
+            if not value:
+                continue
+            options.setdefault(value, {
+                "value": value,
+                "label": str(option.get("label") or value),
+                "label_en": str(option.get("label_en") or ""),
+            })
+            courses.setdefault(value, set()).add(course_id)
+    return [
+        {**option, "count": len(courses.get(value, set()))}
+        for value, option in sorted(options.items(), key=lambda pair: int(pair[0]))
+    ]
+
+
+def _teacher_options(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    options: dict[str, dict[str, Any]] = {}
+    courses: dict[str, set[str]] = {}
+    for course in items:
+        course_id = str(course.get("course_id") or "")
+        for teacher in course.get("instructors") or []:
+            value = str(teacher.get("id") or "")
+            if not value:
+                continue
+            options.setdefault(value, {
+                "value": value,
+                "label": str(teacher.get("name_zh") or teacher.get("name_en") or value),
+                "label_en": str(teacher.get("name_en") or ""),
+            })
+            courses.setdefault(value, set()).add(course_id)
+    return [
+        {**option, "count": len(courses.get(value, set()))}
+        for value, option in sorted(options.items(), key=lambda pair: pair[1]["label"])
+    ]
+
+
+def _section_options(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    official = [
+        "D0", "D1", "D2", "D3", "D4", "DN", "D5", "D6", "D7", "D8",
+        "E0", "E1", "E2", "E3", "E4",
+    ]
+    courses = {section: set() for section in official}
+    for course in items:
+        course_id = str(course.get("course_id") or "")
+        for meeting in course.get("meetings") or []:
+            for section in meeting.get("sections") or []:
+                if section in courses:
+                    courses[section].add(course_id)
+    return [
+        {"value": section, "label": section, "count": len(courses[section])}
+        for section in official
+    ]
 
 
 def _compound_enabled() -> bool:

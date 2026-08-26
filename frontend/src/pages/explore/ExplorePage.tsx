@@ -12,6 +12,8 @@ import {
   type SortDescriptor,
 } from "@heroui/react";
 import { useCourses, useFacets } from "@/data/queries";
+import { newInteractionId, track } from "@/analytics/client";
+import { nextSearchStep, type SearchFlowState } from "@/analytics/searchFlow";
 import { evaluateEligibility } from "@/domain/eligibility";
 import { filterDepartmentOptions, type DepartmentOption } from "@/domain/departmentOptions";
 import { weekdayLabels } from "@/domain/schedule";
@@ -25,6 +27,17 @@ import { useIsDesktop } from "@/hooks/useIsDesktop";
 import type { CompletedCourse } from "@/domain/types";
 
 const PAGE_SIZE = 25;
+
+const WEEKDAY_TOKENS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+
+/** A keyword search that has been issued but whose result count is not in yet. */
+interface PendingKeywordSearch {
+  interactionId: string;
+  flow: SearchFlowState;
+  /** Characters typed, never the characters themselves. */
+  queryLength: number;
+  startedAt: number;
+}
 
 /**
  * `/api/v1/facets` returns more per department than `FacetMap` advertises —
@@ -164,8 +177,62 @@ export function ExplorePage() {
     }));
   }, [courses, profile, completed]);
 
+  /*
+    Search analytics for the keyword field.
+
+    Opened when the debounced query settles and closed when the matching
+    response lands, which is what makes `latency_ms` the time the student
+    actually waited. Only a *keyword* change opens one: paging and the two
+    dropdown filters refetch the same query and are reported as `filter_used`,
+    not as fresh searches.
+
+    Nothing here holds the query. `queryLength` is a number; the text stays in
+    component state and goes no further — see the privacy page.
+  */
+  const searchFlow = useRef<SearchFlowState>(undefined);
+  const pendingSearch = useRef<PendingKeywordSearch>(undefined);
+  useEffect(() => {
+    const settled = debouncedQuery.trim();
+    if (!settled) { pendingSearch.current = undefined; return; }
+    const flow = nextSearchStep(searchFlow.current, Date.now());
+    searchFlow.current = flow;
+    pendingSearch.current = {
+      interactionId: newInteractionId("search"),
+      flow,
+      queryLength: settled.length,
+      startedAt: performance.now(),
+    };
+  }, [debouncedQuery]);
+
+  const { data: coursesData, error: coursesError, isFetching, isPending } = coursesQuery;
+  useEffect(() => {
+    const pending = pendingSearch.current;
+    if (!pending || isFetching || isPending) return;
+    if (coursesError) {
+      pendingSearch.current = undefined;
+      track("error", { component: "course_search", error_code: "COURSE_QUERY_FAILED" });
+      return;
+    }
+    if (!coursesData) return;
+    pendingSearch.current = undefined;
+    const resultCount = coursesData.total;
+    track("search", {
+      search_mode: "keyword",
+      query_length: pending.queryLength,
+      result_count: resultCount,
+      latency_ms: Math.round(performance.now() - pending.startedAt),
+    }, { interactionId: pending.interactionId });
+    if (resultCount === 0) {
+      track("zero_result", { search_mode: "keyword" }, { interactionId: pending.interactionId });
+    }
+    if (pending.flow.refinementIndex > 0) {
+      track("search_refined", { refinement_index: pending.flow.refinementIndex }, { interactionId: pending.flow.flowId });
+    }
+  }, [coursesData, coursesError, isFetching, isPending]);
+
   const selectPage = (value: number) => setPage(Math.min(Math.max(1, value), totalPages));
   const clearExploreFilters = () => {
+    track("feature_clicked", { feature: "clear_filters" });
     setQuery(""); setDebouncedQuery(""); setDepartment(null); setWeekday(null); setPage(1);
   };
 
@@ -184,7 +251,7 @@ export function ExplorePage() {
             all three of which plan §4.4 rules out for a CJK line.
           */}
           <p className="text-[0.9375rem] font-semibold text-muted">探索全部課程</p>
-          <h1>課程資料庫</h1>
+          <h1>探索課程</h1>
         </div>
         {/* One of the two places §4.6 allows a ticker: a total that settles
             after a fetch, not a live filter count that would re-run on every
@@ -233,6 +300,9 @@ export function ExplorePage() {
           name="department"
           selectedKey={department}
           onSelectionChange={(key: Key | null) => {
+            // The filter's *name* only. Which department was picked is an open
+            // set and is not recorded — see `analytics/filters.ts`.
+            track("filter_used", { filter: "department" });
             setDepartment(key === null ? null : String(key));
             setPage(1);
           }}
@@ -268,6 +338,8 @@ export function ExplorePage() {
           placeholder="所有星期"
           selectedKey={weekday}
           onSelectionChange={(key) => {
+            const token = key === null ? undefined : WEEKDAY_TOKENS[Number(key) - 1];
+            track("filter_used", token ? { filter: "weekday", value: token } : { filter: "weekday" });
             setWeekday(key === null ? null : String(key));
             setPage(1);
           }}

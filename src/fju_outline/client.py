@@ -169,7 +169,10 @@ class FjuOutlineClient:
 
     @staticmethod
     def _response_text(response: Any) -> str:
-        for attr in ("text", "body", "content"):
+        # Scrapling 0.4 exposes ``text`` as parsed selector text, which is
+        # empty for JSON documents.  Prefer the unparsed response body so the
+        # crawler works with both current and older Scrapling versions.
+        for attr in ("body", "content", "text"):
             value = getattr(response, attr, None)
             if callable(value):
                 value = value()

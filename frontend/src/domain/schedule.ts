@@ -5,8 +5,53 @@ export const SCHEDULE_SECTIONS = [
   "E0", "E1", "E2", "E3", "E4",
 ] as const;
 
+export type ScheduleSection = typeof SCHEDULE_SECTIONS[number];
+
+/** Official class times shown beside each section in the timetable. */
+export const SCHEDULE_SECTION_TIMES: Record<ScheduleSection, string> = {
+  D0: "07:10–08:00",
+  D1: "08:10–09:00",
+  D2: "09:10–10:00",
+  D3: "10:10–11:00",
+  D4: "11:10–12:00",
+  DN: "12:40–13:30",
+  D5: "13:40–14:30",
+  D6: "14:40–15:30",
+  D7: "15:40–16:30",
+  D8: "16:40–17:30",
+  E0: "17:40–18:30",
+  E1: "18:40–19:30",
+  E2: "19:35–20:20",
+  E3: "20:30–21:20",
+  E4: "21:25–22:10",
+};
+
 export const CORE_SCHEDULE_SECTIONS = ["D1", "D2", "D3", "D4", "D5", "D6", "D7", "D8"] as const;
 export const EXTENDED_SCHEDULE_SECTIONS = ["D0", "DN", "E0", "E1", "E2", "E3", "E4"] as const;
+
+/** Sections shown in the profile-aware default timetable view. */
+export const DEFAULT_DAYTIME_SCHEDULE_SECTIONS = [
+  "D1", "D2", "D3", "D4", "DN", "D5", "D6", "D7", "D8",
+] as const satisfies readonly ScheduleSection[];
+export const DEFAULT_NIGHT_SCHEDULE_SECTIONS = ["E0", "E1", "E2", "E3", "E4"] as const satisfies readonly ScheduleSection[];
+
+/** The complete timetable range requested by the student-facing schedule view. */
+export const FULL_SCHEDULE_SECTIONS = [
+  "D1", "D2", "D3", "D4", "DN", "D5", "D6", "D7", "D8",
+  "E0", "E1", "E2", "E3", "E4",
+] as const satisfies readonly ScheduleSection[];
+
+/**
+ * The official catalog calls the night division 「進修部」. 「夜間部」 is
+ * accepted as well so older or manually imported profiles keep the expected
+ * night-time default.
+ */
+export function getDefaultScheduleSections(division?: string | null): readonly ScheduleSection[] {
+  const normalizedDivision = division?.trim();
+  return normalizedDivision === "進修部" || normalizedDivision === "夜間部"
+    ? DEFAULT_NIGHT_SCHEDULE_SECTIONS
+    : DEFAULT_DAYTIME_SCHEDULE_SECTIONS;
+}
 
 const SECTION_INDEX = new Map<string, number>(SCHEDULE_SECTIONS.map((section, index) => [section, index]));
 const SECTION_NUMBER_PATTERN = /^([A-Z]+)(\d+)$/;

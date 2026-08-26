@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { MapPin, Warning } from "@phosphor-icons/react";
+import { Lock, MapPin, Warning, X } from "@phosphor-icons/react";
 import { Button, Tooltip } from "@heroui/react";
 import { weekdayLabels, weekPatternLabel, type ScheduleBlock } from "@/domain/schedule";
 
@@ -58,6 +58,9 @@ export interface ClassBlockProps {
   /** Absolute grid placement. `grid` only. */
   style?: CSSProperties;
   onSelect: (block: ScheduleBlock, trigger: HTMLButtonElement) => void;
+  locked?: boolean;
+  onToggleLock?: () => void;
+  onRemove?: () => void;
 }
 
 /**
@@ -88,7 +91,7 @@ export interface ClassBlockProps {
  *    breaking the `/^課名，/` contract, so it stays outside that repair (see the
  *    task report — it is a mobile-only, unscored finding).
  */
-export function ClassBlock({ block, variant, style, onSelect }: ClassBlockProps) {
+export function ClassBlock({ block, variant, style, onSelect, locked = false, onToggleLock, onRemove }: ClassBlockProps) {
   const stateClass = `${block.source === "fixed" ? "fixed" : ""} ${block.conflict ? "conflict" : ""}`.trim();
   const pattern = weekPatternLabel(block.weekPattern);
   const button = (
@@ -100,7 +103,6 @@ export function ClassBlock({ block, variant, style, onSelect }: ClassBlockProps)
           className={`${variant === "grid" ? "class-block" : "mobile-schedule-block"} ${stateClass}`.trim()}
         />
       )}
-      style={style}
       onPress={(event) => onSelect(block, event.target as HTMLButtonElement)}
     >
       {variant === "grid" ? (
@@ -125,13 +127,23 @@ export function ClassBlock({ block, variant, style, onSelect }: ClassBlockProps)
     </Button>
   );
 
-  if (variant !== "grid") return button;
+  const actions = block.source === "course" ? (
+    <span className="class-block-actions">
+      {onToggleLock ? <button aria-label={`${locked ? "解除鎖定" : "鎖定"}課程：${block.name}`} className="class-block-lock" type="button" onClick={(event) => { event.stopPropagation(); onToggleLock(); }}><Lock aria-hidden="true" weight={locked ? "fill" : "regular"} /></button> : null}
+      {onRemove ? <button aria-label={`移除課程：${block.name}`} className="class-block-remove" type="button" onClick={(event) => { event.stopPropagation(); onRemove(); }}><X aria-hidden="true" /></button> : null}
+    </span>
+  ) : null;
+
+  if (variant !== "grid") return <div className="mobile-schedule-block-shell">{button}{actions}</div>;
   return (
-    <Tooltip delay={350}>
-      {button}
-      <Tooltip.Content className="class-block-tooltip" placement="bottom start">
-        {block.name}
-      </Tooltip.Content>
-    </Tooltip>
+    <div className="class-block-shell" style={style}>
+      <Tooltip delay={350}>
+        {button}
+        <Tooltip.Content className="class-block-tooltip" placement="bottom start">
+          {block.name}
+        </Tooltip.Content>
+      </Tooltip>
+      {actions}
+    </div>
   );
 }

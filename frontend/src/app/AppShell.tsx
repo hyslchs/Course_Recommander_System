@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react";
 import { NavLink } from "react-router";
-import { List } from "@phosphor-icons/react";
+import { List, PencilSimple } from "@phosphor-icons/react";
 import { RouteFocusManager } from "./RouteFocusManager";
 import { navigationItems } from "./navigation";
 // Deliberately the module, not a `@/components/motion` barrel. AppShell is in
@@ -35,6 +35,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             {navigationItems.map((item) => <NavLink key={item.to} to={item.to}>{item.label}</NavLink>)}
           </nav>
           <NavLink className="profile-link desktop-profile" to="/onboarding">
+            <PencilSimple aria-hidden="true" className="profile-edit-icon" />
             <span className="profile-full">{profileLabel}</span>
             <span className="profile-compact">{profile ? "個人設定 · " + profile.grade + " 年級" : "開始設定"}</span>
           </NavLink>
@@ -49,14 +50,19 @@ export function AppShell({ children }: { children: ReactNode }) {
           <RouteFocusManager />
           {children}
         </main>
-        <footer>MVP 1.0 · 推薦結果僅供規劃參考，實際資格、名額與開課資訊以校方選課系統為準。</footer>
+        <footer>
+          <span>推薦結果僅供規劃參考；實際資格、名額與開課資訊以校方選課系統為準。</span>
+          {/* The disclosure §25 asks for has to be reachable from anywhere, and
+              the footer is the one element on every route. */}
+          <NavLink className="footer-link" to="/privacy">資料蒐集說明</NavLink>
+        </footer>
       </div>
       {/* An edge panel that was being faked with a centred Modal; it is now a
           real Drawer, which also gives it drag-to-dismiss on touch. */}
       <SideDrawer className="navigation-drawer" initialFocusRef={menuFirstRef} open={menuOpen} placement="right" title="前往功能" onClose={() => setMenuOpen(false)}>
         <nav aria-label="行動版主要導覽" onClick={() => setMenuOpen(false)}>
           {navigationItems.map((item, index) => <NavLink ref={index === 0 ? menuFirstRef : undefined} key={item.to} to={item.to}>{item.label}</NavLink>)}
-          <NavLink to="/onboarding">個人設定<span>{profileLabel}</span></NavLink>
+          <NavLink to="/onboarding"><PencilSimple aria-hidden="true" className="profile-edit-icon" />個人設定<span>{profileLabel}</span></NavLink>
         </nav>
       </SideDrawer>
     </>

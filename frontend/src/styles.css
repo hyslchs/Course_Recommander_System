@@ -293,7 +293,7 @@
 @media (prefers-reduced-motion: reduce){.thinking-dots i{animation:none;opacity:.75}}
 @media(max-width:800px){.assistant-composer{margin:1rem 0}.assistant-toolbar{align-items:flex-start;flex-direction:column}.assistant-error{align-items:flex-start;flex-direction:column}.assistant-thinking{align-items:flex-start;flex-wrap:wrap}.assistant-thinking>span:last-child{width:100%}.assistant-user-message p{max-width:90%}}
 .schedule-add-card{margin-bottom:1rem;position:relative;display:flex;flex-direction:column;gap:.75rem;background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:1.4rem;box-shadow:0 10px 35px #183d2610}.schedule-add-card>p{color:var(--muted);margin:.35rem 0 1rem}.schedule-add-grid{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin:.8rem 0}.schedule-add-grid label{display:flex;flex-direction:column;gap:.4rem;font-weight:700}.fixed-schedule-entry{background:#f8f6e7!important;border-left:3px solid #b88b22}.fixed-schedule-entry>span:last-child{color:#8a691f;font-size:.85rem;font-weight:700;white-space:nowrap}@media(max-width:800px){.schedule-add-grid{grid-template-columns:1fr}}
-.schedule-plan-actions{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:.75rem 1rem;margin-bottom:1rem}.schedule-plan-actions strong{margin-right:auto}.schedule-view-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:.8rem 0;padding:.8rem 1rem;border:1px solid var(--line);border-radius:12px;background:#fff}.schedule-view-toolbar>div:first-child{display:flex;flex-direction:column;gap:.2rem}.schedule-view-toolbar span{color:var(--muted);font-size:.85rem}.segmented-control{display:flex;border:1px solid var(--line);border-radius:10px;padding:3px;background:#f3f6f2}.schedule-hidden-notice{display:flex;align-items:center;gap:.75rem}.schedule-hidden-notice button{margin-left:auto}.mobile-day-picker,.mobile-schedule-list{display:none}.schedule-grid{position:relative;display:grid;min-width:max-content;background:#fff}.schedule-corner,.schedule-day-header,.schedule-section-label{display:grid;place-items:center;background:#f7f9f6;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-weight:800;z-index:3}.schedule-corner{position:sticky;left:0;top:0;z-index:6}.schedule-day-header{position:sticky;top:0;z-index:5}.schedule-section-label{position:sticky;left:0;z-index:4}.schedule-section-label.extended{background:#fff9e9;color:#7c6220}.schedule-cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}.schedule-grid .class-block{position:relative;z-index:2;align-self:stretch;display:flex;flex-direction:column;align-items:flex-start;gap:.18rem;overflow:hidden;margin-top:3px;margin-bottom:3px;padding:.5rem .48rem;border:1px solid #bfd6c4;border-left:4px solid var(--green);border-radius:8px;background:#dcecdf;text-align:left;color:var(--ink);box-shadow:0 2px 7px #173b2618}.schedule-grid .class-block:hover,.schedule-grid .class-block:focus-visible{z-index:7;outline:3px solid #7eaa8d;outline-offset:1px}.schedule-grid .class-block strong{line-height:1.3}.schedule-grid .class-block small{display:block;color:#4f6357;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.schedule-grid .class-block.fixed{background:#fff5ce;border-color:#d3b96b;border-left-color:#9b7420}.schedule-grid .class-block.conflict,.mobile-schedule-block.conflict{border-color:#b63a3a;border-left-color:#b63a3a;background:repeating-linear-gradient(135deg,#feeaea,#feeaea 8px,#fff5f5 8px,#fff5f5 16px)}.class-block-tags{display:flex;gap:.25rem;flex-wrap:wrap;margin-top:auto}.class-block-tags em,.manual-time-tag{font-style:normal;font-size:.7rem;font-weight:800;border-radius:999px;background:#fff8;padding:.15rem .35rem}.class-block-tags .conflict-tag{background:#a93232;color:#fff}.manual-time-tag{margin-left:.45rem;background:#e8e1f5;color:#59487b}.unplaced-courses{margin:1rem 0;padding:1rem;border:1px dashed #c09634;border-radius:14px;background:#fffaf0}.unplaced-courses h2,.unplaced-courses p{margin:.15rem 0}.unplaced-courses>button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:1rem;margin-top:.65rem;text-align:left}.schedule-detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin:1rem 0}.schedule-detail-meta span{display:flex;flex-direction:column;gap:.15rem;padding:.65rem;border-radius:9px;background:#f3f6f2}.schedule-dialog section{border-top:1px solid var(--line);padding-top:.8rem;margin-top:.8rem}.schedule-objective{white-space:pre-line;line-height:1.7}.schedule-outline-link{width:100%;margin-top:1rem;text-align:center}.mobile-schedule-block{width:100%;display:flex;align-items:center;justify-content:space-between;gap:.7rem;text-align:left;border-left:4px solid var(--green);background:#eef6ef}.mobile-schedule-block>span:first-child{display:flex;flex-direction:column}.mobile-schedule-block small{color:var(--muted)}
+.schedule-plan-actions{display:flex;align-items:center;gap:.55rem;flex-wrap:wrap;background:#fff;border:1px solid var(--line);border-radius:12px;padding:.75rem 1rem;margin-bottom:1rem}.schedule-plan-actions strong{margin-right:auto}.schedule-plan-delete-hint{color:var(--muted);font-size:.85rem}.schedule-view-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:.8rem 0;padding:.8rem 1rem;border:1px solid var(--line);border-radius:12px;background:#fff}.schedule-view-toolbar>div:first-child{display:flex;flex-direction:column;gap:.2rem}.schedule-view-toolbar span{color:var(--muted);font-size:.85rem}.segmented-control{display:flex;border:1px solid var(--line);border-radius:10px;padding:3px;background:#f3f6f2}.schedule-hidden-notice{display:flex;align-items:center;gap:.75rem}.schedule-hidden-notice button{margin-left:auto}.mobile-day-picker,.mobile-schedule-list{display:none}.schedule-grid{position:relative;display:grid;min-width:max-content;background:#fff}.schedule-corner,.schedule-day-header,.schedule-section-label{display:grid;place-items:center;background:#f7f9f6;border-right:1px solid var(--line);border-bottom:1px solid var(--line);font-weight:800;z-index:3}.schedule-corner{position:sticky;left:0;top:0;z-index:6}.schedule-day-header{position:sticky;top:0;z-index:5}.schedule-section-label{position:sticky;left:0;z-index:4}.schedule-section-label.extended{background:#fff9e9;color:#7c6220}.schedule-cell{border-right:1px solid var(--line);border-bottom:1px solid var(--line);min-width:0}.schedule-grid .class-block{position:relative;z-index:2;align-self:stretch;display:flex;flex-direction:column;align-items:flex-start;gap:.18rem;overflow:hidden;margin-top:3px;margin-bottom:3px;padding:.5rem .48rem;border:1px solid #bfd6c4;border-left:4px solid var(--green);border-radius:8px;background:#dcecdf;text-align:left;color:var(--ink);box-shadow:0 2px 7px #173b2618}.schedule-grid .class-block:hover,.schedule-grid .class-block:focus-visible{z-index:7;outline:3px solid #7eaa8d;outline-offset:1px}.schedule-grid .class-block strong{line-height:1.3}.schedule-grid .class-block small{display:block;color:#4f6357;white-space:nowrap;max-width:100%;overflow:hidden;text-overflow:ellipsis}.schedule-grid .class-block.fixed{background:#fff5ce;border-color:#d3b96b;border-left-color:#9b7420}.schedule-grid .class-block.conflict,.mobile-schedule-block.conflict{border-color:#b63a3a;border-left-color:#b63a3a;background:repeating-linear-gradient(135deg,#feeaea,#feeaea 8px,#fff5f5 8px,#fff5f5 16px)}.class-block-tags{display:flex;gap:.25rem;flex-wrap:wrap;margin-top:auto}.class-block-tags em,.manual-time-tag{font-style:normal;font-size:.7rem;font-weight:800;border-radius:999px;background:#fff8;padding:.15rem .35rem}.class-block-tags .conflict-tag{background:#a93232;color:#fff}.manual-time-tag{margin-left:.45rem;background:#e8e1f5;color:#59487b}.unplaced-courses{margin:1rem 0;padding:1rem;border:1px dashed #c09634;border-radius:14px;background:#fffaf0}.unplaced-courses h2,.unplaced-courses p{margin:.15rem 0}.unplaced-courses>button{display:flex;width:100%;align-items:center;justify-content:space-between;gap:1rem;margin-top:.65rem;text-align:left}.schedule-detail-meta{display:grid;grid-template-columns:1fr 1fr;gap:.55rem;margin:1rem 0}.schedule-detail-meta span{display:flex;flex-direction:column;gap:.15rem;padding:.65rem;border-radius:9px;background:#f3f6f2}.schedule-dialog section{border-top:1px solid var(--line);padding-top:.8rem;margin-top:.8rem}.schedule-objective{white-space:pre-line;line-height:1.7}.schedule-outline-link{width:100%;margin-top:1rem;text-align:center}.mobile-schedule-block{width:100%;display:flex;align-items:center;justify-content:space-between;gap:.7rem;text-align:left;border-left:4px solid var(--green);background:#eef6ef}.mobile-schedule-block>span:first-child{display:flex;flex-direction:column}.mobile-schedule-block small{color:var(--muted)}
 @media(max-width:800px){.schedule-plan-actions{align-items:flex-start}.schedule-view-toolbar{align-items:stretch;flex-direction:column}.segmented-control{overflow:auto}.segmented-control button{white-space:nowrap;flex:1}.mobile-day-picker{display:block;margin:.75rem 0}.mobile-day-picker label{display:flex;align-items:center;gap:.7rem;font-weight:800}.mobile-day-picker select{width:auto;flex:1}.schedule-grid{display:none}.mobile-schedule-list{display:grid;gap:.55rem;padding:.75rem}.timetable{overflow:visible}.schedule-summary{display:grid;grid-template-columns:1fr 1fr}.unplaced-courses>button{align-items:flex-start;flex-direction:column}.schedule-list>div{align-items:flex-start;flex-wrap:wrap}.schedule-list>div>span{width:100%}.schedule-detail-meta{grid-template-columns:1fr}.schedule-view-toolbar span{display:block}}
 @media print{.topbar,footer,.page-heading>button,.schedule-plan-actions,.schedule-add-card,.schedule-view-toolbar,.schedule-hidden-notice,.mobile-day-picker,.mobile-schedule-list,.unplaced-courses,.schedule-list{display:none!important}.page{max-width:none;padding:0}.page-heading{margin-bottom:.5rem}.schedule-grid{display:grid!important;min-width:0}.timetable{overflow:visible;border:0}.schedule-grid .class-block{box-shadow:none}.schedule-summary{border:1px solid var(--line);margin:.5rem 0}body{background:#fff}}
 .field-error{color:var(--danger)!important;font-weight:700!important}
@@ -661,6 +661,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .recommend-sidebar{display:block;position:sticky;top:88px;max-height:calc(100dvh - 7rem);overflow:auto;overscroll-behavior:contain}
 }
 .recommend-sidebar-heading{margin:0 0 .6rem;font-size:1rem;font-weight:700;color:var(--accent)}
+.recommend-sidebar-full-filter-button{width:100%;margin-bottom:.75rem}
 
 /* --- Sticky drawer trigger, sub-lg only. --------------------------------- */
 .recommend-filter-launcher{position:sticky;bottom:1rem;z-index:20;display:flex;justify-content:flex-end;margin-top:1rem;pointer-events:none}
@@ -686,7 +687,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    tap target, so it carries the 44px floor (now applied globally, see FIX50 at
    the end of this file) and the tag follows it. */
 .recommend-page .tag{flex:0 1 auto;max-width:100%;min-height:2.75rem;padding-inline-end:.25rem;font-size:.9375rem;overflow-wrap:break-word;line-break:strict;word-break:normal;white-space:normal}
-.recommend-page .applied-filters>.button{align-self:flex-start}
+.applied-filter-actions{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem}
+.recommend-full-filter-button{display:none}
+@media (min-width:1024px){.recommend-full-filter-button{display:inline-flex}}
 .applied-filter-note{color:var(--muted);font-size:.9375rem}
 
 /* --- Filter panel, shared by the sidebar and the sheet. ------------------ */
@@ -696,6 +699,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    the group titles inside the surface accordion came out rgb(24,34,29) on a
    dark panel. Same fix as `.recommend-query` / `.applied-filters`. */
 .filter-accordion{width:100%;color:var(--surface-foreground)}
+.quick-filter-panel{display:flex;flex-direction:column;gap:.75rem;color:var(--surface-foreground)}
+.quick-filter-group{display:flex;min-width:0;flex-direction:column;gap:.75rem;padding:.85rem;border:1px solid var(--border-strong);border-radius:14px;background:var(--surface)}
+.quick-filter-group>h3{margin:0;color:var(--accent);font-size:1rem;font-weight:700}
+.quick-filter-group>.filter-control+.filter-control{padding-top:.75rem;border-top:1px solid var(--separator)}
+.filter-conflict-toggle{align-self:flex-start;display:inline-flex;max-width:100%;align-items:center;gap:.4rem}
+.filter-conflict-toggle svg{width:1rem;height:1rem;flex:none}
+.filter-conflict-note{max-width:34rem;line-height:1.6}
 .filter-accordion-trigger{display:flex;width:100%;align-items:center;gap:.6rem;min-height:2.75rem;text-align:left}
 .filter-accordion-label{display:flex;flex-direction:column;gap:.1rem;min-width:0;flex:1}
 .filter-accordion-label b{font-size:1rem;font-weight:700}
@@ -726,7 +736,31 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* --- Bottom sheet. ------------------------------------------------------- */
 .recommend-filter-sheet{max-height:85dvh}
 .recommend-filter-sheet .drawer__body{overscroll-behavior:contain}
-.recommend-filter-sheet .drawer__footer{display:flex;gap:.5rem;align-items:center}
+.recommend-filter-sheet .recommend-filter-modal-summary{top:-1rem;margin-inline:-.25rem}
+.recommend-filter-modal{width:min(72rem,calc(100vw - 3rem));max-width:none;max-height:88dvh;background:var(--surface);color:var(--surface-foreground)}
+.recommend-filter-modal .modal__body{overflow-y:auto;overscroll-behavior:contain}
+.recommend-filter-modal-summary{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:.75rem;padding:.65rem .25rem .75rem;border-bottom:1px solid var(--border-strong);background:var(--surface);color:var(--muted)}
+.recommend-filter-modal-summary strong{color:var(--accent)}
+.recommend-filter-modal .filter-group-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:1.1rem 1.5rem}
+@media (max-width:799px){.recommend-filter-modal{width:calc(100vw - 1.5rem);max-height:92dvh}.recommend-filter-modal .filter-group-body{grid-template-columns:minmax(0,1fr)}}
+.filter-search-select{display:flex;flex-direction:column;gap:.5rem;min-width:0}
+.filter-search-select>label{display:flex;flex-direction:column;gap:.35rem;color:var(--surface-foreground);font-size:.9375rem;font-weight:700}
+.filter-search-select input[type="search"]{width:100%;min-height:2.75rem;padding:.55rem .7rem;border:1px solid var(--border-strong);border-radius:10px;background:var(--surface);color:var(--surface-foreground);font:inherit}
+.filter-option-list{display:flex;max-height:18rem;flex-direction:column;gap:.15rem;overflow:auto;overscroll-behavior:contain;padding:.2rem;border:1px solid var(--separator);border-radius:10px}
+.filter-option-row{display:grid;grid-template-columns:1.5rem minmax(0,1fr) auto;align-items:center;gap:.5rem;min-height:2.75rem;padding:.35rem .45rem;border-radius:8px;font-size:.9375rem;font-weight:400;cursor:pointer}
+.filter-option-row:hover{background:var(--default-hover)}
+.filter-option-row:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:1px}
+.filter-option-row input{width:1.15rem;height:1.15rem;accent-color:var(--accent)}
+.filter-option-row>span{display:flex;min-width:0;flex-direction:column;overflow-wrap:anywhere}
+.filter-option-row small,.filter-no-options{color:var(--muted);font-size:.875rem}
+.filter-inline-clear{align-self:flex-start;min-height:2.75rem;padding:.35rem 0;border:0;background:none;color:var(--accent);font:inherit;font-weight:700}
+.section-chips .toggle-button{display:flex;min-width:3.5rem;flex-direction:column;gap:0;line-height:1.2}
+.section-chips .toggle-button small{font-size:.75rem;font-weight:400}
+.percentage-picker,.percentage-slider{display:flex;flex-direction:column;gap:.5rem}
+.percentage-slider>span{display:flex;justify-content:space-between;color:var(--surface-foreground);font-size:.9375rem}
+.percentage-slider output{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent)}
+.percentage-slider input{width:100%;min-height:2.75rem;accent-color:var(--accent)}
+@media (max-width:1023px){.filter-option-list{max-height:none;overflow:visible}}
 /* === T33 recommend page — end ============================================== */
 /* === T35 schedule workspace — begin =======================================
    Appended, never edited in place: the minified block far above is legacy
@@ -805,18 +839,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* The button and textarea repairs this block used to carry died with the
    unlayered legacy `button{}` / `input,select,textarea{}` rules in T41a. */
 
-/* `.big-stats` replaced by a `<dl>` (the old span/strong pair carried no
-   relationship between label and number). Three across from `sm` up, stacked
-   below so the numbers stay readable at 375px. */
-.data-stats{display:grid;gap:.5rem;margin:0}
-/* Bordered rather than filled: a 1px rule is the §4.1 "structure, not
-   elevation" treatment. Re-measured after T41a un-shadowed `--muted`: the
-   label reads 6.39:1 light / 7.55:1 dark on `--surface`. */
-.data-stats>div{display:flex;flex-direction:column-reverse;gap:.15rem;padding:1rem;border:1px solid var(--separator);border-radius:10px;background:var(--surface);text-align:center}
-.data-stats dt{color:var(--muted);font-size:.9375rem}
-.data-stats dd{margin:0;color:var(--accent);font-size:1.8rem;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
-@media (min-width:640px){.data-stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
-
 /* §5.3 touch floor. HeroUI's `md` button is 40px and shrinks to 36px from the
    `md:` breakpoint up; the page's own buttons carry `min-h-11` in the TSX, but
    the confirm dialog's two controls come from the shared `ConfirmDialog` and
@@ -832,11 +854,6 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    floor was never the problem. Found by the final verification sweep. */
 .search-field__group{min-height:2.75rem}
 
-/* HeroUI's `.meter` is a grid of label / output / track; the output holds a byte
-   figure here rather than a bare percent, so it needs room not to wrap. */
-.data-storage-meter{width:100%}
-.data-storage-meter .meter__output{font-variant-numeric:tabular-nums;white-space:nowrap}
-
 /* §4.4-4: no content text below 15px. HeroUI's `.card__description` is 14px. */
 [data-page="data"] .card__description,[data-page="assistant"] .card__description{font-size:.9375rem;color:var(--muted)}
 [data-page="data"] .card__title,[data-page="assistant"] .card__title{font-size:1.25rem;line-height:1.45;font-weight:600;color:inherit}
@@ -846,6 +863,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    at <=640px both fight the Tailwind classes the row now carries. */
 [data-page="data"] .completed-row{align-items:revert}
 [data-page="data"] .completed-name{overflow-wrap:break-word;line-break:strict;word-break:normal}
+[data-page="data"] .favorite-course{overflow-wrap:break-word;line-break:strict;word-break:normal}
+[data-page="data"] .favorite-meta{color:var(--muted);font-size:.9375rem;line-height:1.5}
+[data-page="data"] .data-course-link{display:inline-flex;min-height:2.75rem;align-items:center;padding-inline:.5rem;color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:.2em}
+[data-page="data"] .data-course-link:focus-visible{border-radius:.375rem;outline:3px solid var(--focus);outline-offset:2px}
 [data-page="data"] .empty-panel{padding:2rem 1rem}
 
 /* The assistant page keeps its legacy layout classes; only the controls moved
@@ -998,6 +1019,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
    §4.4-4 floor. T41a repainted the timetable from tokens, so the hover/focus
    reveal is token-driven too and no longer pinned to a white cell. */
 [data-page="schedule"] .schedule-slot-button span{opacity:1;font-size:.8125rem}
+
+/* Section codes and their official clock times remain visually grouped in the
+   sticky row header. Tabular figures keep every range aligned while scrolling. */
+[data-page="schedule"] .schedule-section-label{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.12rem;line-height:1.15}
+[data-page="schedule"] .schedule-section-label strong{font-size:.9375rem}
+[data-page="schedule"] .schedule-section-label time{font-size:.8125rem;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+[data-page="schedule"] .mobile-open-slots button>span{display:flex;flex-direction:column;align-items:flex-start;line-height:1.15}
+[data-page="schedule"] .mobile-open-slots button time{font-size:.75rem;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
 
 /* P2-e. `.class-block{font-size:.85rem}` x the UA's `small{font-size:smaller}`
    landed the teacher and room at 11.33px, under the same floor T31 already
@@ -1360,3 +1389,106 @@ html[data-fju-theme-vt="active"]::view-transition-new(root){clip-path:var(--fju-
   }
 }
 /* === T41b forced colours + print re-audit — end ============================ */
+
+/* === Requested course-card and schedule actions =========================== */
+.profile-link{display:inline-flex;align-items:center;justify-content:center;gap:.35rem;min-width:44px;min-height:44px}
+.profile-edit-icon{width:1rem;height:1rem;flex:none}
+.profile-link:hover,.profile-link:focus-visible{background:var(--default-hover);border-color:var(--border-strong);color:var(--accent)}
+.navigation-drawer nav a{align-items:center}
+.navigation-drawer nav a .profile-edit-icon{margin-right:auto}
+.data-card-note{margin-top:.35rem;color:var(--muted);font-size:.9rem;line-height:1.5}
+.topic-examples{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-top:.35rem}
+.topic-example,.topic-examples-toggle{max-width:100%;min-height:2.75rem;text-align:left;white-space:normal}
+.course-card-long-text{min-width:0}
+.course-card-long-text>p{margin:.25rem 0;white-space:pre-line;overflow-wrap:anywhere}
+.course-card-clamped-text{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:4;overflow:hidden}
+.details-expand-button{align-self:flex-start;padding-inline:0;color:var(--accent)}
+.course-card .outline-link,.course-card .dcard-review-link{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;min-height:2.75rem;width:100%;font-weight:700}
+.course-card .outline-link{margin-top:1rem;border:1px solid var(--border-strong);background:var(--default);color:var(--accent)}
+.course-card .dcard-review-link{border:1px solid var(--border);background:var(--surface);color:var(--muted);font-weight:600}
+.course-card .outline-link:hover,.course-card .outline-link:focus-visible,.course-card .dcard-review-link:hover,.course-card .dcard-review-link:focus-visible{border-color:var(--accent);background:var(--default-hover);color:var(--accent);outline:3px solid var(--focus);outline-offset:2px}
+.course-card .outline-link svg,.course-card .dcard-review-link svg{width:1rem;height:1rem;flex:none}
+.class-block-shell,.mobile-schedule-block-shell{position:relative;min-width:0}
+[data-page="schedule"] .schedule-grid .class-block-shell{z-index:2;align-self:stretch}
+[data-page="schedule"] .schedule-grid .class-block-shell:hover{z-index:7}
+[data-page="schedule"] .schedule-grid .class-block-shell .class-block{width:100%;height:100%;margin-top:3px;margin-bottom:3px;padding-right:2.8rem}
+.class-block-actions{position:absolute;top:.3rem;right:.3rem;z-index:4;display:flex;align-items:center;gap:.15rem}
+.class-block-lock,.class-block-remove{display:grid;place-items:center;min-width:44px;min-height:44px;padding:0;border:1px solid transparent;border-radius:999px;background:color-mix(in oklab,var(--surface) 82%,transparent);color:var(--muted);cursor:pointer}
+.class-block-lock:hover,.class-block-lock:focus-visible{border-color:var(--accent);background:var(--default-hover);color:var(--accent);outline:3px solid var(--focus);outline-offset:1px}
+.class-block-remove:hover,.class-block-remove:focus-visible{border-color:var(--danger);background:color-mix(in oklab,var(--danger) 12%,var(--surface));color:var(--danger);outline:3px solid var(--focus);outline-offset:1px}
+.class-block-lock svg,.class-block-remove svg{width:1rem;height:1rem}
+.mobile-schedule-block-shell{display:flex;align-items:stretch}
+.mobile-schedule-block-shell .mobile-schedule-block{flex:1;min-width:0;padding-right:6rem}
+.mobile-schedule-block-shell .class-block-actions{right:.35rem}
+.unplaced-course-row{position:relative;display:flex;align-items:stretch;gap:.5rem;margin-top:.65rem}
+.unplaced-course-row>button:first-child{display:flex;flex:1;width:auto;align-items:center;justify-content:space-between;gap:1rem;margin-top:0;padding:.65rem 0;text-align:left}
+.unplaced-course-remove{display:grid;place-items:center;min-width:44px;min-height:44px;padding:0;border:1px solid transparent;border-radius:999px;background:transparent;color:var(--muted);cursor:pointer}
+.unplaced-course-remove:hover,.unplaced-course-remove:focus-visible{border-color:var(--danger);background:color-mix(in oklab,var(--danger) 12%,var(--surface));color:var(--danger);outline:3px solid var(--focus);outline-offset:1px}
+.unplaced-course-remove svg{width:1rem;height:1rem}
+@media (max-width:767.98px){
+  .desktop-profile{display:none}
+  .topic-examples{align-items:stretch}
+  .topic-example{flex:1 1 100%}
+.topic-examples-toggle{flex:0 0 auto}
+}
+/* Keep course actions above the hovered class tile while preserving a 44px hit area. */
+[data-page="schedule"] .schedule-grid .class-block:hover,[data-page="schedule"] .schedule-grid .class-block:focus-visible{z-index:2}
+[data-page="schedule"] .schedule-grid .class-block-shell:hover,[data-page="schedule"] .schedule-grid .class-block-shell:focus-within{z-index:7}
+[data-page="schedule"] .schedule-grid .class-block-shell .class-block{padding-right:6rem}
+.class-block-actions{z-index:8}
+.class-block-lock svg,.class-block-remove svg{width:.85rem;height:.85rem}
+@media print{
+  .class-block-actions{display:none!important}
+  [data-page="schedule"] .schedule-grid .class-block-shell .class-block{padding-right:.48rem}
+}
+
+/* Mobile schedule: keep the same full timetable grid as desktop. The grid has
+   deliberately wide day tracks, so the timetable itself becomes the scroll
+   region instead of collapsing into a less discoverable single-day list. */
+[data-page="schedule"] .timetable{
+  overflow-x:auto;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  -webkit-overflow-scrolling:touch;
+}
+[data-page="schedule"] .schedule-grid{display:grid}
+[data-page="schedule"] .mobile-day-picker,[data-page="schedule"] .mobile-schedule-list{display:none!important}
+.schedule-scroll-hint{display:none}
+@media (max-width:767.98px){
+  [data-page="schedule"] .schedule-scroll-hint{
+    display:block;
+    margin:0 0 .5rem;
+    color:var(--muted);
+    font-size:.8125rem;
+  }
+  [data-page="schedule"] .timetable{
+    max-height:min(72dvh,720px);
+    scrollbar-gutter:stable;
+  }
+}
+@media print{
+  [data-page="schedule"] .timetable{max-height:none;overflow:visible}
+}
+
+/* The footer gained a second child (the 資料蒐集說明 link, §25). It was a bare
+   centred line of text, so the two are laid out as a wrapping flex row rather
+   than left to run together as one sentence. */
+.app-shell>footer{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:center;
+  gap:.35rem 1rem;
+}
+.app-shell>footer .footer-link{
+  color:var(--green);
+  text-decoration:underline;
+  text-underline-offset:.2em;
+  /* 44px: it is a real navigation target and the only route into the privacy
+     disclosure, so it gets the §5.3 touch floor like every other link that is
+     not inside a table. */
+  display:inline-flex;
+  align-items:center;
+  min-height:2.75rem;
+  padding:0 .25rem;
+}

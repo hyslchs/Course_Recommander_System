@@ -3,6 +3,7 @@ import { CalendarCheck, CalendarPlus, Heart } from "@phosphor-icons/react";
 import { Button, ToggleButton, Tooltip } from "@heroui/react";
 import { useFetchCoursesByIds } from "@/data/queries";
 import { deleteRecord, putRecord } from "@/data/db";
+import { track } from "@/analytics/client";
 import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
 import { useLocalRecords } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
@@ -45,6 +46,7 @@ export function CourseRowActions({ course }: { course: Course }) {
   const toggleFavorite = async () => {
     if (pending) return;
     setPending("favorite");
+    track("feature_clicked", { feature: "toggle_favorite" });
     try {
       if (favorite) await deleteRecord("favorites", course.course_id);
       else await putRecord("favorites", { id: course.course_id, addedAt: new Date().toISOString() });
@@ -61,8 +63,14 @@ export function CourseRowActions({ course }: { course: Course }) {
         updatedAt: new Date().toISOString(),
       });
       if (!activePlan) await selectPlan(plan.id);
+      // No interaction id: 探索課程 is a catalogue browse, not a recommendation
+      // run, so this add is a course-level fact and nothing more.
+      track("course_added", { course_id: course.course_id, source: "search" });
       notify("已加入「" + plan.name + "」");
-    } catch (error) { notify("加入課表失敗：" + (error as Error).message, "error"); }
+    } catch (error) {
+      track("error", { component: "schedule", error_code: "SCHEDULE_WRITE_FAILED" });
+      notify("加入課表失敗：" + (error as Error).message, "error");
+    }
     finally { setPending(""); setConflictRequest(undefined); }
   };
 
@@ -80,9 +88,11 @@ export function CourseRowActions({ course }: { course: Course }) {
     const courseConflict = courseConflicts(course, scheduledCourses);
     const fixedConflict = meetingsConflict(course.meetings, (plan.fixedEntries ?? []).flatMap((entry) => entry.meetings));
     if (courseConflict.conflict || fixedConflict.conflict) {
+      track("schedule_conflict", { conflict_count: 1, action: "course_added" });
       setConflictRequest({ plan, message: "這門課與目前課表衝堂。仍要加入嗎？" }); return;
     }
     if (courseConflict.uncertain || fixedConflict.uncertain) {
+      track("schedule_conflict", { conflict_count: 1, action: "course_added" });
       setConflictRequest({ plan, message: "週次資料不完整，可能衝堂。仍要加入嗎？" }); return;
     }
     await commitSchedule(plan);
@@ -145,8 +155,11 @@ export function CourseRowActions({ course }: { course: Course }) {
         busy={pending === "schedule"}
         confirmLabel="仍要加入"
         description={<p>{conflictRequest?.message}</p>}
-        onCancel={() => setConflictRequest(undefined)}
-        onConfirm={() => conflictRequest && commitSchedule(conflictRequest.plan)}
+        onCancel={() => { track("schedule_conflict_action", { action: "cancel_add" }); setConflictRequest(undefined); }}
+        onConfirm={() => {
+          track("schedule_conflict_action", { action: "keep_conflict" });
+          if (conflictRequest) void commitSchedule(conflictRequest.plan);
+        }}
         open={Boolean(conflictRequest)}
         title="確認加入課表"
       />

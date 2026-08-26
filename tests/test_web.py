@@ -114,6 +114,7 @@ def test_batch_embedding_features_and_route_artifacts(tmp_path, monkeypatch):
         assert client.get("/api/v1/features").json() == {
             "compound_query_enabled": False,
             "query_analysis_version": "deterministic-v1",
+            "analytics_enabled": False,
             "ai_assistant_enabled": False,
             "ai_model": "gpt-5.6-luna",
             "ai_max_question_chars": 500,

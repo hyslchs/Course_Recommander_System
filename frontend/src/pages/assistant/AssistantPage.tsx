@@ -116,16 +116,16 @@ export function AssistantPage() {
   if (!profile) return <EmptyState action="開始設定" body="設定系所與年級後，AI 才能避開不適合你的課程。" href="/onboarding" title="先完成個人設定" variant="missing-prerequisite" />;
   return (
     <section className="page assistant-page" data-page="assistant">
-      <div className="hero assistant-hero"><div><div className="eyebrow">RAG 課程問答</div><h1>跟課程資料聊聊</h1><p>我會從目前課程目錄與課綱找資料，再說明推薦理由與選課注意事項。</p></div><div className="privacy-pill">● 不使用向量查詢</div></div>
+      <div className="hero assistant-hero"><div><div className="eyebrow">課程問答</div><h1>跟課程資料聊聊</h1><p>我會從目前課程與課綱整理資訊，再說明推薦理由與選課注意事項。</p></div><div className="privacy-pill">● 只使用課程資料</div></div>
       {!consent ? <Card className="assistant-consent">
         <Card.Header><Card.Title render={asHeading2}>使用前先確認資料範圍</Card.Title></Card.Header>
         <Card.Content>
           <p>這個功能會把你的問題、學制／系級、偏好星期，以及已修與課表中的課程 ID 傳到伺服器和 OpenAI 產生回答；資料會離開本機，並受 OpenAI API 資料控制政策約束。</p>
-          <p>不會傳送姓名、帳號、收藏、完整 IndexedDB 或 API key；資料只用於這次課程問答。</p>
+          <p>不會傳送姓名、帳號、收藏或完整個人資料；資料只用於這次課程問答。</p>
         </Card.Content>
         <Card.Footer><Button className="min-h-11" onPress={() => void agree()}>同意並開始使用</Button></Card.Footer>
       </Card> : <>
-        {enabled === false && <StateAlert live="off" tone="warning">AI 小幫手尚未設定 API key；其他課程功能仍可正常使用。</StateAlert>}
+        {enabled === false && <StateAlert live="off" tone="warning">課程小幫手尚未設定；其他課程功能仍可正常使用。</StateAlert>}
         <Card className="assistant-composer">
           <form className="flex flex-col gap-2" onSubmit={(event) => void ask(event)}>
             <Label htmlFor="assistant-question"><strong>想問什麼課程問題？</strong></Label>

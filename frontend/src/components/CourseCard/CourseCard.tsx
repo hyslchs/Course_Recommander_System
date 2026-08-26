@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import { Heart } from "@phosphor-icons/react";
+import { ArrowSquareOut, Heart } from "@phosphor-icons/react";
 import { Alert, Button, Card, Chip, Disclosure, Radio, RadioGroup, ToggleButton, Tooltip } from "@heroui/react";
 import { useFetchCoursesByIds } from "@/data/queries";
 import { deleteRecord, putRecord } from "@/data/db";
+import { track } from "@/analytics/client";
+import { useRecommendationClick, useRecommendationSurface } from "@/analytics/recommendation";
 import {
   courseConflicts,
   evaluateEligibility,
@@ -37,6 +39,26 @@ const assistantFieldLabels: Record<string, string> = {
  */
 const PREREQUISITE_LABEL = "有擋修條件";
 
+export function dcardCourseSearchUrl(courseName: string): string {
+  return `https://www.dcard.tw/search?tab=latest&query=${encodeURIComponent(courseName)}&forum=fju`;
+}
+
+function ExpandableText({ value }: { value: string }) {
+  const [expanded, setExpanded] = useState(false);
+  useEffect(() => setExpanded(false), [value]);
+  const canExpand = value.length > 180;
+  return (
+    <div className="course-card-long-text">
+      <p className={!expanded && canExpand ? "course-card-clamped-text" : undefined}>{value}</p>
+      {canExpand ? (
+        <Button aria-expanded={expanded} className="details-expand-button min-h-11" size="sm" variant="ghost" onPress={() => setExpanded((current) => !current)}>
+          {expanded ? "收合內容" : "查看完整內容"}
+        </Button>
+      ) : null}
+    </div>
+  );
+}
+
 export function CourseCard({ course, alternatives, rank, reasons, cautions, matchedFields, recommendationCategory }: { course: Course; alternatives?: Course[]; rank?: number; reasons?: string[]; cautions?: string[]; matchedFields?: string[]; recommendationCategory?: Recommendation["category"] }) {
   // Context, not props: 25 cards used to mean 25 IndexedDB reads of each store
   // and a three-level `profile` prop drill (plan §6.3-1 and §6.3-2).
@@ -48,6 +70,12 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
   const { notify } = useFeedback();
   const [pending, setPending] = useState<"favorite" | "completed" | "schedule" | "dismiss" | "">("");
   const [conflictRequest, setConflictRequest] = useState<{ plan: SchedulePlan; message: string }>();
+  // `undefined` on 探索課程, where the card is a catalogue row rather than a
+  // recommendation: the funnel events below then no-op instead of inventing a
+  // run to attribute them to.
+  const recommendationSurface = useRecommendationSurface();
+  const recordRecommendationClick = useRecommendationClick(course.course_id, rank);
+  const addSource = recommendationSurface ? "recommendation" : "search";
   const variants = [course, ...(alternatives ?? [])].filter((item, index, values) => values.findIndex((candidate) => candidate.course_id === item.course_id) === index);
   const [selectedCourseId, setSelectedCourseId] = useState(course.course_id);
   useEffect(() => setSelectedCourseId(course.course_id), [course.course_id]);
@@ -71,6 +99,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
   const toggleFavorite = async () => {
     if (pending) return;
     setPending("favorite");
+    track("feature_clicked", { feature: "toggle_favorite" });
     try {
       if (favorite) await deleteRecord("favorites", selectedCourse.course_id);
       else await putRecord("favorites", { id: selectedCourse.course_id, addedAt: new Date().toISOString() });
@@ -80,6 +109,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
   const toggleCompleted = async () => {
     if (pending) return;
     setPending("completed");
+    track("feature_clicked", { feature: "mark_completed" });
     try {
       if (isCompleted) await deleteRecord("completedCourses", selectedCourse.course_id);
       else await putRecord("completedCourses", { id: selectedCourse.course_id, courseId: selectedCourse.course_id, courseName: selectedCourse.name_zh, continueLearning: false, addedAt: new Date().toISOString() });
@@ -89,6 +119,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
   const dismiss = async () => {
     if (pending) return;
     setPending("dismiss");
+    track("feature_clicked", { feature: "dismiss_recommendation" });
     const id = selectedCourse.course_id;
     try {
       const addedAt = new Date().toISOString();
@@ -102,8 +133,20 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
     try {
       await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, { courseId: selectedCourse.course_id, locked: false }], updatedAt: new Date().toISOString() });
       if (!activePlan) await selectPlan(plan.id);
+      // Carries the recommendation run's id when there is one, which is what
+      // makes 曝光 → 點擊 → 加入 computable. Outside a run it is a bare
+      // course-level add with `source: "search"`.
+      recommendationSurface?.markEngaged();
+      track(
+        "course_added",
+        { course_id: selectedCourse.course_id, source: addSource, ...(rank ? { position: rank } : {}) },
+        { interactionId: recommendationSurface?.interactionId },
+      );
       notify("已加入「" + plan.name + "」");
-    } catch (error) { notify("加入課表失敗：" + (error as Error).message, "error"); }
+    } catch (error) {
+      track("error", { component: "schedule", error_code: "SCHEDULE_WRITE_FAILED" });
+      notify("加入課表失敗：" + (error as Error).message, "error");
+    }
     finally { setPending(""); setConflictRequest(undefined); }
   };
   const addSchedule = async () => {
@@ -120,12 +163,25 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
     const courseConflict = courseConflicts(selectedCourse, scheduledCourses);
     const fixedConflict = meetingsConflict(selectedCourse.meetings, (plan.fixedEntries ?? []).flatMap((entry) => entry.meetings));
     if (courseConflict.conflict || fixedConflict.conflict) {
+      // A count, not the two courses. How often students hit a clash is the
+      // product question; *which* two courses clash would be a fragment of
+      // their timetable.
+      track("schedule_conflict", { conflict_count: 1, action: "course_added" });
       setConflictRequest({ plan, message: "這門課與目前課表衝堂。仍要加入嗎？" }); return;
     }
     if (courseConflict.uncertain || fixedConflict.uncertain) {
+      track("schedule_conflict", { conflict_count: 1, action: "course_added" });
       setConflictRequest({ plan, message: "週次資料不完整，可能衝堂。仍要加入嗎？" }); return;
     }
     await commitSchedule(plan);
+  };
+  const cancelConflict = () => {
+    track("schedule_conflict_action", { action: "cancel_add" });
+    setConflictRequest(undefined);
+  };
+  const keepConflict = () => {
+    track("schedule_conflict_action", { action: "keep_conflict" });
+    if (conflictRequest) void commitSchedule(conflictRequest.plan);
   };
   const favoriteLabel = favorite ? "取消收藏課程" : "收藏課程";
   return (
@@ -134,7 +190,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
         <div className="course-top">
           {rank && <span className="rank">#{rank}</span>}
           {selectedRecommendationCategory && <CategoryChip category={selectedRecommendationCategory} />}
-          <EligibilityChip overrideLabel={hasPrerequisiteBlock ? PREREQUISITE_LABEL : undefined} status={eligibility.status} />
+          <EligibilityChip hideWhenNoKnown overrideLabel={hasPrerequisiteBlock ? PREREQUISITE_LABEL : undefined} status={eligibility.status} />
           {/* Icon-only control, so the name lives in `aria-label` and the Tooltip
               is the sighted-pointer mirror of it — not a substitute (§4.3). The
               delays are passed explicitly rather than read from
@@ -183,7 +239,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
                         <span className="variant-option">
                           <strong>{variant.official_department_label ?? variant.department_display ?? inferAudienceDepartment(variant)}</strong>
                           <span>{variant.teacher || "教師未定"} · {formatMeetings(variant)}</span>
-                          <EligibilityChip overrideLabel={variantPrerequisite ? PREREQUISITE_LABEL : undefined} status={variantEligibility.status} />
+                          <EligibilityChip hideWhenNoKnown overrideLabel={variantPrerequisite ? PREREQUISITE_LABEL : undefined} status={variantEligibility.status} />
                         </span>
                       </Radio.Content>
                     </Radio>
@@ -210,7 +266,19 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
             </Alert.Content>
           </Alert>
         ) : null}
-        <Disclosure className="course-details">
+        {/* Opening the syllabus panel is what "clicked this recommendation"
+            means here: it is the student choosing to read the course, and it is
+            the only in-card action that is about the result rather than about
+            their own lists. Favourite/已修/不感興趣 stay `feature_clicked` — folding
+            them into CTR would make the ratio mean nothing in particular. */}
+        <Disclosure
+          className="course-details"
+          onExpandedChange={(expanded) => {
+            if (!expanded) return;
+            track("feature_clicked", { feature: "open_course_detail" });
+            recordRecommendationClick();
+          }}
+        >
           <Disclosure.Heading>
             <Disclosure.Trigger className="course-disclosure-trigger">
               查看課綱與判斷依據
@@ -221,10 +289,10 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
             <div className="details">
               {/* h4, not h3: `Disclosure.Heading` is itself the h3 under the card's h2. */}
               <h4>課程目標</h4>
-              <p>{selectedCourse.sections.objective || "未提供"}</p>
-              {selectedCourse.prerequisite && <><h4>先備知識</h4><p>{selectedCourse.prerequisite}</p></>}
-              {getEligibilityRules(selectedCourse).map((rule, index) => <div className="evidence" key={rule.kind + "-" + index}><strong>{rule.message}</strong><q>{rule.evidence}</q></div>)}
-              <a href={selectedCourse.source_url} rel="noreferrer" target="_blank">開啟官方課綱</a>
+              <ExpandableText value={selectedCourse.sections.objective || "未提供"} />
+              {selectedCourse.prerequisite && <><h4>先備知識</h4><ExpandableText value={selectedCourse.prerequisite} /></>}
+              {getEligibilityRules(selectedCourse).map((rule, index) => <div className="evidence" key={rule.kind + "-" + index}><strong>{rule.message}</strong><ExpandableText value={rule.evidence} /></div>)}
+              <a className="outline-link button-link" href={selectedCourse.source_url} rel="noreferrer" target="_blank" onClick={() => { track("feature_clicked", { feature: "open_official_syllabus" }); recordRecommendationClick(); }}><span>開啟官方課綱</span><ArrowSquareOut aria-hidden="true" /></a>
             </div>
           </Disclosure.Content>
         </Disclosure>
@@ -243,8 +311,9 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
         <Button className="quiet min-h-11" isPending={pending === "dismiss"} onPress={() => void dismiss()} variant="ghost">
           {pending === "dismiss" ? "處理中…" : "不感興趣"}
         </Button>
+        <a className="dcard-review-link button-link" href={dcardCourseSearchUrl(selectedCourse.name_zh)} rel="noreferrer" target="_blank" onClick={() => { track("feature_clicked", { feature: "open_dcard_reviews" }); recordRecommendationClick(); }}><span>到 Dcard 查詢課程評價</span><ArrowSquareOut aria-hidden="true" /></a>
       </Card.Footer>
-      <ConfirmDialog busy={pending === "schedule"} confirmLabel="仍要加入" description={<p>{conflictRequest?.message}</p>} onCancel={() => setConflictRequest(undefined)} onConfirm={() => conflictRequest && commitSchedule(conflictRequest.plan)} open={Boolean(conflictRequest)} title="確認加入課表" />
+      <ConfirmDialog busy={pending === "schedule"} confirmLabel="仍要加入" description={<p>{conflictRequest?.message}</p>} onCancel={cancelConflict} onConfirm={keepConflict} open={Boolean(conflictRequest)} title="確認加入課表" />
     </Card>
   );
 }

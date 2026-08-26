@@ -56,6 +56,28 @@ export interface CourseTag {
   display_order?: number | null;
 }
 
+export type RelationGroup = "literacy" | "core_knowledge" | "core_skills_attitudes" | "special_issues";
+
+export interface CourseRelation {
+  id: string;
+  group: RelationGroup;
+  label?: string;
+  strength: "direct" | "indirect";
+}
+
+export interface WeightedCourseOption {
+  id: string;
+  label?: string;
+  label_en?: string;
+  percent: number;
+}
+
+export interface CourseInstructor {
+  id: string;
+  name_zh?: string;
+  name_en?: string;
+}
+
 export interface Course {
   course_id: string;
   ava_no: string;
@@ -96,6 +118,13 @@ export interface Course {
   division: string;
   teacher: string;
   teacher_en: string;
+  instructors?: CourseInstructor[];
+  teaching_language?: string | null;
+  material_language?: string | null;
+  relations?: CourseRelation[];
+  teaching_methods?: WeightedCourseOption[];
+  assessments?: WeightedCourseOption[];
+  online_teaching?: { sync: boolean; async: boolean };
   meetings: Meeting[];
   sections: Record<string, string>;
   prerequisite: string;

@@ -1,7 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DataPage } from "./DataPage";
 import { FeedbackProvider } from "@/components/ui";
 
@@ -16,16 +16,16 @@ const dbMocks = vi.hoisted(() => ({
   putRecords: vi.fn(),
   validateBackup: vi.fn(),
 }));
+const localDataMocks = vi.hoisted(() => ({ completedCourses: [] as unknown[], favorites: [] as unknown[], dismissedCourses: [] as unknown[] }));
+const queryMocks = vi.hoisted(() => ({ courses: [] as unknown[] }));
 vi.mock("@/data/db", () => dbMocks);
-vi.mock("@/data/queries", () => ({ useLookupCourses: () => ({ mutateAsync: vi.fn() }) }));
-
-/** `navigator.storage` is absent in jsdom; the meter only renders once it answers. */
-function stubStorageEstimate(usage: number, quota: number) {
-  Object.defineProperty(navigator, "storage", {
-    configurable: true,
-    value: { estimate: async () => ({ quota, usage }) },
-  });
-}
+vi.mock("@/hooks/localData", () => ({
+  useLocalRecords: (store: "completedCourses" | "favorites" | "dismissedCourses") => localDataMocks[store],
+}));
+vi.mock("@/data/queries", () => ({
+  useCoursesByIds: () => ({ data: queryMocks.courses, error: null, isPending: false }),
+  useLookupCourses: () => ({ mutateAsync: vi.fn() }),
+}));
 
 function mount() {
   return render(<FeedbackProvider><DataPage /></FeedbackProvider>);
@@ -34,38 +34,13 @@ function mount() {
 describe("DataPage", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    localDataMocks.completedCourses = [];
+    localDataMocks.favorites = [];
+    localDataMocks.dismissedCourses = [];
+    queryMocks.courses = [];
     dbMocks.clearPersonalData.mockResolvedValue(undefined);
+    dbMocks.deleteRecord.mockResolvedValue(undefined);
   });
-  afterEach(() => {
-    Reflect.deleteProperty(navigator, "storage");
-  });
-
-  it("reports storage headroom on a Meter and keeps it out of the warning state under the threshold", async () => {
-    stubStorageEstimate(200 * 1024 * 1024, 1024 * 1024 * 1024); // 19.5%
-    mount();
-    const meter = await screen.findByRole("meter");
-    expect(meter).toHaveAttribute("aria-valuenow", "19.53125");
-    expect(meter.className).toContain("meter--accent");
-    expect(meter.className).not.toContain("meter--warning");
-    expect(screen.queryByText("儲存空間快滿了")).not.toBeInTheDocument();
-  });
-
-  it("flips the Meter to warning above 80% and says so in words, not only in colour", async () => {
-    stubStorageEstimate(880 * 1024 * 1024, 1024 * 1024 * 1024); // 85.9%
-    mount();
-    const meter = await screen.findByRole("meter");
-    expect(meter.className).toContain("meter--warning");
-    // Colour is never the only channel (plan §4.3): a worded notice comes with it.
-    expect(await screen.findByText("儲存空間快滿了")).toBeInTheDocument();
-    expect(within(meter).getByText("880 MB / 1 GB")).toBeInTheDocument();
-  });
-
-  it("hides the Meter entirely where the browser reports no estimate", async () => {
-    mount();
-    await screen.findByRole("button", { name: "清除所有個人資料" });
-    expect(screen.queryByRole("meter")).not.toBeInTheDocument();
-  });
-
   /**
    * The one irreversible control on the page. `ConfirmDialog` is HeroUI's
    * `AlertDialog`, so this pins the three behaviours the plain button never had:
@@ -111,15 +86,66 @@ describe("DataPage", () => {
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("資料管理");
     expect(screen.getAllByRole("heading", { level: 2 }).map((node) => node.textContent))
-      .toEqual(["批次加入已修課程", "本機資料摘要", "已修課程", "尚未加入已修課程"]);
+      .toEqual(["批次加入已修課程", "備份與清除", "收藏課程", "尚未收藏課程", "不感興趣的課程", "沒有不感興趣的課程", "已修課程", "尚未加入已修課程"]);
     expect(screen.queryAllByRole("heading", { level: 3 })).toHaveLength(0);
   });
 
-  it("describes the counts as a definition list rather than loose spans", async () => {
+
+  it("removes the local summary while keeping data actions and the favorites section", async () => {
     mount();
-    await screen.findByRole("button", { name: "清除所有個人資料" });
-    const terms = document.querySelectorAll("dl.data-stats dt");
-    expect([...terms].map((node) => node.textContent)).toEqual(["已修課程", "收藏", "課表方案"]);
-    expect(document.querySelectorAll("dl.data-stats dd")).toHaveLength(3);
+    expect(await screen.findByRole("heading", { name: "收藏課程" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "尚未收藏課程" })).toBeInTheDocument();
+    expect(screen.queryByText("本機資料摘要")).not.toBeInTheDocument();
+    expect(screen.queryByRole("meter")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "匯出備份檔案" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "匯入備份檔案" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "清除所有個人資料" })).toBeInTheDocument();
+  });
+  it("shows the batch-import note directly, without an info button", async () => {
+    mount();
+    expect(await screen.findByText("本系統僅包含 115-1 學年度之課程大綱資料，若您已修的課程未於 115-1 學年度開設，可能顯示查無此課程。")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "查看批次加入說明" })).not.toBeInTheDocument();
+  });
+  it("shows favorited course details and lets the user cancel the favorite", async () => {
+    const user = userEvent.setup();
+    localDataMocks.favorites = [{ id: "CS101", addedAt: "2026-08-26T00:00:00.000Z" }];
+    queryMocks.courses = [{
+      course_id: "CS101",
+      name_zh: "機器學習概論",
+      department: "資訊工程學系",
+      department_display: "資訊工程學系",
+      teacher: "王老師",
+      credits: 3,
+      source_url: "https://example.edu/course/CS101",
+    }];
+
+    mount();
+    expect(screen.getByText("機器學習概論")).toBeInTheDocument();
+    expect(screen.getByText("資訊工程學系 · 王老師 · 3 學分")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "查看官方課綱" })).toHaveAttribute("href", "https://example.edu/course/CS101");
+    await user.click(screen.getByRole("button", { name: "取消收藏" }));
+    await waitFor(() => expect(dbMocks.deleteRecord).toHaveBeenCalledWith("favorites", "CS101"));
+    expect(await screen.findByText("已取消收藏「機器學習概論」")).toBeInTheDocument();
+  });
+  it("shows dismissed course details and lets the user restore recommendations", async () => {
+    const user = userEvent.setup();
+    localDataMocks.dismissedCourses = [{ id: "CS202", addedAt: "2026-08-26T00:00:00.000Z" }];
+    queryMocks.courses = [{
+      course_id: "CS202",
+      name_zh: "編譯器設計",
+      department: "資訊工程學系",
+      department_display: "資訊工程學系",
+      teacher: "李老師",
+      credits: 3,
+      source_url: "https://example.edu/course/CS202",
+    }];
+
+    mount();
+    expect(screen.getByRole("heading", { name: "不感興趣的課程" })).toBeInTheDocument();
+    expect(screen.getByText("編譯器設計")).toBeInTheDocument();
+    expect(screen.getByText("資訊工程學系 · 李老師 · 3 學分")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "恢復推薦" }));
+    await waitFor(() => expect(dbMocks.deleteRecord).toHaveBeenCalledWith("dismissedCourses", "CS202"));
+    expect(await screen.findByText("已恢復推薦「編譯器設計」")).toBeInTheDocument();
   });
 });

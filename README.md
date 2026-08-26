@@ -98,6 +98,41 @@ POST /api/v1/query-embeddings
 
 The UI requests `/api/v1/features` before enabling the compound layer. With
 the flag off it uses the original `/api/v1/query-embedding` request exactly.
+
+## Analytics
+
+A privacy-first product analytics layer records *what people did*, never *who
+they are*. It is self-hosted — SQLite next to the AI usage ledger — and no
+third-party analytics service is involved.
+
+- **No identity.** No `user_id`, device id or persistent UUID exists in the
+  schema. The only correlation keys are a `sessionStorage` session id and a
+  per-operation `interaction_id`, and both are nulled out of raw rows after
+  `FJU_ANALYTICS_ID_RETENTION_DAYS` (7). A row older than that is a bare
+  `(day, event, course, …)` tuple.
+- **No personal data.** Department, grade, minor, double major, completed
+  courses, favourites and the timetable stay in IndexedDB and are never sent.
+  There is no field in the schema that could carry them.
+- **No raw search text.** Only `query_length`, `result_count`, `search_mode` and
+  `latency_ms`. There is no query sanitizer because there is no query column.
+- **No IP, no fingerprint.** The payload has no address field. `User-Agent` is
+  reduced server-side to (browser family, major, OS family, form factor) and the
+  raw header is discarded.
+- **Validated, not trusted.** `src/fju_outline/analytics.py` holds a per-event
+  allowlist; unknown events, unknown properties, out-of-range numbers and
+  `course_id`s that are not in the served catalog are all rejected, and a
+  denylist (`email`, `student_id`, `token`, `schedule`, `ip`, …) fails the whole
+  request. Events land in typed columns — there is no JSON blob.
+
+```http
+POST /api/v1/analytics/events        # batched, ≤40 events, fire-and-forget (202)
+GET  /api/v1/analytics/report        # aggregates; X-Analytics-Token required
+GET  /api/v1/analytics/dashboard     # the internal dashboard page
+```
+
+Set `FJU_ANALYTICS_ADMIN_TOKEN` to read the report, `FJU_ANALYTICS_ENABLED=0` to
+switch collection off. The student-facing disclosure and opt-out live at
+`/privacy`; the browser's Do Not Track signal is honoured without one.
 Student profiles, completed courses, favorites, and schedules remain in the
 browser; request bodies are not logged.
 

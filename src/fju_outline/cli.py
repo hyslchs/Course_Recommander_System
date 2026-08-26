@@ -17,7 +17,13 @@ from .config import (
 )
 from .crawler import crawl_all, discover
 from .departments import fetch_official_department_catalog
-from .artifacts import DEFAULT_MODEL, SentenceTransformerEncoder, add_route_artifacts, build_artifacts
+from .artifacts import (
+    DEFAULT_MODEL,
+    SentenceTransformerEncoder,
+    add_route_artifacts,
+    build_artifacts,
+    refresh_catalog_artifact,
+)
 from .io import iter_jsonl, write_json, write_jsonl
 from .normalize import normalize_course_record
 
@@ -41,6 +47,8 @@ def main(argv: list[str] | None = None) -> None:
         _run_artifacts(args)
     elif args.command == "routes":
         _run_routes(args)
+    elif args.command == "refresh-catalog":
+        _run_refresh_catalog(args)
     elif args.command == "evaluation-draft":
         from .compound_evaluation import write_draft
 
@@ -60,7 +68,10 @@ def build_parser() -> argparse.ArgumentParser:
         help="HTTP transport. auto prefers Scrapling, then httpx, then urllib.",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
-    for name in ("discover", "departments", "crawl", "normalize", "export", "validate", "artifacts", "routes"):
+    for name in (
+        "discover", "departments", "crawl", "normalize", "export", "validate",
+        "artifacts", "routes", "refresh-catalog",
+    ):
         sub = subparsers.add_parser(name)
         _add_dataset_args(sub)
     crawl = subparsers.choices["crawl"]
@@ -202,6 +213,14 @@ def _run_routes(args: argparse.Namespace) -> None:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     encoder = SentenceTransformerEncoder(manifest.get("model_name") or DEFAULT_MODEL)
     result = add_route_artifacts(paths.artifacts_dir, encoder=encoder)
+    print(_summary({"manifest": result, "output": str(paths.artifacts_dir)}))
+
+
+def _run_refresh_catalog(args: argparse.Namespace) -> None:
+    paths = _paths(args)
+    result = refresh_catalog_artifact(
+        iter_jsonl(paths.canonical_jsonl) or [], paths.artifacts_dir
+    )
     print(_summary({"manifest": result, "output": str(paths.artifacts_dir)}))
 
 

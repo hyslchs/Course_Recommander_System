@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { track } from "@/analytics/client";
 
 interface ErrorBoundaryProps {
   children: ReactNode;
@@ -22,6 +23,10 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
   componentDidCatch(error: Error, info: ErrorInfo) {
     console.error("頁面發生未預期的錯誤", error, info.componentStack);
+    // Two fixed enum members and nothing else. The message and the component
+    // stack stay in the console, where they are useful and where they cannot
+    // carry a course name, a query or a profile field into a database.
+    track("error", { component: "app_shell", error_code: "RENDER_ERROR" });
   }
 
   render() {

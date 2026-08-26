@@ -1,6 +1,7 @@
-import { evaluateEligibility, courseConflicts, inferCourseStudyLevel, isNoPrerequisiteText, meetingsConflict, studyLevelsMatch } from "./eligibility";
+import { evaluateEligibility, courseConflicts, inferCourseStudyLevel, meetingsConflict, studyLevelsMatch } from "./eligibility";
 import { sameDepartment } from "./department";
 import { buildSearchIndex, scoreLexically, type LexicalMatch, type SearchIndex } from "./search";
+import { matchesAdvancedCourseFilters, type AdvancedCourseFilters } from "./courseFilters";
 import type {
   CompletedCourse,
   Course,
@@ -25,64 +26,10 @@ const DEFAULT_MMR_LAMBDA = 0.78;
 const COURSE_FAMILY_SIMILARITY = 0.975;
 
 export type TimeOfDayFilter = "all" | "daytime" | "evening" | "weekday_evening_or_saturday";
-export type PrerequisiteFilter = "show_with_warning" | "exclude_unmet";
-export type CourseLevel = "introductory" | "intermediate" | "advanced" | "unknown";
-export type CourseLevelFilter = "all" | "exclude_introductory" | Exclude<CourseLevel, "unknown">;
-export type PrerequisiteDataStatus = "none_stated" | "structured" | "ambiguous";
-
-export function inferCourseLevel(course: Pick<Course, "name_zh" | "name_en">): CourseLevel {
-  const title = `${course.name_zh} ${course.name_en}`;
-  if (/(?:進階|高等|高階|博士專題|專題研究|研究專題|advanced)/i.test(title)) return "advanced";
-  if (/(?:中階|中級|intermediate)/i.test(title)) return "intermediate";
-  if (/(?:入門|導論|概論|基礎|初階|初級|introduct(?:ion|ory)|fundamental|basic)/i.test(title)) return "introductory";
-  return "unknown";
-}
-
-export function getPrerequisiteDataStatus(course: Pick<Course, "prerequisite" | "eligibility_rules">): PrerequisiteDataStatus {
-  if (course.eligibility_rules?.some((rule) => rule.kind === "course_prerequisite")) return "structured";
-  if (isNoPrerequisiteText(course.prerequisite)) return "none_stated";
-  return "ambiguous";
-}
-
-export interface SafetyFilterStats {
-  studyLevelMismatch: number;
-  studyLevelUnknown: number;
-  courseLevelMismatch: number;
-  courseLevelUnknown: number;
-  unmetPrerequisite: number;
-  ambiguousPrerequisite: number;
-}
-
-export function getSafetyFilterStats(input: {
-  catalog: Course[];
-  profile?: Profile;
-  completed: CompletedCourse[];
-  studyLevelFilter?: Profile["studyLevel"];
-  includeUnknownStudyLevel?: boolean;
-  courseLevelFilter?: CourseLevelFilter;
-  includeUnknownCourseLevel?: boolean;
-  prerequisiteFilter?: PrerequisiteFilter;
-  includeUnknownPrerequisite?: boolean;
-}): SafetyFilterStats {
-  const completedNames = new Set(input.completed.map((item) => item.courseName));
-  const stats: SafetyFilterStats = { studyLevelMismatch: 0, studyLevelUnknown: 0, courseLevelMismatch: 0, courseLevelUnknown: 0, unmetPrerequisite: 0, ambiguousPrerequisite: 0 };
-  for (const course of input.catalog) {
-    if (input.studyLevelFilter && input.studyLevelFilter !== "unknown") {
-      const level = inferCourseStudyLevel(course);
-      if (level === "unknown" && input.includeUnknownStudyLevel !== true) stats.studyLevelUnknown += 1;
-      else if (level !== "unknown" && !studyLevelsMatch(input.studyLevelFilter, level)) stats.studyLevelMismatch += 1;
-    }
-    const courseLevel = inferCourseLevel(course);
-    if (input.courseLevelFilter === "exclude_introductory" && courseLevel === "introductory") stats.courseLevelMismatch += 1;
-    else if (input.courseLevelFilter && input.courseLevelFilter !== "all" && input.courseLevelFilter !== "exclude_introductory" && courseLevel !== input.courseLevelFilter) stats.courseLevelMismatch += 1;
-    if (input.courseLevelFilter && input.courseLevelFilter !== "all" && courseLevel === "unknown" && input.includeUnknownCourseLevel !== true) stats.courseLevelUnknown += 1;
-    if (input.prerequisiteFilter === "exclude_unmet") {
-      const eligibility = evaluateEligibility(course, input.profile, completedNames);
-      if (eligibility.blocked.some((rule) => rule.kind === "course_prerequisite")) stats.unmetPrerequisite += 1;
-    }
-    if (input.includeUnknownPrerequisite === false && getPrerequisiteDataStatus(course) === "ambiguous") stats.ambiguousPrerequisite += 1;
-  }
-  return stats;
+export interface FilterEvidenceLabels {
+  relation?: Record<string, string>;
+  teachingMethod?: Record<string, string>;
+  assessment?: Record<string, string>;
 }
 
 export function classifyRecommendationCategory(course: Course, profile?: Profile): RecommendationCategory {
@@ -282,6 +229,61 @@ function queryReasons(
   return reasons;
 }
 
+function advancedFilterReasons(
+  course: Course,
+  filters?: AdvancedCourseFilters,
+  labels: FilterEvidenceLabels = {},
+): string[] {
+  if (!filters) return [];
+  const reasons: string[] = [];
+  if (filters.classTime.mode === "sections") {
+    const selected = new Set(filters.classTime.sections);
+    const matched = [...new Set(course.meetings.flatMap((meeting) => meeting.sections).filter((section) => selected.has(section)))];
+    if (matched.length) reasons.push(`包含 ${matched.join("、")}`);
+  }
+  const matchedWeighted = (
+    rows: Course["teaching_methods"] | Course["assessments"],
+    selectedIds: string[],
+    criterion: AdvancedCourseFilters["teachingMethodCriterion"],
+  ) => {
+    const available = rows ?? [];
+    const maximum = available.length ? Math.max(...available.map((item) => item.percent)) : 0;
+    return available
+      .filter((item) => selectedIds.includes(item.id)
+        && (criterion.mode === "minimum" ? item.percent >= criterion.minPercent : item.percent === maximum))
+      .sort((left, right) => right.percent - left.percent);
+  };
+  const method = matchedWeighted(course.teaching_methods, filters.teachingMethodIds, filters.teachingMethodCriterion)[0];
+  if (method) reasons.push(`${labels.teachingMethod?.[method.id] ?? method.label ?? method.id} ${method.percent}%`);
+  const assessment = matchedWeighted(course.assessments, filters.assessmentMethodIds, filters.assessmentMethodCriterion)[0];
+  if (assessment) reasons.push(`${labels.assessment?.[assessment.id] ?? assessment.label ?? assessment.id} ${assessment.percent}%`);
+  if (filters.assessmentStyle !== "all") reasons.push({
+    no_exams: "無考試評量",
+    exam: "考試為主要評量",
+    writing: "作業寫作為主要評量",
+    presentation: "發表合作為主要評量",
+    practical: "實作展演為主要評量",
+    participation: "課堂參與為主要評量",
+  }[filters.assessmentStyle]);
+  if (filters.onlineTeaching.mode === "has_online") {
+    const online = course.online_teaching;
+    if (online?.sync && online.async) reasons.push("同步與非同步線上教學");
+    else if (online?.sync) reasons.push("含同步線上教學");
+    else if (online?.async) reasons.push("含非同步線上教學");
+  } else if (filters.onlineTeaching.mode === "physical_only") reasons.push("純實體授課");
+  if (filters.teachingLanguages.length && course.teaching_language) reasons.push(`授課語言：${course.teaching_language}`);
+  if (filters.materialLanguages.length && course.material_language) reasons.push(`教材語言：${course.material_language}`);
+  const selectedRelations = new Set([
+    ...filters.relations.literacy,
+    ...filters.relations.coreCompetencies,
+    ...filters.relations.specialIssues,
+  ]);
+  const relation = (course.relations ?? []).find((item) => selectedRelations.has(item.id)
+    && (filters.relations.includeIndirect || item.strength === "direct"));
+  if (relation) reasons.push(`關聯：${labels.relation?.[relation.id] ?? relation.label ?? relation.id}`);
+  return reasons.slice(0, 4);
+}
+
 function rankSingleCourses(input: {
   catalog: Course[];
   courseIds: string[];
@@ -302,18 +304,18 @@ function rankSingleCourses(input: {
   preferredWeekdays?: number[];
   includeNonPreferredWeekdays?: boolean;
   timeOfDayFilter?: TimeOfDayFilter;
+  advancedFilters?: AdvancedCourseFilters;
+  filterEvidenceLabels?: FilterEvidenceLabels;
   includeUnknownSchedule?: boolean;
-  prerequisiteFilter?: PrerequisiteFilter;
   studyLevelFilter?: Profile["studyLevel"];
   includeUnknownStudyLevel?: boolean;
-  courseLevelFilter?: CourseLevelFilter;
-  includeUnknownCourseLevel?: boolean;
-  includeUnknownPrerequisite?: boolean;
   hardConstraints?: HardConstraints;
   queryAnalysis?: QueryAnalysis;
   intentVectors?: Record<string, Float32Array>;
   selectionLimit?: number;
   diversityLambda?: number;
+  onCandidateCount?: (count: number) => void;
+  diagnosticsOnly?: boolean;
 }): Recommendation[] {
   if (!input.query) return [];
   const queryText = input.queryText?.trim() ?? "";
@@ -336,24 +338,18 @@ function rankSingleCourses(input: {
       (rule) => rule.kind === "course_prerequisite",
     );
     if (eligibility.status === "blocked_confirmed" && !hasUnresolvedCoursePrerequisite) return [];
-    if (hasUnresolvedCoursePrerequisite && input.prerequisiteFilter === "exclude_unmet") return [];
-    if (input.includeUnknownPrerequisite === false && getPrerequisiteDataStatus(course) === "ambiguous") return [];
     if (input.studyLevelFilter && input.studyLevelFilter !== "unknown") {
       const courseStudyLevel = inferCourseStudyLevel(course);
       if (courseStudyLevel === "unknown" && input.includeUnknownStudyLevel !== true) return [];
       if (courseStudyLevel !== "unknown" && !studyLevelsMatch(input.studyLevelFilter, courseStudyLevel)) return [];
     }
-    if (input.courseLevelFilter && input.courseLevelFilter !== "all") {
-      const courseLevel = inferCourseLevel(course);
-      if (input.courseLevelFilter === "exclude_introductory" && courseLevel === "introductory") return [];
-      if (input.courseLevelFilter !== "exclude_introductory" && courseLevel !== input.courseLevelFilter) {
-        if (courseLevel !== "unknown" || input.includeUnknownCourseLevel !== true) return [];
-      }
-      if (courseLevel === "unknown" && input.includeUnknownCourseLevel !== true) return [];
-    }
     if (courseConflicts(course, scheduledCourses).conflict) return [];
     if (input.scheduledMeetings && meetingsConflict(course.meetings, input.scheduledMeetings).conflict) return [];
-    if (!matchesTimeOfDayFilter(course, input.timeOfDayFilter ?? "all", input.includeUnknownSchedule)) return [];
+    const broadTime = input.advancedFilters?.classTime.mode === "broad"
+      ? input.advancedFilters.classTime.value
+      : input.advancedFilters?.classTime.mode === "sections" ? "all" : input.timeOfDayFilter ?? "all";
+    if (!matchesTimeOfDayFilter(course, broadTime, input.includeUnknownSchedule)) return [];
+    if (input.advancedFilters && !matchesAdvancedCourseFilters(course, input.advancedFilters)) return [];
     const knownMeetings = course.meetings.filter((meeting) => meeting.weekday !== null);
     if (!input.includeNonPreferredWeekdays && preferredWeekdays.length > 0) {
       if (!knownMeetings.length && input.includeUnknownSchedule !== true) return [];
@@ -378,6 +374,8 @@ function rankSingleCourses(input: {
       category,
     }];
   });
+  input.onCandidateCount?.(candidates.length);
+  if (input.diagnosticsOnly) return [];
 
   const denseRanked = [...candidates]
     .sort((a, b) => b.denseScore - a.denseScore || a.order - b.order)
@@ -433,7 +431,10 @@ function rankSingleCourses(input: {
       score: family.score,
       eligibility: item.eligibility,
       category: item.category,
-      reasons: queryReasons(queryText, item.lexical, denseRanks.get(item.course.course_id), sparseRanks.get(item.course.course_id)),
+      reasons: [
+        ...advancedFilterReasons(item.course, input.advancedFilters, input.filterEvidenceLabels),
+        ...queryReasons(queryText, item.lexical, denseRanks.get(item.course.course_id), sparseRanks.get(item.course.course_id)),
+      ],
     };
   });
 }
@@ -458,13 +459,11 @@ export function rankCourses(input: {
   preferredWeekdays?: number[];
   includeNonPreferredWeekdays?: boolean;
   timeOfDayFilter?: TimeOfDayFilter;
+  advancedFilters?: AdvancedCourseFilters;
+  filterEvidenceLabels?: FilterEvidenceLabels;
   includeUnknownSchedule?: boolean;
-  prerequisiteFilter?: PrerequisiteFilter;
   studyLevelFilter?: Profile["studyLevel"];
   includeUnknownStudyLevel?: boolean;
-  courseLevelFilter?: CourseLevelFilter;
-  includeUnknownCourseLevel?: boolean;
-  includeUnknownPrerequisite?: boolean;
   queryAnalysis?: QueryAnalysis;
   intentVectors?: Record<string, Float32Array>;
   hardConstraints?: HardConstraints;
@@ -484,6 +483,28 @@ export function rankCourses(input: {
     return rankSingleCourses({ ...input, queryText });
   }
   return rankCompoundCourses({ ...input, queryAnalysis: analysis });
+}
+
+export function rankCoursesWithDiagnostics(
+  input: Parameters<typeof rankCourses>[0],
+): { recommendations: Recommendation[]; candidateCount: number } {
+  let candidateCount = 0;
+  const recommendations = rankCourses({
+    ...input,
+    onCandidateCount: (count: number) => { candidateCount = count; },
+  } as Parameters<typeof rankCourses>[0]);
+  return { recommendations, candidateCount };
+}
+
+export function countCourseCandidates(input: Parameters<typeof rankCourses>[0]): number {
+  let candidateCount = 0;
+  rankSingleCourses({
+    ...input,
+    queryAnalysis: undefined,
+    diagnosticsOnly: true,
+    onCandidateCount: (count: number) => { candidateCount = count; },
+  });
+  return candidateCount;
 }
 
 function matchesHardConstraints(course: Course, constraints: HardConstraints): boolean {

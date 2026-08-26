@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { Ref, ReactNode } from "react";
 import { motion } from "motion/react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 
@@ -25,13 +25,22 @@ export interface BlurFadeProps {
   /** Position in the list. Clamped to `BLUR_FADE_MAX_STAGGER_INDEX`. */
   index?: number;
   className?: string;
+  /**
+   * The wrapper element, for callers that need to observe it. Added so
+   * recommendation impressions can be measured against the box the card
+   * actually occupies, without wrapping every result in a second div that
+   * would become the grid item in its place. React 19 passes `ref` as a plain
+   * prop, so no `forwardRef` is involved.
+   */
+  ref?: Ref<HTMLDivElement>;
 }
 
-function BlurFadeMotion({ children, index = 0, className }: BlurFadeProps) {
+function BlurFadeMotion({ children, index = 0, className, ref }: BlurFadeProps) {
   return (
     <motion.div
       animate={{ filter: "blur(0px)", opacity: 1, y: 0 }}
       className={className}
+      ref={ref}
       initial={{ filter: `blur(${BLUR_FADE_BLUR})`, opacity: 0, y: BLUR_FADE_OFFSET }}
       transition={{ delay: blurFadeDelay(index), duration: BLUR_FADE_DURATION, ease: "easeOut" }}
     >
@@ -73,8 +82,8 @@ function BlurFadeMotion({ children, index = 0, className }: BlurFadeProps) {
  *    forbids conditional hooks, so the only way not to run `motion`'s hooks is
  *    not to render the component that calls them.
  */
-export function BlurFade({ children, index = 0, className }: BlurFadeProps) {
+export function BlurFade({ children, index = 0, className, ref }: BlurFadeProps) {
   const reducedMotion = useReducedMotion();
-  if (reducedMotion) return <div className={className}>{children}</div>;
-  return <BlurFadeMotion className={className} index={index}>{children}</BlurFadeMotion>;
+  if (reducedMotion) return <div className={className} ref={ref}>{children}</div>;
+  return <BlurFadeMotion className={className} index={index} ref={ref}>{children}</BlurFadeMotion>;
 }

@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { RecommendPage } from "./RecommendPage";
@@ -35,38 +35,6 @@ const plan: SchedulePlan = { id: "plan", name: "測試方案", entries: [], crea
 const appliedFilters = () => screen.getByRole("region", { name: "已套用的篩選條件" });
 const appliedFiltersNode = () => document.querySelector(".applied-filters") as HTMLElement;
 
-type User = ReturnType<typeof userEvent.setup>;
-
-/**
- * HeroUI's drag-to-dismiss is its own pointer hook on the drawer dialog (React
- * Aria knows nothing about it), and it refuses to start from an interactive
- * element or from the scrolling body — the drag handle is where a thumb
- * actually lands, so that is what this drives.
- *
- * jsdom has no layout, so `offsetHeight` is 0 and any downward offset clears the
- * "30% of the panel" dismiss threshold. The gesture still runs end to end: the
- * 8px activation threshold, the capture, and the release. Pointer capture is
- * stubbed per element because jsdom implements neither side of it.
- */
-function swipeDown() {
-  const dialog = screen.getByRole("dialog");
-  const handle = dialog.querySelector("[data-slot='drawer-handle']") as HTMLElement;
-  Object.assign(dialog, { releasePointerCapture() {}, setPointerCapture() {} });
-  fireEvent.pointerDown(handle, { button: 0, clientY: 40, pointerId: 1 });
-  fireEvent.pointerMove(handle, { clientY: 260, pointerId: 1 });
-  fireEvent.pointerUp(handle, { clientY: 260, pointerId: 1 });
-}
-
-/** The four ways out of the sheet that are *not* 套用. */
-const dismissals: [string, (user: User) => Promise<void>][] = [
-  ["Escape", async (user) => { await user.keyboard("{Escape}"); }],
-  ["the backdrop", async (user) => { await user.click(document.querySelector(".drawer__backdrop") as HTMLElement); }],
-  ["the ✕ close control", async (user) => {
-    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "關閉面板" }));
-  }],
-  ["a swipe down", async () => { swipeDown(); }],
-];
-
 describe("recommend page filters", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -85,125 +53,146 @@ describe("recommend page filters", () => {
   });
   afterEach(() => cleanup());
 
-  it("keeps the page's single h1 and drops the green hero", () => {
+  it("keeps the page's single h1 and drops the technical hero badge", () => {
     expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
     expect(document.querySelector(".hero")).toBeNull();
-    expect(screen.getByText("● Local-first")).toBeInTheDocument();
+    expect(screen.queryByText("● Local-first")).not.toBeInTheDocument();
   });
 
-  it("lists the three conditions a fresh page applies, as removable tags", () => {
+  it("lists the two conditions a fresh page applies, as removable tags", () => {
     const region = within(appliedFilters());
-    expect(region.getByText("已套用 3 項條件")).toBeInTheDocument();
+    expect(region.getByText("已套用 2 項條件")).toBeInTheDocument();
     expect(region.getByText("星期一、二、三")).toBeInTheDocument();
-    expect(region.getByText("排除未滿足先修")).toBeInTheDocument();
-    expect(region.getByText("檢查衝堂")).toBeInTheDocument();
+    expect(region.getByText("課程類別：本系必修＋1")).toBeInTheDocument();
+    // 避開衝堂 starts off, so its tag shouldn't show up yet.
+    expect(region.queryByText("避開衝堂")).not.toBeInTheDocument();
+  });
+
+  it("opens the complete desktop filter dialog and applies its changes immediately", async () => {
+    const user = userEvent.setup();
+    const trigger = within(appliedFilters()).getByRole("button", { name: "完整篩選條件 · 已套用 2 項" });
+    await user.click(trigger);
+
+    const dialog = await screen.findByRole("dialog", { name: "完整篩選條件" });
+    const fullFilters = within(dialog);
+    expect(dialog.querySelector(".recommend-filter-modal-summary")).toHaveTextContent("2 項條件已即時套用");
+    for (const group of ["時間與課表", "課程條件", "上課方式", "評量方式"]) {
+      expect(fullFilters.getByRole("button", { name: new RegExp(group) })).toHaveAttribute("aria-expanded", "true");
+    }
+    expect(fullFilters.getByRole("button", { name: /進階條件/ })).toHaveAttribute("aria-expanded", "false");
+
+    // Both quick-filter categories start on; avoiding conflicts starts off.
+    expect(fullFilters.getByRole("button", { name: "本系必修", pressed: true })).toBeInTheDocument();
+    expect(fullFilters.getByRole("button", { name: "本系選修", pressed: true })).toBeInTheDocument();
+    expect(fullFilters.getByRole("button", { name: "通識課程", pressed: false })).toBeInTheDocument();
+    expect(fullFilters.getByRole("button", { name: "外系課程", pressed: false })).toBeInTheDocument();
+    expect(fullFilters.getByRole("button", { name: "允許衝堂", pressed: false })).toBeInTheDocument();
+
+    await user.click(fullFilters.getByRole("button", { name: "允許衝堂", pressed: false }));
+    expect(fullFilters.getByRole("button", { name: "避開衝堂", pressed: true })).toBeInTheDocument();
+    expect(dialog.querySelector(".recommend-filter-modal-summary")).toHaveTextContent("3 項條件已即時套用");
+    expect(within(appliedFiltersNode()).getByText("避開衝堂")).toBeInTheDocument();
+    const quickConflict = document.querySelector(".quick-filter-panel .filter-conflict-toggle") as HTMLElement;
+    expect(quickConflict).toHaveTextContent("避開衝堂");
+    expect(quickConflict).toHaveAttribute("aria-pressed", "true");
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "完整篩選條件" })).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+    expect(within(appliedFilters()).getByText("已套用 3 項條件")).toBeInTheDocument();
+  });
+
+  it("opens the same complete filter dialog from the sidebar shortcut", async () => {
+    const user = userEvent.setup();
+    const sidebar = document.querySelector(".recommend-sidebar") as HTMLElement;
+    const trigger = within(sidebar).getByRole("button", { name: "完整篩選條件 · 已套用 2 項" });
+
+    await user.click(trigger);
+    expect(await screen.findByRole("dialog", { name: "完整篩選條件" })).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "完整篩選條件" })).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+
+  it("reflects a quick-filter change in the complete filter immediately", async () => {
+    const user = userEvent.setup();
+    const sidebar = document.querySelector(".recommend-sidebar") as HTMLElement;
+    await user.click(within(sidebar).getByRole("radio", { name: "日間 D 節" }));
+    expect(within(sidebar).getByRole("button", { name: "完整篩選條件 · 已套用 3 項" })).toBeInTheDocument();
+    await user.click(within(sidebar).getByRole("button", { name: "完整篩選條件 · 已套用 3 項" }));
+    const dialog = within(await screen.findByRole("dialog", { name: "完整篩選條件" }));
+    expect(dialog.getByRole("radio", { name: "日間 D 節" })).toBeChecked();
   });
 
   it("removes a condition from the tag itself, without opening anything", async () => {
     const user = userEvent.setup();
-    const tag = within(appliedFilters()).getByText("檢查衝堂").closest("[data-slot='tag']") as HTMLElement;
+    const tag = within(appliedFilters()).getByText("課程類別：本系必修＋1").closest("[data-slot='tag']") as HTMLElement;
     await user.click(within(tag).getByRole("button"));
-    await waitFor(() => expect(within(appliedFilters()).getByText("已套用 2 項條件")).toBeInTheDocument());
-    expect(within(appliedFilters()).queryByText("檢查衝堂")).not.toBeInTheDocument();
+    await waitFor(() => expect(within(appliedFilters()).getByText("已套用 1 項條件")).toBeInTheDocument());
+    expect(within(appliedFilters()).queryByText("課程類別：本系必修＋1")).not.toBeInTheDocument();
   });
 
   it("clears every condition from the always-visible 清除全部", async () => {
     const user = userEvent.setup();
     await user.click(within(appliedFilters()).getByRole("button", { name: "清除全部" }));
     await waitFor(() => expect(within(appliedFilters()).getByText("已套用 0 項條件")).toBeInTheDocument());
-    expect(within(appliedFilters()).getByText("目前沒有額外的硬條件")).toBeInTheDocument();
+    expect(within(appliedFilters()).getByText("目前沒有其他篩選條件")).toBeInTheDocument();
   });
-
-  it("holds drawer edits back until 套用, then commits them in one go", async () => {
+  it("applies mobile drawer changes immediately through the shared state", async () => {
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /篩選/ }));
+    const launcher = document.querySelector(".recommend-filter-launcher") as HTMLElement;
+    await user.click(within(launcher).getByRole("button", { name: "篩選" }));
     const sheet = within(await screen.findByRole("dialog"));
-
-    await user.click(sheet.getByRole("switch", { name: "納入完整課表檢查衝堂" }));
-    // The draft moved; the page has not.
-    expect(sheet.getByRole("button", { name: "套用 2 項" })).toBeInTheDocument();
-    expect(within(appliedFiltersNode()).getByText("已套用 3 項條件")).toBeInTheDocument();
-    expect(within(appliedFiltersNode()).getByText("檢查衝堂")).toBeInTheDocument();
-
-    await user.click(sheet.getByRole("button", { name: "套用 2 項" }));
-    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(within(appliedFilters()).getByText("已套用 2 項條件")).toBeInTheDocument();
-    expect(within(appliedFilters()).queryByText("檢查衝堂")).not.toBeInTheDocument();
-  });
-
-  /**
-   * FIX54. The sheet used to commit on *any* close, which made its own 套用
-   * button redundant and gave a student who backed out conditions they never
-   * confirmed. Every one of React Aria's four exits now discards instead, so
-   * each is pinned separately — they are four different code paths inside the
-   * overlay (keyboard, interact-outside, the close trigger, and HeroUI's own
-   * pointer-drag hook), and only `onOpenChange`/`onClose` is shared.
-   */
-  describe.each(dismissals)("dismissing with %s", (_label, dismiss) => {
-    it("throws the draft away and leaves the results untouched", async () => {
-      const user = userEvent.setup();
-      await user.click(screen.getByRole("button", { name: /篩選/ }));
-      const sheet = within(await screen.findByRole("dialog"));
-      await user.click(sheet.getByRole("switch", { name: "納入完整課表檢查衝堂" }));
-      expect(sheet.getByRole("button", { name: "套用 2 項" })).toBeInTheDocument();
-
-      await dismiss(user);
-      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-      // The committed set — and so the tag list driving the results — is exactly
-      // what it was before the sheet opened.
-      expect(within(appliedFilters()).getByText("已套用 3 項條件")).toBeInTheDocument();
-      expect(within(appliedFilters()).getByText("檢查衝堂")).toBeInTheDocument();
-    });
-
-    it("re-seeds the sheet from the committed filters on the next open", async () => {
-      const user = userEvent.setup();
-      await user.click(screen.getByRole("button", { name: /篩選/ }));
-      await user.click(within(await screen.findByRole("dialog")).getByRole("switch", { name: "納入完整課表檢查衝堂" }));
-      await dismiss(user);
-      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-
-      await user.click(screen.getByRole("button", { name: /篩選/ }));
-      const reopened = within(await screen.findByRole("dialog"));
-      // Not 套用 2 項: the abandoned draft did not survive the dismissal.
-      expect(reopened.getByRole("button", { name: "套用 3 項" })).toBeInTheDocument();
-      expect(reopened.getByRole("switch", { name: "納入完整課表檢查衝堂" })).toBeChecked();
-    });
-  });
-
-  it("clears only the draft from the sheet's 清除全部", async () => {
-    const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /篩選/ }));
-    const sheet = within(await screen.findByRole("dialog"));
-    await user.click(sheet.getByRole("button", { name: "清除全部" }));
-
-    expect(sheet.getByRole("button", { name: "套用 0 項" })).toBeInTheDocument();
-    // Still uncommitted, so still discardable.
+    await user.click(sheet.getByRole("button", { name: "允許衝堂", pressed: false }));
+    expect((await screen.findByRole("dialog")).querySelector(".recommend-filter-modal-summary")).toHaveTextContent(/3\s*項條件已即時套用/);
     expect(within(appliedFiltersNode()).getByText("已套用 3 項條件")).toBeInTheDocument();
     await user.keyboard("{Escape}");
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-    expect(within(appliedFilters()).getByText("已套用 3 項條件")).toBeInTheDocument();
+    expect(within(appliedFilters()).getByText("避開衝堂")).toBeInTheDocument();
   });
 
-  it("flattens the nested 進階設定 to one disclosure per group inside the sheet", async () => {
-    const user = userEvent.setup();
-    // Desktop sidebar: one 進階設定 per control that owns advanced options, and
-    // only 先修條件 has one while 課程程度 is still 不限程度.
-    await user.click(screen.getByRole("button", { name: /修課資格/ }));
-    expect(screen.getAllByRole("button", { name: /進階設定/ })).toHaveLength(1);
+  it("keeps only the four requested groups in the persistent quick filters", () => {
+    const quick = within(document.querySelector(".quick-filter-panel") as HTMLElement);
+    expect(quick.getByText("上課時間", { selector: "h3" })).toBeInTheDocument();
+    expect(quick.getByText("課程類別", { selector: "h3" })).toBeInTheDocument();
+    expect(quick.getByText("學分數", { selector: "h3" })).toBeInTheDocument();
+    expect(quick.getByRole("button", { name: "允許衝堂", pressed: false })).toBeInTheDocument();
+    expect(quick.getByRole("button", { name: "本系必修", pressed: true })).toBeInTheDocument();
+    expect(quick.getByRole("button", { name: "本系選修", pressed: true })).toBeInTheDocument();
+    expect(quick.getByRole("button", { name: "通識課程", pressed: false })).toBeInTheDocument();
+    expect(quick.getByRole("button", { name: "外系課程", pressed: false })).toBeInTheDocument();
+    for (const hidden of ["開課單位", "授課教師", "基本素養", "教學方法", "主要評量偏好"])
+      expect(quick.queryByText(hidden)).not.toBeInTheDocument();
+  });
 
-    await user.click(screen.getByRole("button", { name: /篩選/ }));
+  it("clears every shared condition from the drawer", async () => {
+    const user = userEvent.setup();
+    const launcher = document.querySelector(".recommend-filter-launcher") as HTMLElement;
+    await user.click(within(launcher).getByRole("button", { name: "篩選" }));
     const sheet = within(await screen.findByRole("dialog"));
-    await user.click(sheet.getByRole("button", { name: /修課資格/ }));
-    // Sheet: exactly one, at the bottom of the group — never nested (plan §5.2-6).
-    expect(sheet.getAllByRole("button", { name: /進階設定/ })).toHaveLength(1);
+    await user.click(sheet.getByRole("button", { name: "清除全部" }));
+    expect((await screen.findByRole("dialog")).querySelector(".recommend-filter-modal-summary")).toHaveTextContent(/0\s*項條件已即時套用/);
+    expect(within(appliedFiltersNode()).getByText("已套用 0 項條件")).toBeInTheDocument();
+  });
+
+  it("removes eligibility filter controls from every filter surface", async () => {
+    expect(screen.queryByText("課程程度")).not.toBeInTheDocument();
+    expect(screen.queryByText("先修條件")).not.toBeInTheDocument();
+    expect(screen.queryByText("修課資格")).not.toBeInTheDocument();
+
+    const user = userEvent.setup();
+    await user.click(within(document.querySelector(".recommend-filter-launcher") as HTMLElement).getByRole("button", { name: "篩選" }));
+    const sheet = within(await screen.findByRole("dialog"));
+    expect(sheet.queryByText("課程程度")).not.toBeInTheDocument();
+    expect(sheet.queryByText("先修條件")).not.toBeInTheDocument();
   });
 
   it("shows the pending filter count on the trigger badge", async () => {
     const user = userEvent.setup();
     const launcher = document.querySelector(".recommend-filter-launcher") as HTMLElement;
-    expect(within(launcher).getByText("3")).toBeInTheDocument();
+    expect(within(launcher).getByText("2")).toBeInTheDocument();
     await user.click(within(appliedFilters()).getByRole("button", { name: "清除全部" }));
-    await waitFor(() => expect(within(launcher).queryByText("3")).not.toBeInTheDocument());
+    await waitFor(() => expect(within(launcher).queryByText("2")).not.toBeInTheDocument());
   });
 
   it("refuses to run with an empty topic and keeps the message next to the field", async () => {
@@ -219,7 +208,7 @@ describe("recommend page filters", () => {
 
   it("keeps the filter sheet a labelled dialog", async () => {
     const user = userEvent.setup();
-    await user.click(screen.getByRole("button", { name: /篩選/ }));
-    await waitFor(() => expect(screen.getByRole("dialog")).toHaveAccessibleName("硬條件篩選"));
+    await user.click(within(document.querySelector(".recommend-filter-launcher") as HTMLElement).getByRole("button", { name: "篩選" }));
+    await waitFor(() => expect(screen.getByRole("dialog")).toHaveAccessibleName("完整篩選條件"));
   });
 });

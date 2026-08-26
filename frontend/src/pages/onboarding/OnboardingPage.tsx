@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState, type FormEvent, type Key } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent, type Key } from "react";
 import { useNavigate } from "react-router";
 import {
   Button,
@@ -33,7 +33,7 @@ import { getFixedScheduleEntries, MENTOR_TIME_ENTRY_ID } from "@/domain/fixedSch
 import { defaultPreferredWeekdays } from "@/domain/profileDefaults";
 import { selectRequiredCourses } from "@/domain/requiredCourses";
 import { coursesInPlan } from "@/domain/scheduleUtils";
-import { useProfile } from "@/hooks/localData";
+import { useLocalDataReady, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { StateAlert, useFeedback } from "@/components/ui";
 import type { CompletedCourse, Course, Profile } from "@/domain/types";
@@ -121,6 +121,7 @@ function toProfile(stored: Profile | undefined, draft: Draft, department: Depart
 
 export function OnboardingPage() {
   const profile = useProfile();
+  const localDataReady = useLocalDataReady();
   const navigate = useNavigate();
   const { notify } = useFeedback();
   const { plans, activePlan, selectPlan } = useSchedulePlans();
@@ -158,7 +159,10 @@ export function OnboardingPage() {
 
   const selectedDepartment = departmentOptions.find((option) => option.key === draft.departmentKey);
 
-  const [autoAddRequiredCourses, setAutoAddRequiredCourses] = useState(false);
+  const [autoAddRequiredCourses, setAutoAddRequiredCourses] = useState(() => !profile);
+  useEffect(() => {
+    if (localDataReady && profile) setAutoAddRequiredCourses(false);
+  }, [localDataReady, profile]);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
 

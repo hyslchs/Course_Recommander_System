@@ -70,7 +70,7 @@ describe("route heading contract", () => {
   it.each([
     ["/onboarding", "先設定你的基本資料"],
     ["/recommend", "找到真正適合你的下一門課"],
-    ["/explore", "課程資料庫"],
+    ["/explore", "探索課程"],
     ["/schedule", "我的課表"],
     ["/data", "資料管理"],
     ["/no-such-page", "找不到這個頁面"],

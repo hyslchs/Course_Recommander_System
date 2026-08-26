@@ -61,7 +61,12 @@ DASHBOARD_HTML = """<!doctype html>
     匿名彙總資料。沒有 user id、沒有 IP、沒有搜尋原文；session_id 與 interaction_id 會在保存期限後被清空。
   </p>
   <form id="controls">
-    <input id="token" type="password" placeholder="Admin token" autocomplete="off" size="28">
+    <!-- `new-password`, not `off`: Chrome ignores `autocomplete="off"` on a
+         password field and will happily autofill a saved site password here.
+         Combined with the auto-submit at the bottom of the script, that produced
+         a page that 401'd on every load without anyone typing anything. -->
+    <input id="token" type="password" name="crs-analytics-token" placeholder="Admin token"
+           autocomplete="new-password" spellcheck="false" size="28">
     <select id="days">
       <option value="7">最近 7 天</option>
       <option value="30" selected>最近 30 天</option>
@@ -167,17 +172,34 @@ $("controls").addEventListener("submit", async (event) => {
   event.preventDefault();
   const token = $("token").value.trim();
   $("error").textContent = "";
-  try { sessionStorage.setItem(KEY, token); } catch (e) {}
+  if (!token) { $("error").textContent = "請先輸入 token。"; return; }
   try {
     const response = await fetch(`/api/v1/analytics/report?days=${encodeURIComponent($("days").value)}`,
                                  { headers: { "X-Analytics-Token": token } });
-    if (!response.ok) throw new Error(`${response.status} ${(await response.json()).detail || ""}`);
-    render(await response.json());
+    if (response.status === 401) {
+      // Forget it, so a reload does not silently retry the same wrong value
+      // forever. This is what turned one bad paste into a wall of 401s.
+      try { sessionStorage.removeItem(KEY); } catch (e) {}
+      throw new Error("token 不正確。請確認與伺服器 .env 中的 FJU_ANALYTICS_ADMIN_TOKEN 逐字相同（含大小寫、底線與連字號）。");
+    }
+    if (response.status === 503) {
+      throw new Error("伺服器沒有設定 FJU_ANALYTICS_ADMIN_TOKEN，或統計功能已被關閉。");
+    }
+    if (!response.ok) {
+      const detail = await response.json().then((body) => body.detail).catch(() => "");
+      throw new Error(`${response.status} ${detail || ""}`);
+    }
+    const data = await response.json();
+    // Only a token that actually worked is worth remembering.
+    try { sessionStorage.setItem(KEY, token); } catch (e) {}
+    render(data);
   } catch (error) {
     $("out").innerHTML = "";
     $("error").textContent = "載入失敗：" + error.message;
   }
 });
+// Safe to auto-run: the field is only pre-filled from a token that already
+// returned 200 once in this tab.
 if ($("token").value) $("controls").requestSubmit();
 </script>
 </body>

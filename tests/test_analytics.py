@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -405,6 +406,22 @@ def test_dashboard_page_carries_no_data(tmp_path):
         assert page.status_code == 200
         assert "X-Analytics-Token" in page.text
         assert "noindex" in page.text
+
+
+def test_dashboard_does_not_invite_browser_password_autofill(tmp_path):
+    """Chrome ignores `autocomplete="off"` on a password field.
+
+    It autofilled a saved site password into the token box, and the page's
+    auto-submit then sent it on every load — a wall of 401s with nobody typing.
+    """
+    with _client(tmp_path) as client:
+        page = client.get("/api/v1/analytics/dashboard").text
+    # Scoped to the tag itself: the comment above it names the old value, and a
+    # whole-page substring check would match that instead.
+    tag = re.search(r'<input id="token"[^>]*>', page, re.S)
+    assert tag is not None
+    assert 'autocomplete="new-password"' in tag.group(0)
+    assert 'autocomplete="off"' not in tag.group(0)
 
 
 def test_analytics_outage_does_not_break_the_product(tmp_path):

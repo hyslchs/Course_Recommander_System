@@ -10,3 +10,11 @@ data/derived
 logs
 **/.env
 **/.env.*
+
+# Local-only audit/deployment notes and generated artifacts
+SECURITY_AUDIT.md
+DEPLOYMENT.md
+recommendation-architecture.html
+.whl
+data/artifacts
+new-vector-data

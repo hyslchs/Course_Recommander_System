@@ -1,0 +1,118 @@
+{
+  "artifact_schema_version": "fju_embedding_artifact_v1",
+  "chunk_strategy_version": "semantic-boundary-v1",
+  "course_chunk_distribution": {
+    "counts": {
+      "2": 102,
+      "3": 3165,
+      "4": 1288,
+      "5": 10
+    },
+    "max": 5,
+    "mean": 3.264184008762322,
+    "median": 3.0,
+    "min": 2
+  },
+  "course_count": 4565,
+  "derived_from": null,
+  "dimension": 768,
+  "document_prompt_template": "title: {title} | text: {text}",
+  "document_prompt_version": "embeddinggemma-document-v1",
+  "dtype": "float32",
+  "embedding_runtime": {
+    "course_final_batch_size": 16,
+    "created_at": "2026-08-26T12:33:49+00:00",
+    "device": "cuda",
+    "dtype": "float32",
+    "embedding_elapsed_seconds": 78.76951827199991,
+    "oom_fallback": false,
+    "peak_vram_bytes": 3526757888,
+    "query_final_batch_size": 5,
+    "requested_batch_size": 16
+  },
+  "encoder": "EmbeddingGemmaEncoder",
+  "files": [
+    {
+      "bytes": 1334926,
+      "filename": "catalog.json",
+      "sha256": "4206350f3255713e2ad244c540eafc9538b2c9677956b7f72406c0b75defeb7e"
+    },
+    {
+      "bytes": 14023680,
+      "filename": "course-embeddings.f32",
+      "sha256": "c3ac7f9706b52f166effd2a1b3a756ff8fdaa1fa931c17096b4095cc6654278a"
+    },
+    {
+      "bytes": 661927,
+      "filename": "embedding-index.json",
+      "sha256": "0cb1d1b9bd270b872ad5a7b723fa3d7663c99864e27332332cd3d44dc5377e52"
+    },
+    {
+      "bytes": 15360,
+      "filename": "query-route-embeddings.f32",
+      "sha256": "417d27fb75f57230e4941422781098b930b4bb9bf099342896d5a5bcab56cfd9"
+    },
+    {
+      "bytes": 1365,
+      "filename": "query-route-index.json",
+      "sha256": "7cec6871209276baec78f1dec971613fb97cbb7d5b292f02f45612e1b65b73b0"
+    }
+  ],
+  "input_snapshot": {
+    "canonical_jsonl": {
+      "path": "/home/hyslchs/Course_embedding_data-20260826/staging/1151/canonical/course_outlines_1151.jsonl",
+      "sha256": "31cba0e712f6530c0b5e90165897549b424a9756273e1062962c7cb38e5e7754"
+    },
+    "departments_json": {
+      "path": "/home/hyslchs/Course_embedding_data-20260826/departments_115.json",
+      "sha256": "d5f2bbdcf751f82c116d90a2c07086a5d7a375a6f03f15309fbf305299875e11"
+    },
+    "raw_jsonl": {
+      "path": "/home/hyslchs/Course_embedding_data-20260826/course_outlines_1151.raw.jsonl",
+      "sha256": "e146b7d7220e313d22e1cf8aabe0b32b18eeb524f07dc8c427d364403cc0f292"
+    }
+  },
+  "long_section_count": 21,
+  "manifest_checksum_scope": "files excludes artifact-manifest.json to avoid a self-checksum cycle",
+  "manifest_file": "artifact-manifest.json",
+  "max_chunk_token_target": 1800,
+  "max_context_tokens": 2048,
+  "model_id": "google/embeddinggemma-300m",
+  "model_revision": "57c266a740f537b4dc058e1b0cda161fd15afa75",
+  "normalization": "L2 normalization after encoder, chunk pooling, and section pooling",
+  "overlap_token_target": 128,
+  "provider": "sentence-transformers",
+  "query_prompt_template": "task: search result | query: {query}",
+  "query_prompt_version": "embeddinggemma-query-v1",
+  "query_route_count": 5,
+  "query_routes": [
+    {
+      "query_text": "課程推薦與相似課程",
+      "route_id": "general"
+    },
+    {
+      "query_text": "課程目標與學習內容",
+      "route_id": "objective"
+    },
+    {
+      "query_text": "授課進度與每週主題",
+      "route_id": "weekly_progress"
+    },
+    {
+      "query_text": "先修課程與修課要求",
+      "route_id": "prerequisite"
+    },
+    {
+      "query_text": "學習技能與能力",
+      "route_id": "skills"
+    }
+  ],
+  "section_weights": {
+    "objective": 0.45,
+    "prerequisite": 0.15,
+    "skills": 0.1,
+    "weekly_progress": 0.3
+  },
+  "tokenizer_revision": "57c266a740f537b4dc058e1b0cda161fd15afa75",
+  "total_chunk_count": 14901
+}

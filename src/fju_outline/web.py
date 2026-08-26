@@ -8,6 +8,7 @@ import os
 import secrets
 import threading
 import time
+import unicodedata
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -34,8 +35,9 @@ from .analytics_dashboard import DASHBOARD_HTML
 from .artifacts import (
     CATALOG_SCHEMA_VERSION,
     DEFAULT_MODEL,
-    SentenceTransformerEncoder,
-    normalize_catalog_course_schema,
+    encoder_from_manifest,
+    load_catalog_for_artifact,
+    normalize_embedding_index,
     validate_artifacts,
 )
 from .query_routes import ANALYSIS_VERSION
@@ -61,7 +63,7 @@ FRONTEND_DIST = (
     if (Path("frontend/dist") / "index.html").exists()
     else APP_DIR.parents[1] / "frontend" / "dist"
 )
-DEFAULT_ARTIFACTS_DIR = Path("data/artifacts/1151")
+DEFAULT_ARTIFACTS_DIR = Path("new-vector-data/1151-embeddinggemma-768")
 MAX_REQUEST_BYTES = 16 * 1024
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
@@ -137,15 +139,26 @@ class ArtifactStore:
         department_catalog: dict[str, Any] | None = None,
     ) -> None:
         self.artifacts_dir = artifacts_dir
-        self.manifest = validate_artifacts(artifacts_dir, verify_hashes=verify_hashes)
-        raw_catalog = orjson.loads((artifacts_dir / "catalog.json").read_bytes())
-        self.catalog = [normalize_catalog_course_schema(item) for item in raw_catalog]
+        self.manifest = dict(validate_artifacts(artifacts_dir, verify_hashes=verify_hashes))
+        raw_index = orjson.loads((artifacts_dir / "embedding-index.json").read_bytes())
+        self.index = normalize_embedding_index(raw_index, self.manifest)
+        self.catalog = load_catalog_for_artifact(artifacts_dir, self.manifest, raw_index)
         self.by_id = {str(item["course_id"]): item for item in self.catalog}
-        self.index = orjson.loads((artifacts_dir / "embedding-index.json").read_bytes())
+        dataset_year = artifacts_dir.name.split("-", 1)[0]
+        self.academic_year = int(
+            self.manifest.get("academic_year")
+            or os.environ.get("FJU_ACADEMIC_YEAR")
+            or (dataset_year if dataset_year.isdigit() else 0)
+        )
+        self.semester = int(self.manifest.get("semester") or os.environ.get("FJU_SEMESTER") or 1)
+        self.manifest.setdefault("model_name", self.manifest.get("model_id") or DEFAULT_MODEL)
+        self.manifest.setdefault("artifact_version", self.manifest.get("artifact_schema_version", ""))
+        self.manifest.setdefault("academic_year", self.academic_year)
+        self.manifest.setdefault("semester", self.semester)
         self.department_catalog = (
             department_catalog
-            or _load_department_catalog(artifacts_dir, int(self.manifest["academic_year"]))
-            or _department_catalog_from_courses(self.catalog, int(self.manifest["academic_year"]))
+            or _load_department_catalog(artifacts_dir, self.academic_year)
+            or _department_catalog_from_courses(self.catalog, self.academic_year)
         )
         if len(self.catalog) != self.manifest["course_count"]:
             raise ValueError("Catalog count does not match manifest")
@@ -243,9 +256,18 @@ class ArtifactStore:
 
 
 class QueryEncoder:
-    def __init__(self, model_name: str) -> None:
-        self.encoder = SentenceTransformerEncoder(model_name)
+    def __init__(self, model_name: str | None = None, *, manifest: dict[str, Any] | None = None) -> None:
+        self.manifest = dict(manifest or {})
+        self.encoder = (
+            encoder_from_manifest(self.manifest)
+            if self.manifest
+            else encoder_from_manifest({"model_name": model_name or DEFAULT_MODEL})
+        )
         self._lock = threading.Lock()
+        self._cache: dict[tuple[str, str, int, str, str], np.ndarray] = {}
+        self._cache_limit = max(1, _env_int("FJU_QUERY_CACHE_MAX_ENTRIES", 256, minimum=1, maximum=10000))
+        self._cache_hits = 0
+        self._cache_misses = 0
 
     @property
     def model_name(self) -> str:
@@ -255,15 +277,90 @@ class QueryEncoder:
     def model_revision(self) -> str:
         return self.encoder.model_revision
 
+    @property
+    def dimension(self) -> int | None:
+        value = self.manifest.get("dimension") or getattr(self.encoder, "dimension", None)
+        return int(value) if value is not None else None
+
+    def _cache_key(self, text: str) -> tuple[str, str, int, str, str]:
+        normalized_text = " ".join(unicodedata.normalize("NFKC", text).split())
+        model = str(self.manifest.get("model_id") or self.manifest.get("model_name") or self.model_name)
+        revision = str(self.manifest.get("model_revision") or self.model_revision)
+        dimension = int(self.manifest.get("dimension") or self.dimension or 0)
+        prompt_identity = "|".join(
+            [
+                str(self.manifest.get("query_prompt_version") or "legacy-query-v1"),
+                str(
+                    self.manifest.get("query_prompt_template")
+                    or (
+                        "task: search result | query: {query}"
+                        if model.startswith("google/embeddinggemma-")
+                        else "query: {query}"
+                    )
+                ),
+            ]
+        )
+        return model, revision, dimension, prompt_identity, normalized_text
+
+    def _cache_put(self, key: tuple[str, str, int, str, str], vector: np.ndarray) -> None:
+        if len(self._cache) >= self._cache_limit:
+            self._cache.pop(next(iter(self._cache)))
+        self._cache[key] = np.asarray(vector, dtype=np.float32).copy()
+
     def encode(self, text: str) -> np.ndarray:
         with self._lock:
-            return self.encoder.encode_query(text)
+            key = self._cache_key(text)
+            cached = self._cache.get(key)
+            if cached is not None:
+                self._cache_hits += 1
+                return cached.copy()
+            self._cache_misses += 1
+            vector = np.asarray(self.encoder.encode_query(text), dtype=np.float32)
+            self._cache_put(key, vector)
+            return vector.copy()
 
     def encode_many(self, texts: list[str]) -> np.ndarray:
         with self._lock:
-            if hasattr(self.encoder, "encode_many"):
-                return np.asarray(self.encoder.encode_many(texts), dtype=np.float32)
-            return np.stack([self.encoder.encode_query(text) for text in texts]).astype(np.float32)
+            keys = [self._cache_key(text) for text in texts]
+            results: list[np.ndarray | None] = [None] * len(texts)
+            missing: list[tuple[int, str, tuple[str, str, int, str, str]]] = []
+            for index, (text, key) in enumerate(zip(texts, keys)):
+                cached = self._cache.get(key)
+                if cached is None:
+                    missing.append((index, text, key))
+                else:
+                    self._cache_hits += 1
+                    results[index] = cached.copy()
+            if missing:
+                unique: list[tuple[str, tuple[str, str, int, str, str]]] = []
+                seen: set[tuple[str, str, int, str, str]] = set()
+                for _, text, key in missing:
+                    if key not in seen:
+                        seen.add(key)
+                        unique.append((text, key))
+                unique_texts = [text for text, _ in unique]
+                if hasattr(self.encoder, "encode_many"):
+                    encoded = np.asarray(self.encoder.encode_many(unique_texts), dtype=np.float32)
+                else:
+                    encoded = np.stack([self.encoder.encode_query(text) for text in unique_texts]).astype(np.float32)
+                if encoded.ndim != 2 or encoded.shape[0] != len(unique):
+                    raise ValueError("Query encoder returned an invalid batch shape")
+                by_key: dict[tuple[str, str, int, str, str], np.ndarray] = {}
+                for row, (_, key) in zip(encoded, unique):
+                    self._cache_misses += 1
+                    self._cache_put(key, row)
+                    by_key[key] = np.asarray(row, dtype=np.float32)
+                for index, _, key in missing:
+                    results[index] = by_key[key].copy()
+            return np.stack([result for result in results if result is not None]).astype(np.float32)
+
+    def cache_stats(self) -> dict[str, int]:
+        with self._lock:
+            return {
+                "entries": len(self._cache),
+                "hits": self._cache_hits,
+                "misses": self._cache_misses,
+            }
 
 
 class RateLimiter:
@@ -317,12 +414,13 @@ def create_app(
                     artifact_dir,
                     verify_hashes=os.environ.get("FJU_VERIFY_ARTIFACT_HASHES", "1") != "0",
                 )
-                model_name = app.state.store.manifest.get("model_name") or DEFAULT_MODEL
-                app.state.query_encoder = QueryEncoder(model_name)
+                manifest = app.state.store.manifest
+                model_name = manifest.get("model_id") or manifest.get("model_name") or DEFAULT_MODEL
+                app.state.query_encoder = QueryEncoder(manifest=manifest)
                 if app.state.query_encoder.model_name != model_name:
                     raise ValueError("Query model does not match artifact model")
                 test_vector = app.state.query_encoder.encode("課程推薦服務啟動檢查")
-                if len(test_vector) != app.state.store.manifest["dimension"]:
+                if len(test_vector) != int(manifest["dimension"]):
                     raise ValueError("Query model dimension does not match artifact dimension")
                 app.state.runtime_error = None
             except Exception as exc:  # noqa: BLE001
@@ -636,7 +734,21 @@ def register_routes(application: FastAPI) -> None:
         path = store.artifacts_dir / "query-route-index.json"
         if not path.exists():
             raise HTTPException(status_code=503, detail="Query route artifacts unavailable")
-        return orjson.loads(path.read_bytes())
+        raw = orjson.loads(path.read_bytes())
+        routes = []
+        for route in raw.get("routes", []):
+            item = dict(route)
+            item.setdefault("id", item.get("route_id"))
+            item.setdefault("label", item.get("query_text") or item.get("route_id"))
+            item.setdefault("policy", "soft")
+            routes.append(item)
+        normalized = dict(raw)
+        normalized["routes"] = routes
+        normalized.setdefault("route_count", int(raw.get("count", len(routes))))
+        normalized.setdefault("dimension", int(store.manifest["dimension"]))
+        normalized.setdefault("model_name", store.manifest.get("model_name"))
+        normalized.setdefault("model_revision", store.manifest.get("model_revision"))
+        return normalized
 
     @application.get("/api/v1/query-routes/data")
     def query_routes_data(request: Request) -> FileResponse:
@@ -875,6 +987,7 @@ def _load_department_catalog(artifacts_dir: Path, academic_year: int) -> dict[st
     except IndexError:
         data_dir = Path("data")
     candidates.append(data_dir / "reference" / f"departments_{academic_year}.json")
+    candidates.append(data_dir / "data" / "reference" / f"departments_{academic_year}.json")
     for path in candidates:
         if path.exists():
             return orjson.loads(path.read_bytes())

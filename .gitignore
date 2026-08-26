@@ -5,6 +5,7 @@ __pycache__/
 .ruff_cache/
 *.egg-info/
 .venv/
+.venv-gpu/
 .env
 .env.*
 !.env.example
@@ -37,4 +38,5 @@ backups/
 # local tooling / workflow scratch
 /node_modules/
 .codegraph/
+.claude/
 .claude/worktrees/

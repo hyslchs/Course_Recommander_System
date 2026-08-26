@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
 import re
 from datetime import datetime, timezone
 from pathlib import Path
@@ -37,6 +38,11 @@ CATALOG_SCHEMA_FIELDS = (
     "instructors",
 )
 DEFAULT_MODEL = "intfloat/multilingual-e5-small"
+EMBEDDING_GEMMA_MODEL = "google/embeddinggemma-300m"
+EMBEDDING_GEMMA_REVISION = "57c266a740f537b4dc058e1b0cda161fd15afa75"
+EMBEDDING_GEMMA_DOCUMENT_PROMPT = "title: {title} | text: {text}"
+EMBEDDING_GEMMA_QUERY_PROMPT = "task: search result | query: {query}"
+EMBEDDING_GEMMA_FULL_DIMENSION = 768
 SECTION_WEIGHTS = {
     "objective": 0.45,
     "weekly_progress": 0.30,
@@ -59,15 +65,32 @@ class Encoder(Protocol):
 
 
 class SentenceTransformerEncoder:
-    def __init__(self, model_name: str = DEFAULT_MODEL) -> None:
+    def __init__(
+        self,
+        model_name: str = DEFAULT_MODEL,
+        *,
+        revision: str | None = None,
+        device: str | None = None,
+        require_cuda: bool = False,
+    ) -> None:
         from sentence_transformers import SentenceTransformer
 
+        if require_cuda or device == "cuda":
+            import torch
+
+            if not torch.cuda.is_available():
+                raise RuntimeError("CUDA is required for the configured embedding model")
         self.model_name = model_name
-        self._model = SentenceTransformer(model_name)
+        kwargs: dict[str, Any] = {}
+        if revision is not None:
+            kwargs["revision"] = revision
+        if device is not None:
+            kwargs["device"] = device
+        self._model = SentenceTransformer(model_name, **kwargs)
         config = getattr(self._model, "_first_module", lambda: None)()
         auto_model = getattr(config, "auto_model", None)
         commit = getattr(getattr(auto_model, "config", None), "_commit_hash", None)
-        self.model_revision = commit or "unknown"
+        self.model_revision = commit or revision or "unknown"
 
     def encode_passages(self, texts: list[str]) -> np.ndarray:
         values = [f"passage: {text}" for text in texts]
@@ -78,7 +101,11 @@ class SentenceTransformerEncoder:
 
     def encode_query(self, text: str) -> np.ndarray:
         return np.asarray(
-            self._model.encode([f"query: {text}"], normalize_embeddings=True)[0],
+            self._model.encode(
+                [f"query: {text}"],
+                normalize_embeddings=True,
+                show_progress_bar=False,
+            )[0],
             dtype=np.float32,
         )
 
@@ -91,6 +118,129 @@ class SentenceTransformerEncoder:
             ),
             dtype=np.float32,
         )
+
+
+class EmbeddingGemmaEncoder:
+    """Manifest-driven EmbeddingGemma query/document encoder.
+
+    The live query path always runs the full 768-dimensional model.  A 512
+    dimensional artifact is projected only after inference by taking the first
+    512 values and L2-normalizing again, matching the incoming artifact's
+    ``derived_from`` contract.
+    """
+
+    def __init__(
+        self,
+        model_id: str,
+        *,
+        model_revision: str,
+        tokenizer_revision: str | None,
+        dimension: int,
+        document_prompt_template: str,
+        query_prompt_template: str,
+        document_prompt_version: str | None = None,
+        query_prompt_version: str | None = None,
+    ) -> None:
+        if model_id != EMBEDDING_GEMMA_MODEL:
+            raise ValueError(f"Unsupported EmbeddingGemma model: {model_id}")
+        if dimension not in {512, EMBEDDING_GEMMA_FULL_DIMENSION}:
+            raise ValueError("EmbeddingGemma artifact dimension must be 512 or 768")
+        if document_prompt_template != EMBEDDING_GEMMA_DOCUMENT_PROMPT:
+            raise ValueError("EmbeddingGemma document prompt does not match the artifact")
+        if query_prompt_template != EMBEDDING_GEMMA_QUERY_PROMPT:
+            raise ValueError("EmbeddingGemma query prompt does not match the artifact")
+
+        import torch
+        from sentence_transformers import SentenceTransformer
+
+        if not torch.cuda.is_available():
+            raise RuntimeError("CUDA is required for EmbeddingGemma inference")
+
+        self.model_name = model_id
+        self.model_id = model_id
+        self.model_revision = model_revision
+        self.tokenizer_revision = tokenizer_revision or model_revision
+        self.dimension = dimension
+        self.document_prompt_template = document_prompt_template
+        self.query_prompt_template = query_prompt_template
+        self.document_prompt_version = document_prompt_version or ""
+        self.query_prompt_version = query_prompt_version or ""
+        self._model = SentenceTransformer(
+            model_id,
+            revision=model_revision,
+            device="cuda",
+        )
+        self._model.to(dtype=torch.float32)
+        config = getattr(self._model, "_first_module", lambda: None)()
+        auto_model = getattr(config, "auto_model", None)
+        commit = getattr(getattr(auto_model, "config", None), "_commit_hash", None)
+        if commit not in {None, model_revision}:
+            raise RuntimeError("Loaded EmbeddingGemma revision does not match the artifact")
+
+    def _encode_prompts(self, prompts: list[str]) -> np.ndarray:
+        values = np.asarray(
+            self._model.encode(
+                prompts,
+                normalize_embeddings=True,
+                convert_to_numpy=True,
+                show_progress_bar=False,
+            ),
+            dtype=np.float32,
+        )
+        if values.ndim != 2 or values.shape[1] != EMBEDDING_GEMMA_FULL_DIMENSION:
+            raise RuntimeError("EmbeddingGemma produced an unexpected vector dimension")
+        values = values[:, : self.dimension]
+        norms = np.linalg.norm(values, axis=1, keepdims=True)
+        return (values / np.maximum(norms, 1e-12)).astype(np.float32)
+
+    def encode_documents(
+        self,
+        texts: list[str],
+        *,
+        titles: list[str] | None = None,
+    ) -> np.ndarray:
+        titles = titles or ["none"] * len(texts)
+        if len(titles) != len(texts):
+            raise ValueError("Document titles and texts must have the same length")
+        prompts = [
+            self.document_prompt_template.format(title=title or "none", text=text)
+            for title, text in zip(titles, texts)
+        ]
+        return self._encode_prompts(prompts)
+
+    def encode_passages(self, texts: list[str]) -> np.ndarray:
+        return self.encode_documents(texts)
+
+    def encode_query(self, text: str) -> np.ndarray:
+        prompt = self.query_prompt_template.format(query=text)
+        return self._encode_prompts([prompt])[0]
+
+    def encode_many(self, texts: list[str]) -> np.ndarray:
+        prompts = [self.query_prompt_template.format(query=text) for text in texts]
+        return self._encode_prompts(prompts)
+
+
+def encoder_from_manifest(manifest: dict[str, Any]) -> Encoder:
+    """Construct the only query encoder compatible with an artifact manifest."""
+
+    model_id = manifest.get("model_id") or manifest.get("model_name")
+    if not model_id:
+        raise ValueError("Artifact manifest has no model_id/model_name")
+    if manifest.get("encoder") == "EmbeddingGemmaEncoder" or model_id.startswith("google/embeddinggemma-"):
+        return EmbeddingGemmaEncoder(
+            model_id,
+            model_revision=str(manifest["model_revision"]),
+            tokenizer_revision=manifest.get("tokenizer_revision"),
+            dimension=int(manifest["dimension"]),
+            document_prompt_template=str(manifest["document_prompt_template"]),
+            query_prompt_template=str(manifest["query_prompt_template"]),
+            document_prompt_version=manifest.get("document_prompt_version"),
+            query_prompt_version=manifest.get("query_prompt_version"),
+        )
+    return SentenceTransformerEncoder(
+        str(model_id),
+        revision=manifest.get("model_revision"),
+    )
 
 
 def build_artifacts(
@@ -534,51 +684,317 @@ def _department_identity(
     )
 
 
+def _manifest_file_entries(manifest: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    raw_files = manifest.get("files")
+    if isinstance(raw_files, dict):
+        return {str(name): metadata for name, metadata in raw_files.items()}
+    if isinstance(raw_files, list):
+        entries: dict[str, dict[str, Any]] = {}
+        for metadata in raw_files:
+            if not isinstance(metadata, dict) or not metadata.get("filename"):
+                raise ValueError("Artifact manifest has an invalid files entry")
+            filename = str(metadata["filename"])
+            if filename in entries:
+                raise ValueError(f"Artifact manifest contains duplicate file entry: {filename}")
+            entries[filename] = metadata
+        return entries
+    raise ValueError("Artifact manifest has no valid files section")
+
+
+def _index_course_ids(index: dict[str, Any]) -> list[str]:
+    if isinstance(index.get("course_ids"), list):
+        return [str(course_id) for course_id in index["course_ids"]]
+    rows = index.get("rows")
+    if isinstance(rows, list):
+        try:
+            return [str(row["course_id"]) for row in rows]
+        except (KeyError, TypeError) as exc:
+            raise ValueError("Embedding index rows have no course_id") from exc
+    raise ValueError("Embedding index has neither course_ids nor rows")
+
+
+def _catalog_courses(catalog: Any) -> list[dict[str, Any]]:
+    if isinstance(catalog, list):
+        return catalog
+    if isinstance(catalog, dict) and isinstance(catalog.get("courses"), list):
+        return catalog["courses"]
+    raise ValueError("Catalog must be a course list or an embedding catalog object")
+
+
 def validate_artifacts(output_dir: Path, *, verify_hashes: bool = True) -> dict[str, Any]:
     manifest_path = output_dir / "artifact-manifest.json"
     if not manifest_path.exists():
         raise FileNotFoundError(manifest_path)
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    for name, metadata in manifest.get("files", {}).items():
+    entries = _manifest_file_entries(manifest)
+    is_embedding_artifact_v1 = manifest.get("artifact_schema_version") == "fju_embedding_artifact_v1"
+    required_files = (
+        "catalog.json",
+        "course-embeddings.f32",
+        "embedding-index.json",
+        "query-route-embeddings.f32",
+        "query-route-index.json",
+    )
+    if is_embedding_artifact_v1:
+        missing_entries = [name for name in required_files if name not in entries]
+        if missing_entries:
+            raise ValueError("Artifact manifest is missing files: " + ", ".join(missing_entries))
+    for name, metadata in entries.items():
+        if not isinstance(metadata, dict) or "bytes" not in metadata or "sha256" not in metadata:
+            raise ValueError(f"Artifact manifest has invalid metadata: {name}")
         path = output_dir / name
         if not path.exists():
             raise FileNotFoundError(path)
-        if path.stat().st_size != metadata["bytes"]:
+        if path.stat().st_size != int(metadata["bytes"]):
             raise ValueError(f"Artifact size mismatch: {name}")
-        if verify_hashes and _sha256(path) != metadata["sha256"]:
+        if verify_hashes and _sha256(path) != str(metadata["sha256"]).lower():
             raise ValueError(f"Artifact checksum mismatch: {name}")
+
+    if is_embedding_artifact_v1:
+        expected = {
+            "model_id": EMBEDDING_GEMMA_MODEL,
+            "model_revision": EMBEDDING_GEMMA_REVISION,
+            "tokenizer_revision": EMBEDDING_GEMMA_REVISION,
+            "provider": "sentence-transformers",
+            "dtype": "float32",
+            "document_prompt_template": EMBEDDING_GEMMA_DOCUMENT_PROMPT,
+            "query_prompt_template": EMBEDDING_GEMMA_QUERY_PROMPT,
+        }
+        for key, value in expected.items():
+            if manifest.get(key) != value:
+                raise ValueError(f"Artifact manifest compatibility mismatch: {key}")
+        if int(manifest.get("dimension", 0)) not in {512, EMBEDDING_GEMMA_FULL_DIMENSION}:
+            raise ValueError("EmbeddingGemma artifact dimension must be 512 or 768")
+        if "L2 normalization" not in str(manifest.get("normalization", "")):
+            raise ValueError("Artifact manifest does not declare L2 normalization")
+        if int(manifest.get("query_route_count", 0)) != 5:
+            raise ValueError("EmbeddingGemma artifact must contain five query routes")
+        if int(manifest["dimension"]) == 512:
+            derived = manifest.get("derived_from") or {}
+            if (
+                derived.get("method") != "first_512_dimensions_then_l2_normalize"
+                or derived.get("model_inference") is not False
+            ):
+                raise ValueError("512 artifact does not declare the required derived-vector method")
+
     index = json.loads((output_dir / "embedding-index.json").read_text(encoding="utf-8"))
-    if len(index["course_ids"]) != manifest["course_count"]:
+    course_ids = _index_course_ids(index)
+    course_count = int(manifest["course_count"])
+    dimension = int(manifest["dimension"])
+    if len(course_ids) != course_count:
         raise ValueError("Embedding index count mismatch")
-    expected_bytes = manifest["course_count"] * manifest["dimension"] * 4
+    if index.get("count") is not None and int(index["count"]) != course_count:
+        raise ValueError("Embedding index count does not match manifest")
+    if index.get("dimension") is not None and int(index["dimension"]) != dimension:
+        raise ValueError("Embedding index dimension does not match manifest")
+    catalog = orjson.loads((output_dir / "catalog.json").read_bytes())
+    catalog_courses = _catalog_courses(catalog)
+    catalog_ids = [str(item.get("course_id")) for item in catalog_courses]
+    if len(catalog_courses) != course_count or catalog_ids != course_ids:
+        raise ValueError("Catalog course IDs/order do not match embedding index")
+    if isinstance(catalog, dict):
+        if int(catalog.get("count", course_count)) != course_count:
+            raise ValueError("Catalog count does not match manifest")
+        if catalog.get("dimension") is not None and int(catalog["dimension"]) != dimension:
+            raise ValueError("Catalog dimension does not match manifest")
+    expected_bytes = course_count * dimension * 4
     if (output_dir / "course-embeddings.f32").stat().st_size != expected_bytes:
         raise ValueError("Embedding binary dimensions do not match manifest")
     if manifest.get("catalog_schema_version") == CATALOG_SCHEMA_VERSION:
-        catalog = orjson.loads((output_dir / "catalog.json").read_bytes())
         missing = [
             field
             for field in CATALOG_SCHEMA_FIELDS
-            if any(field not in item for item in catalog)
+            if any(field not in item for item in catalog_courses)
         ]
         if missing:
             raise ValueError(f"Catalog schema is missing fields: {', '.join(missing)}")
+
     route_index_path = output_dir / "query-route-index.json"
     route_vectors_path = output_dir / "query-route-embeddings.f32"
     if not route_index_path.exists() or not route_vectors_path.exists():
-        if manifest.get("artifact_version") != ARTIFACT_VERSION:
+        if not is_embedding_artifact_v1 and manifest.get("artifact_version") != ARTIFACT_VERSION:
             return manifest
         raise FileNotFoundError(route_index_path)
     route_index = json.loads(route_index_path.read_text(encoding="utf-8"))
-    route_count = int(manifest.get("route_count", route_index.get("route_count", 0)))
-    if route_count != int(route_index.get("route_count", 0)):
+    route_count = int(
+        manifest.get("query_route_count", manifest.get("route_count", route_index.get("route_count", route_index.get("count", 0))))
+    )
+    indexed_route_count = int(route_index.get("route_count", route_index.get("count", 0)))
+    if route_count != indexed_route_count:
         raise ValueError("Route count does not match manifest")
-    if route_index.get("dimension") != manifest["dimension"]:
+    if route_index.get("dimension") != dimension:
         raise ValueError("Route embedding dimension does not match manifest")
     if route_index.get("model_revision") not in {None, manifest.get("model_revision")}:
         raise ValueError("Route model revision does not match manifest")
-    if route_vectors_path.stat().st_size != route_count * manifest["dimension"] * 4:
+    if route_vectors_path.stat().st_size != route_count * dimension * 4:
         raise ValueError("Route embedding dimensions do not match manifest")
+    routes = route_index.get("routes")
+    if not isinstance(routes, list) or len(routes) != route_count:
+        raise ValueError("Query route index rows do not match manifest")
     return manifest
+
+
+def normalize_embedding_index(index: dict[str, Any], manifest: dict[str, Any]) -> dict[str, Any]:
+    """Expose both legacy and incoming row-based indexes through one API shape."""
+
+    normalized = dict(index)
+    normalized.setdefault(
+        "artifact_version",
+        manifest.get("artifact_version") or manifest.get("artifact_schema_version") or ARTIFACT_VERSION,
+    )
+    normalized.setdefault("dimension", int(manifest["dimension"]))
+    normalized.setdefault("dtype", "float32-le")
+    if "course_ids" not in normalized:
+        normalized["course_ids"] = _index_course_ids(index)
+    return normalized
+
+
+def _dataset_tag_from_artifact_dir(artifacts_dir: Path) -> str | None:
+    match = re.match(r"^(\d{4})-", artifacts_dir.name)
+    return match.group(1) if match else None
+
+
+def _canonical_source_for_artifact(artifacts_dir: Path) -> Path:
+    configured = os.environ.get("FJU_RECOMMENDER_CANONICAL_JSONL")
+    if configured:
+        return Path(configured)
+    tag = _dataset_tag_from_artifact_dir(artifacts_dir)
+    if not tag:
+        raise FileNotFoundError(
+            "Embedding catalog needs a full canonical catalog; set FJU_RECOMMENDER_CANONICAL_JSONL"
+        )
+    roots = [artifacts_dir.parents[1], Path.cwd()]
+    candidates = []
+    for root in roots:
+        candidates.extend(
+            sorted(
+                root.glob(f"tmp/*/data/canonical/course_outlines_{tag}.jsonl"),
+                key=lambda path: path.stat().st_mtime,
+                reverse=True,
+            )
+        )
+        candidates.extend(
+            [
+                root / "data" / "canonical" / f"course_outlines_{tag}.jsonl",
+                root / "canonical" / f"course_outlines_{tag}.jsonl",
+            ]
+        )
+    for candidate in dict.fromkeys(candidates):
+        if candidate.exists():
+            return candidate
+    raise FileNotFoundError(
+        "Full canonical catalog not found; set FJU_RECOMMENDER_CANONICAL_JSONL"
+    )
+
+
+def load_catalog_for_artifact(
+    artifacts_dir: Path,
+    manifest: dict[str, Any],
+    index: dict[str, Any],
+) -> list[dict[str, Any]]:
+    """Load the full application catalog for legacy or vector-only artifacts."""
+
+    raw_catalog = orjson.loads((artifacts_dir / "catalog.json").read_bytes())
+    catalog_courses = _catalog_courses(raw_catalog)
+    if isinstance(raw_catalog, list):
+        return [normalize_catalog_course_schema(item) for item in catalog_courses]
+
+    from .io import iter_jsonl
+
+    source = _canonical_source_for_artifact(artifacts_dir)
+    records = list(iter_jsonl(source) or [])
+    expected_ids = _index_course_ids(index)
+    catalog = [build_catalog_course(record) for record in records]
+    _compact_repeated_catalog_labels(catalog)
+    by_course_id = {str(item.get("course_id")): item for item in catalog}
+    if len(by_course_id) != len(catalog) or set(by_course_id) != set(expected_ids):
+        raise ValueError("Canonical catalog course IDs do not match embedding index")
+    catalog = [by_course_id[course_id] for course_id in expected_ids]
+    if len(catalog) != int(manifest["course_count"]):
+        raise ValueError("Canonical catalog count does not match artifact manifest")
+    return [normalize_catalog_course_schema(item) for item in catalog]
+
+
+def _route_identity(route: dict[str, Any]) -> str:
+    return str(route.get("id") or route.get("route_id") or "")
+
+
+def validate_derived_artifact(
+    base_dir: Path,
+    alternate_dir: Path,
+    *,
+    tolerance: float = 2e-6,
+) -> dict[str, Any]:
+    """Verify a 512 artifact is the declared projection of a 768 artifact."""
+
+    base_manifest = validate_artifacts(base_dir)
+    alternate_manifest = validate_artifacts(alternate_dir)
+    if int(base_manifest["dimension"]) != EMBEDDING_GEMMA_FULL_DIMENSION:
+        raise ValueError("Derived-vector base artifact must be 768-dimensional")
+    if int(alternate_manifest["dimension"]) != 512:
+        raise ValueError("Derived-vector alternate artifact must be 512-dimensional")
+    for key in ("model_revision", "tokenizer_revision", "provider", "dtype", "query_prompt_template"):
+        if base_manifest.get(key) != alternate_manifest.get(key):
+            raise ValueError(f"Derived artifacts disagree on {key}")
+    if base_manifest.get("model_id") != alternate_manifest.get("model_id"):
+        raise ValueError("Derived artifacts disagree on model_id")
+    if base_manifest["course_count"] != alternate_manifest["course_count"]:
+        raise ValueError("Derived artifacts disagree on course count")
+    if base_manifest.get("query_route_count") != alternate_manifest.get("query_route_count"):
+        raise ValueError("Derived artifacts disagree on query route count")
+    derived = alternate_manifest.get("derived_from") or {}
+    if derived.get("model_inference") is not False:
+        raise ValueError("512 artifact declares unexpected model inference")
+    base_index = json.loads((base_dir / "embedding-index.json").read_text(encoding="utf-8"))
+    alternate_index = json.loads((alternate_dir / "embedding-index.json").read_text(encoding="utf-8"))
+    if _index_course_ids(base_index) != _index_course_ids(alternate_index):
+        raise ValueError("Derived artifacts disagree on course row order")
+    base_routes = json.loads((base_dir / "query-route-index.json").read_text(encoding="utf-8"))
+    alternate_routes = json.loads((alternate_dir / "query-route-index.json").read_text(encoding="utf-8"))
+    if [_route_identity(route) for route in base_routes["routes"]] != [_route_identity(route) for route in alternate_routes["routes"]]:
+        raise ValueError("Derived artifacts disagree on query route order")
+
+    course_count = int(base_manifest["course_count"])
+    base_vectors = np.memmap(
+        base_dir / "course-embeddings.f32",
+        dtype="<f4",
+        mode="r",
+        shape=(course_count, EMBEDDING_GEMMA_FULL_DIMENSION),
+    )
+    alternate_vectors = np.memmap(
+        alternate_dir / "course-embeddings.f32",
+        dtype="<f4",
+        mode="r",
+        shape=(course_count, 512),
+    )
+    course_prefix = np.asarray(base_vectors[:, :512], dtype=np.float32)
+    course_expected = course_prefix / np.maximum(np.linalg.norm(course_prefix, axis=1, keepdims=True), 1e-12)
+    course_max_abs_diff = float(np.max(np.abs(np.asarray(alternate_vectors) - course_expected)))
+
+    route_count = int(base_manifest["query_route_count"])
+    base_route_vectors = np.memmap(
+        base_dir / "query-route-embeddings.f32",
+        dtype="<f4",
+        mode="r",
+        shape=(route_count, EMBEDDING_GEMMA_FULL_DIMENSION),
+    )
+    alternate_route_vectors = np.memmap(
+        alternate_dir / "query-route-embeddings.f32",
+        dtype="<f4",
+        mode="r",
+        shape=(route_count, 512),
+    )
+    route_prefix = np.asarray(base_route_vectors[:, :512], dtype=np.float32)
+    route_expected = route_prefix / np.maximum(np.linalg.norm(route_prefix, axis=1, keepdims=True), 1e-12)
+    route_max_abs_diff = float(np.max(np.abs(np.asarray(alternate_route_vectors) - route_expected)))
+    if course_max_abs_diff > tolerance or route_max_abs_diff > tolerance:
+        raise ValueError("512 artifact is not the normalized first-512 projection of the 768 artifact")
+    return {
+        "base_dimension": EMBEDDING_GEMMA_FULL_DIMENSION,
+        "alternate_dimension": 512,
+        "course_max_abs_diff": course_max_abs_diff,
+        "route_max_abs_diff": route_max_abs_diff,
+    }
 
 
 def _document_sections(record: dict[str, Any]) -> dict[str, str]:

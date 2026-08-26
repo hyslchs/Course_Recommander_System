@@ -1,0 +1,49 @@
+{
+  "count": 5,
+  "dimension": 768,
+  "dtype": "float32",
+  "embedding_file": "query-route-embeddings.f32",
+  "routes": [
+    {
+      "byte_length": 3072,
+      "byte_offset": 0,
+      "prompt": "task: search result | query: 課程推薦與相似課程",
+      "query_text": "課程推薦與相似課程",
+      "route_id": "general",
+      "row": 0
+    },
+    {
+      "byte_length": 3072,
+      "byte_offset": 3072,
+      "prompt": "task: search result | query: 課程目標與學習內容",
+      "query_text": "課程目標與學習內容",
+      "route_id": "objective",
+      "row": 1
+    },
+    {
+      "byte_length": 3072,
+      "byte_offset": 6144,
+      "prompt": "task: search result | query: 授課進度與每週主題",
+      "query_text": "授課進度與每週主題",
+      "route_id": "weekly_progress",
+      "row": 2
+    },
+    {
+      "byte_length": 3072,
+      "byte_offset": 9216,
+      "prompt": "task: search result | query: 先修課程與修課要求",
+      "query_text": "先修課程與修課要求",
+      "route_id": "prerequisite",
+      "row": 3
+    },
+    {
+      "byte_length": 3072,
+      "byte_offset": 12288,
+      "prompt": "task: search result | query: 學習技能與能力",
+      "query_text": "學習技能與能力",
+      "route_id": "skills",
+      "row": 4
+    }
+  ],
+  "schema_version": "fju_query_route_index_v1"
+}

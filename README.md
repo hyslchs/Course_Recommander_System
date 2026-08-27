@@ -76,7 +76,7 @@ pnpm build      # tsc -b && vite build -> frontend/dist
 Run the API in another terminal after generating artifacts:
 
 ```bash
-fju-outline-web --artifacts-dir data/artifacts/1151 --port 8080
+fju-outline-web --artifacts-dir /var/lib/crs/artifact-bundles/<immutable-bundle-id>/vector --port 8080
 ```
 
 The backend serves `frontend/dist` for every non-API route. If that directory is
@@ -140,14 +140,19 @@ Evaluate the relevance set after changing the embedding model or retrieval strat
 The report compares the dense baseline with the query-only hybrid RRF ranking:
 
 ```bash
-python -m fju_outline.evaluation --artifacts-dir data/artifacts/1151
+python -m fju_outline.evaluation --artifacts-dir /var/lib/crs/artifact-bundles/<immutable-bundle-id>/vector
 ```
 
 The production build is a single container:
 
 ```bash
-docker build -t fju-course-recommender .
-docker run --rm -p 8080:8080 fju-course-recommender
+# Verify a staged immutable bundle, then build with the external named context.
+export CRS_ARTIFACT_BUNDLE_DIR=/var/lib/crs/artifact-bundles/<immutable-bundle-id>
+python3 scripts/verify_artifact_bundle.py --bundle "$CRS_ARTIFACT_BUNDLE_DIR"
+docker compose -f compose.yaml -f compose.build.yaml build
+
+# Runtime Compose contains only the immutable image; it does not rebuild or download data.
+docker compose -f compose.yaml up -d --no-build
 ```
 
 ## AI course assistant
@@ -158,12 +163,13 @@ course contexts, then asks `gpt-5.6-luna` for a structured Traditional Chinese
 answer. The model can only recommend course IDs in those retrieved contexts;
 course details, warnings, and official links are filled from the local catalog.
 
-Copy `.env.example` to `.env`, add `OPENAI_API_KEY`, and start the API with that
-environment file (never commit `.env`):
+Copy `.env.example` to `.env`, add `OPENAI_API_KEY`, and start the already-built
+immutable image with Compose (never commit `.env`):
 
 ```bash
-copy .env.example .env
-docker run --rm --env-file .env -p 8080:8080 fju-course-recommender
+cp .env.example .env
+chmod 600 .env
+docker compose up -d --no-build
 ```
 
 The assistant limits questions to 500 characters, keeps only two recent turns

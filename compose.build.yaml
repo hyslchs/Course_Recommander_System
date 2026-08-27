@@ -1,0 +1,7 @@
+services:
+  crs-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      additional_contexts:
+        crs_artifacts: ${CRS_ARTIFACT_BUNDLE_DIR:?Set CRS_ARTIFACT_BUNDLE_DIR to an immutable artifact bundle directory}

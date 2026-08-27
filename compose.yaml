@@ -1,9 +1,8 @@
+name: crs-production
+
 services:
   crs-app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: crs-app
+    image: crs-course-recommender:2026-08-27-1151-egemma-r57c266a-c9935a9392ab
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:8080"
@@ -15,5 +14,5 @@ services:
       test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health/ready', timeout=3)\""]
       interval: 30s
       timeout: 5s
-      retries: 3
-      start_period: 40s
+      retries: 5
+      start_period: 180s

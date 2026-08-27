@@ -1,0 +1,69 @@
+{
+  "lock_schema_version": "crs_artifact_lock_v1",
+  "bundle_id": "1151-embeddinggemma-768-r57c266a-c9935a9392ab",
+  "canonical": {
+    "path": "canonical/course_outlines_1151.jsonl",
+    "sha256": "9935a9392ab6283566fe9cc57a2605e346a3e7a785a709be467eadb53e519762",
+    "bytes": 380687110,
+    "record_count": 4565
+  },
+  "artifact": {
+    "path": "vector",
+    "manifest_sha256": "cde92339d68d301ee05f2bfe8011efd98af5fce8560b2faeeb1fe3b758bc2c50",
+    "files": {
+      "catalog.json": {
+        "sha256": "2c18ccd1ca744855f02548c1935e39d7ebc98e5d0c6462f6738e085136410aeb",
+        "bytes": 27758414
+      },
+      "course-embeddings.f32": {
+        "sha256": "17b8e6b046dcd85ec8375d7764b1c1dcc4e82805b1dca1101bb01facd43c0434",
+        "bytes": 14023680
+      },
+      "embedding-index.json": {
+        "sha256": "dea6feed568e73b1d7835da1f2863003ee5e382b7d5be5f5d61928e9dcb9cfdd",
+        "bytes": 41178
+      },
+      "query-route-embeddings.f32": {
+        "sha256": "07500f021274eee2610c234a79c6202857b909f7c6300380796a8ca3f17b7a6a",
+        "bytes": 18432
+      },
+      "query-route-index.json": {
+        "sha256": "69267c8b91e25ffa057f20746f1b5de6586c0141d176163da9c188a3dfe8bf37",
+        "bytes": 692
+      }
+    }
+  },
+  "embedding": {
+    "model_id": "google/embeddinggemma-300m",
+    "model_revision": "57c266a740f537b4dc058e1b0cda161fd15afa75",
+    "tokenizer_revision": "57c266a740f537b4dc058e1b0cda161fd15afa75",
+    "dimension": 768,
+    "dtype": "float32",
+    "document_prompt_template": "title: {title} | text: {text}",
+    "document_prompt_version": "embeddinggemma-document-v1",
+    "query_prompt_template": "task: search result | query: {query}",
+    "query_prompt_version": "embeddinggemma-query-v1",
+    "schema_version": "fju_catalog_v4",
+    "route_ids": [
+      "capstone",
+      "internship",
+      "hands_on",
+      "beginner",
+      "career_goal",
+      "research"
+    ]
+  },
+  "provenance": {
+    "builder": "scripts/build_embedding_bundle.py",
+    "canonical_sha256": "9935a9392ab6283566fe9cc57a2605e346a3e7a785a709be467eadb53e519762",
+    "canonical_record_count": 4565,
+    "algorithm": "section-pooling-v1"
+  },
+  "build": {
+    "python": "3.11",
+    "torch": "2.13.0+cpu",
+    "sentence_transformers": "6.0.0",
+    "transformers": "5.15.1",
+    "batch_size": 64
+  }
+}

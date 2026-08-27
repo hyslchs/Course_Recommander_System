@@ -25,6 +25,9 @@ frontend/vite.config.d.ts
 data/raw/
 data/canonical/
 data/derived/
+data/artifacts/
+new-vector-data/
+artifact-bundles/
 logs/
 data/runtime/
 

@@ -20,7 +20,7 @@ from .eligibility import (
     infer_study_level,
     normalize_audience_department,
 )
-from .query_routes import build_route_embeddings, route_data
+from .query_routes import ROUTES, build_route_embeddings, route_data
 
 
 ARTIFACT_VERSION = "fju_recommender_v3"
@@ -42,6 +42,8 @@ EMBEDDING_GEMMA_MODEL = "google/embeddinggemma-300m"
 EMBEDDING_GEMMA_REVISION = "57c266a740f537b4dc058e1b0cda161fd15afa75"
 EMBEDDING_GEMMA_DOCUMENT_PROMPT = "title: {title} | text: {text}"
 EMBEDDING_GEMMA_QUERY_PROMPT = "task: search result | query: {query}"
+EMBEDDING_GEMMA_DOCUMENT_PROMPT_VERSION = "embeddinggemma-document-v1"
+EMBEDDING_GEMMA_QUERY_PROMPT_VERSION = "embeddinggemma-query-v1"
 EMBEDDING_GEMMA_FULL_DIMENSION = 768
 SECTION_WEIGHTS = {
     "objective": 0.45,
@@ -140,21 +142,33 @@ class EmbeddingGemmaEncoder:
         query_prompt_template: str,
         document_prompt_version: str | None = None,
         query_prompt_version: str | None = None,
+        device: str | None = None,
     ) -> None:
         if model_id != EMBEDDING_GEMMA_MODEL:
             raise ValueError(f"Unsupported EmbeddingGemma model: {model_id}")
+        if model_revision != EMBEDDING_GEMMA_REVISION:
+            raise ValueError("EmbeddingGemma model revision does not match the supported artifact")
+        if tokenizer_revision not in {None, EMBEDDING_GEMMA_REVISION}:
+            raise ValueError("EmbeddingGemma tokenizer revision does not match the model revision")
         if dimension not in {512, EMBEDDING_GEMMA_FULL_DIMENSION}:
             raise ValueError("EmbeddingGemma artifact dimension must be 512 or 768")
         if document_prompt_template != EMBEDDING_GEMMA_DOCUMENT_PROMPT:
             raise ValueError("EmbeddingGemma document prompt does not match the artifact")
         if query_prompt_template != EMBEDDING_GEMMA_QUERY_PROMPT:
             raise ValueError("EmbeddingGemma query prompt does not match the artifact")
+        if document_prompt_version not in {None, EMBEDDING_GEMMA_DOCUMENT_PROMPT_VERSION}:
+            raise ValueError("EmbeddingGemma document prompt version does not match the artifact")
+        if query_prompt_version not in {None, EMBEDDING_GEMMA_QUERY_PROMPT_VERSION}:
+            raise ValueError("EmbeddingGemma query prompt version does not match the artifact")
 
         import torch
         from sentence_transformers import SentenceTransformer
 
-        if not torch.cuda.is_available():
-            raise RuntimeError("CUDA is required for EmbeddingGemma inference")
+        self.device = _select_embedding_device(torch, device)
+        if self.device == "cpu":
+            self.cpu_threads = _configure_cpu_threads(torch)
+        else:
+            self.cpu_threads = None
 
         self.model_name = model_id
         self.model_id = model_id
@@ -163,12 +177,13 @@ class EmbeddingGemmaEncoder:
         self.dimension = dimension
         self.document_prompt_template = document_prompt_template
         self.query_prompt_template = query_prompt_template
-        self.document_prompt_version = document_prompt_version or ""
-        self.query_prompt_version = query_prompt_version or ""
+        self.document_prompt_version = document_prompt_version or EMBEDDING_GEMMA_DOCUMENT_PROMPT_VERSION
+        self.query_prompt_version = query_prompt_version or EMBEDDING_GEMMA_QUERY_PROMPT_VERSION
         self._model = SentenceTransformer(
             model_id,
             revision=model_revision,
-            device="cuda",
+            device=self.device,
+            local_files_only=_offline_model_loading_enabled(),
         )
         self._model.to(dtype=torch.float32)
         config = getattr(self._model, "_first_module", lambda: None)()
@@ -189,6 +204,8 @@ class EmbeddingGemmaEncoder:
         )
         if values.ndim != 2 or values.shape[1] != EMBEDDING_GEMMA_FULL_DIMENSION:
             raise RuntimeError("EmbeddingGemma produced an unexpected vector dimension")
+        if not np.isfinite(values).all():
+            raise RuntimeError("EmbeddingGemma produced non-finite vector values")
         values = values[:, : self.dimension]
         norms = np.linalg.norm(values, axis=1, keepdims=True)
         return (values / np.maximum(norms, 1e-12)).astype(np.float32)
@@ -241,6 +258,43 @@ def encoder_from_manifest(manifest: dict[str, Any]) -> Encoder:
         str(model_id),
         revision=manifest.get("model_revision"),
     )
+
+
+def _select_embedding_device(torch_module: Any, requested: str | None = None) -> str:
+    """Select a real torch device without pretending CPU has CUDA."""
+
+    value = (requested or os.environ.get("FJU_EMBEDDING_DEVICE", "auto")).strip().lower()
+    if value in {"", "auto"}:
+        return "cuda" if torch_module.cuda.is_available() else "cpu"
+    if value == "cpu":
+        return "cpu"
+    if value == "cuda" or value.startswith("cuda:"):
+        if not torch_module.cuda.is_available():
+            raise RuntimeError("FJU_EMBEDDING_DEVICE requests CUDA, but CUDA is unavailable")
+        return value
+    raise ValueError("FJU_EMBEDDING_DEVICE must be auto, cpu, or cuda[:index]")
+
+
+def _configure_cpu_threads(torch_module: Any) -> int:
+    default = min(os.cpu_count() or 1, 8)
+    try:
+        threads = int(os.environ.get("FJU_EMBEDDING_THREADS", str(default)))
+    except (TypeError, ValueError):
+        threads = default
+    threads = max(1, min(threads, 64))
+    torch_module.set_num_threads(threads)
+    try:
+        torch_module.set_num_interop_threads(max(1, min(2, threads)))
+    except RuntimeError:
+        # PyTorch only permits changing inter-op threads before parallel work;
+        # retaining its existing value is safe for an already-initialized test
+        # process and does not alter the selected device.
+        pass
+    return threads
+
+
+def _offline_model_loading_enabled() -> bool:
+    return os.environ.get("HF_HUB_OFFLINE", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def build_artifacts(
@@ -767,8 +821,11 @@ def validate_artifacts(output_dir: Path, *, verify_hashes: bool = True) -> dict[
             raise ValueError("EmbeddingGemma artifact dimension must be 512 or 768")
         if "L2 normalization" not in str(manifest.get("normalization", "")):
             raise ValueError("Artifact manifest does not declare L2 normalization")
-        if int(manifest.get("query_route_count", 0)) != 5:
-            raise ValueError("EmbeddingGemma artifact must contain five query routes")
+        expected_route_ids = [str(route["id"]) for route in ROUTES]
+        if int(manifest.get("query_route_count", 0)) != len(expected_route_ids):
+            raise ValueError(
+                "EmbeddingGemma artifact route count does not match the source route definition"
+            )
         if int(manifest["dimension"]) == 512:
             derived = manifest.get("derived_from") or {}
             if (
@@ -831,6 +888,13 @@ def validate_artifacts(output_dir: Path, *, verify_hashes: bool = True) -> dict[
     routes = route_index.get("routes")
     if not isinstance(routes, list) or len(routes) != route_count:
         raise ValueError("Query route index rows do not match manifest")
+    if is_embedding_artifact_v1:
+        expected_route_ids = [str(route["id"]) for route in ROUTES]
+        actual_route_ids = [
+            str(route.get("route_id") or route.get("id") or "") for route in routes
+        ]
+        if actual_route_ids != expected_route_ids:
+            raise ValueError("Query route IDs/order do not match the source route definition")
     return manifest
 
 

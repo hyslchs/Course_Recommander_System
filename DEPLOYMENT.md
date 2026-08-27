@@ -20,9 +20,9 @@ Docker 容器 (crs-app / FastAPI + React SPA + SentenceTransformer)
 ```
 
 - **公開網址**：`https://crs.sixhuang.com`
-- **專案路徑**：`/home/hyslchs/Course_Recommander_System`
+- **專案路徑**：`/home/hyslchs/CourseRecommanderSystem`
 - **本機監聽**：`127.0.0.1:8080`（未對外公開 8080，透過 Tunnel 反向代理存取）
-- **應用技術**：FastAPI、SentenceTransformer (`intfloat/multilingual-e5-small`)、React SPA (Vite)
+- **應用技術**：FastAPI、SentenceTransformer (`google/embeddinggemma-300m`, CPU-only)、React SPA (Vite)
 
 ---
 
@@ -31,21 +31,28 @@ Docker 容器 (crs-app / FastAPI + React SPA + SentenceTransformer)
 `.env` 位於專案根目錄，權限建議維持 `600` (`chmod 600 .env`)。
 需包含以下環境變數（**注意：請勿將 API 密鑰提交至版本控制**）：
 
-| 變數名稱 | 說明 | 範例 / 預設值 |
+| 變數名稱 | 說明 | 正式值／預設 |
 |---|---|---|
-| `OPENAI_API_KEY` | OpenAI API 金鑰（用於 AI 助理功能） | `sk-...` |
-| `FJU_QUERY_PLANNER_URL` | Query Planner API 端點 | `https://api.openai.com/v1/chat/completions` |
-| `FJU_QUERY_PLANNER_MODEL` | Query Planner 模型 | `gpt-5-nano` |
-| `FJU_QUERY_PLANNER_REASONING_EFFORT` | 推理強度 | `low` |
-| `FJU_QUERY_PLANNER_MAX_COMPLETION_TOKENS` | 最大 token 數 | `800` |
-| `FJU_QUERY_PLANNER_TIMEOUT_SECONDS` | 超時時間（秒） | `20` |
-| `FJU_ANALYTICS_ENABLED` | 是否啟用使用統計（`0` 完全關閉） | `1` |
-| `FJU_ANALYTICS_DB` | 統計資料庫路徑（掛載在 `data/runtime`） | `data/runtime/analytics.sqlite3` |
-| `FJU_ANALYTICS_EVENT_RETENTION_DAYS` | 原始事件保存天數 | `180` |
-| `FJU_ANALYTICS_DIAGNOSTIC_RETENTION_DAYS` | API 效能／錯誤事件保存天數 | `90` |
-| `FJU_ANALYTICS_ID_RETENTION_DAYS` | session_id／interaction_id 保存天數，之後清空 | `7` |
-| `FJU_ANALYTICS_REQUESTS_PER_MINUTE` | 每個來源每分鐘可送出的批次數 | `60` |
-| `FJU_ANALYTICS_ADMIN_TOKEN` | 讀取分析報表所需權杖；**未設定即無法讀取** | （空） |
+| `OPENAI_API_KEY` | OpenAI API 金鑰；只存在 `.env`，不進 image | （保留既有值） |
+| `FJU_RECOMMENDER_ARTIFACTS_DIR` | 容器內 artifact 絕對路徑 | `/app/data/artifacts/1151-embeddinggemma-768` |
+| `FJU_RECOMMENDER_CANONICAL_JSONL` | 容器內完整 canonical catalog 絕對路徑 | `/app/data/canonical/course_outlines_1151.jsonl` |
+| `FJU_VERIFY_ARTIFACT_HASHES` | 啟用 manifest hash、尺寸與 index 驗證 | `1` |
+| `FJU_EMBEDDING_DEVICE` | EmbeddingGemma 推論裝置 | `cpu` |
+| `FJU_EMBEDDING_THREADS` | CPU inference 執行緒上限 | `8` |
+| `HF_HUB_OFFLINE` | 啟動後禁止即時模型下載 | `1` |
+| `FJU_AI_MODEL` | AI 助理模型 | `gpt-5.6-luna` |
+| `FJU_AI_REASONING_EFFORT` | AI 推理強度 | `none` |
+| `FJU_AI_MAX_OUTPUT_TOKENS` | AI 回覆 token 上限 | `1000` |
+| `FJU_AI_MONTHLY_REQUEST_LIMIT` | 每月 provider call 上限 | `10000` |
+| `FJU_AI_REQUESTS_PER_MINUTE` | 每個來源每分鐘請求上限 | `10` |
+| `FJU_AI_TIMEOUT_SECONDS` | AI provider timeout | `25` |
+| `FJU_AI_MODERATION_ENABLED` | 啟用 moderation | `1` |
+| `FJU_AI_USAGE_DB` | AI usage DB（runtime volume） | `/app/data/runtime/ai-usage.sqlite3` |
+| `FJU_ANALYTICS_ENABLED` | Analytics 開關；目前明確關閉 | `0` |
+| `FJU_ANALYTICS_DB` | Analytics DB（runtime volume） | `/app/data/runtime/analytics.sqlite3` |
+| `FJU_ANALYTICS_ADMIN_TOKEN` | 報表權杖；不建立、不更換 | （保留既有值） |
+
+舊版 `FJU_QUERY_PLANNER_*` 變數先保留以避免影響既有環境；新版程式不再使用它們。舊的 model／reasoning／token／timeout 設定沒有完全一對一對應，已依 `.env.example` 採用新版安全預設；舊的 URL 不再需要，因 AI 助理使用 OpenAI SDK 與 `OPENAI_API_KEY`。
 
 ---
 
@@ -54,7 +61,7 @@ Docker 容器 (crs-app / FastAPI + React SPA + SentenceTransformer)
 所有指令請在專案目錄下執行：
 
 ```bash
-cd /home/hyslchs/Course_Recommander_System
+cd /home/hyslchs/CourseRecommanderSystem
 ```
 
 ### 啟動服務
@@ -93,15 +100,20 @@ docker compose restart
 當前端程式碼、後端邏輯或 artifacts 資料更新時，依以下步驟重新建置與部署：
 
 ```bash
-cd /home/hyslchs/Course_Recommander_System
+cd /home/hyslchs/CourseRecommanderSystem
 
-# 1. 重新建置 Docker 映像檔
-docker compose build
+# The artifact bundle is provisioned outside Git and contains vector data,
+# canonical JSONL, bundle-lock.json, and the offline model cache.
+export CRS_ARTIFACT_BUNDLE_DIR=/var/lib/crs/artifact-bundles/<immutable-bundle-id>
+python3 scripts/verify_artifact_bundle.py --bundle "$CRS_ARTIFACT_BUNDLE_DIR"
 
-# 2. 重新建立並無縫套用容器
-docker compose up -d
+# BuildKit named context copies only the verified bundle into the image.
+docker compose -f compose.yaml -f compose.build.yaml build
 
-# 3. 檢查容器狀態與健康度
+# Runtime Compose uses the just-built immutable local tag; do not trigger a second build.
+docker compose -f compose.yaml up -d --no-build
+
+# Check status and readiness.
 docker compose ps
 curl -s http://127.0.0.1:8080/health/ready
 ```
@@ -312,12 +324,9 @@ curl -s --connect-timeout 3 http://140.136.153.101:8080
 3. 至 Cloudflare Zero Trust Dashboard 確認 Tunnel `crs-linux-server` 狀態為 Healthy。
 
 ### 症狀 3：回滾至前一版本
-若更新後發生未預期錯誤需回滾：
+回滾只切換到已存在的 immutable image tag，不修改 git 工作樹：
 ```bash
-# 1. 檢視或還原程式碼變更
-git checkout <PREVIOUS_COMMIT>  # 若有使用 git
-
-# 2. 重新建置並啟動
-docker compose build
-docker compose up -d
+cd /home/hyslchs/CourseRecommanderSystem
+# 將 compose.yaml 的 image 改為已驗證的上一個本機 tag，再執行：
+docker compose up -d --no-build
 ```

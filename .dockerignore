@@ -7,6 +7,9 @@ frontend/dist
 data/raw
 data/canonical
 data/derived
+data/artifacts
+new-vector-data
+data/runtime
 logs
 **/.env
 **/.env.*

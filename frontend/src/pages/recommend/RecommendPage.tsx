@@ -110,6 +110,16 @@ export function RecommendPage() {
   // Desktop keeps applying immediately, just like the persistent sidebar. The
   // dialog is a roomier view of the same committed state, not a second draft.
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const fullFilterReturnFocus = useRef<HTMLButtonElement | null>(null);
+  useEffect(() => {
+    if (filterDialogOpen) return;
+    const target = fullFilterReturnFocus.current;
+    if (!target) return;
+    const timer = window.setTimeout(() => {
+      if (target.isConnected) target.focus();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [filterDialogOpen]);
   const [lastEmbedding, setLastEmbedding] = useState<RecommendationEmbedding>();
   const [results, setResults] = useState<Recommendation[]>([]);
   const [candidateCount, setCandidateCount] = useState(0);
@@ -239,8 +249,15 @@ export function RecommendPage() {
     applyFilters(clearFilters(filters), { silent: true });
   };
   const openFullFilters = () => {
+    const activeElement = document.activeElement;
+    fullFilterReturnFocus.current = activeElement instanceof HTMLButtonElement ? activeElement : null;
     track("feature_clicked", { feature: "open_full_filter" });
     setFilterDialogOpen(true);
+  };
+  const closeFullFilters = () => {
+    const target = fullFilterReturnFocus.current;
+    setFilterDialogOpen(false);
+    if (target?.isConnected) target.focus();
   };
   const openFilterSheet = () => {
     track("feature_clicked", { feature: "open_filter_drawer" });
@@ -482,7 +499,7 @@ export function RecommendPage() {
         closeLabel="關閉完整篩選"
         open={filterDialogOpen}
         title="完整篩選條件"
-        onClose={() => setFilterDialogOpen(false)}
+        onClose={closeFullFilters}
       >
         <div className="recommend-filter-modal-summary">
           <span><strong>{filterCount}</strong> 項條件已即時套用</span>

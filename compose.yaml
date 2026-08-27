@@ -2,7 +2,7 @@ name: crs-production
 
 services:
   crs-app:
-    image: crs-course-recommender:2026-08-27-1151-egemma-r57c266a-c9935a9392ab-g2ca6640
+    image: ${CRS_IMAGE_TAG:-crs-course-recommender:2026-08-27-1151-egemma-r57c266a-c9935a9392ab-g2ca6640}
     restart: unless-stopped
     ports:
       - "127.0.0.1:8080:8080"

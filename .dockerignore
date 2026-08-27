@@ -13,3 +13,9 @@ data/runtime
 logs
 **/.env
 **/.env.*
+
+# Local-only audit/deployment notes and generated artifacts
+SECURITY_AUDIT.md
+recommendation-architecture.html
+.whl
+artifact-bundles

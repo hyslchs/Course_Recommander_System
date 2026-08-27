@@ -39,8 +39,9 @@ const assistantFieldLabels: Record<string, string> = {
  */
 const PREREQUISITE_LABEL = "有擋修條件";
 
-export function dcardCourseSearchUrl(courseName: string): string {
-  return `https://www.dcard.tw/search?tab=latest&query=${encodeURIComponent(courseName)}&forum=fju`;
+export function dcardCourseSearchUrl(courseName: string, teacher = ""): string {
+  const query = [courseName, teacher].map((value) => value.trim()).filter(Boolean).join(" ");
+  return `https://www.dcard.tw/search?forum=fju&query=${encodeURIComponent(query)}&tab=latest`;
 }
 
 function ExpandableText({ value }: { value: string }) {
@@ -311,7 +312,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
         <Button className="quiet min-h-11" isPending={pending === "dismiss"} onPress={() => void dismiss()} variant="ghost">
           {pending === "dismiss" ? "處理中…" : "不感興趣"}
         </Button>
-        <a className="dcard-review-link button-link" href={dcardCourseSearchUrl(selectedCourse.name_zh)} rel="noreferrer" target="_blank" onClick={() => { track("feature_clicked", { feature: "open_dcard_reviews" }); recordRecommendationClick(); }}><span>到 Dcard 查詢課程評價</span><ArrowSquareOut aria-hidden="true" /></a>
+        <a className="dcard-review-link button-link" href={dcardCourseSearchUrl(selectedCourse.name_zh, selectedCourse.teacher)} rel="noreferrer" target="_blank" onClick={() => { track("feature_clicked", { feature: "open_dcard_reviews" }); recordRecommendationClick(); }}><span>到 Dcard 查詢課程評價</span><ArrowSquareOut aria-hidden="true" /></a>
       </Card.Footer>
       <ConfirmDialog busy={pending === "schedule"} confirmLabel="仍要加入" description={<p>{conflictRequest?.message}</p>} onCancel={cancelConflict} onConfirm={keepConflict} open={Boolean(conflictRequest)} title="確認加入課表" />
     </Card>

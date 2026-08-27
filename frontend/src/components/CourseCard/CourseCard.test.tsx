@@ -150,8 +150,12 @@ describe("CourseCard", () => {
     expect(screen.getByRole("button", { name: "加入 我的課表" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "標記已修" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "不感興趣" })).toBeEnabled();
-    expect(screen.getByRole("link", { name: "到 Dcard 查詢課程評價" })).toHaveAttribute("href", dcardCourseSearchUrl("機器學習概論"));
+    expect(screen.getByRole("link", { name: "到 Dcard 查詢課程評價" })).toHaveAttribute("href", dcardCourseSearchUrl("機器學習概論", "王老師"));
     expect(screen.getByRole("link", { name: "到 Dcard 查詢課程評價" })).toHaveAttribute("target", "_blank");
+  });
+
+  it("encodes the course and teacher as one Dcard search query with a space", () => {
+    expect(dcardCourseSearchUrl("大數據資料分析與應用", "杜海倫")).toBe("https://www.dcard.tw/search?forum=fju&query=%E5%A4%A7%E6%95%B8%E6%93%9A%E8%B3%87%E6%96%99%E5%88%86%E6%9E%90%E8%88%87%E6%87%89%E7%94%A8%20%E6%9D%9C%E6%B5%B7%E5%80%AB&tab=latest");
   });
 
   it("shows syllabus evidence behind a disclosure rather than a bare details element", async () => {

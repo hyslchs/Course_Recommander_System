@@ -131,22 +131,6 @@ export function PrivacyPage() {
 
       <Card className="data-card mt-4">
         <Card.Header>
-          <Card.Title render={asHeading2}>第三方服務</Card.Title>
-        </Card.Header>
-        <Card.Content className="flex flex-col gap-2">
-          <p>
-            使用統計由本系統自行儲存在校內主機上，沒有導入 Google Analytics、Mixpanel、
-            Amplitude、Clarity 等任何第三方分析服務，也沒有任何廣告追蹤程式。
-          </p>
-          <p>
-            對外的網路連線只有兩種：Cloudflare（連線代理），以及當你主動點選課程卡片上的
-            「到 Dcard 查詢課程評價」時開啟的 Dcard 網站。
-          </p>
-        </Card.Content>
-      </Card>
-
-      <Card className="data-card mt-4">
-        <Card.Header>
           <Card.Title render={asHeading2}>你可以關閉使用統計</Card.Title>
           <Card.Description>關閉後，這台裝置不會再送出任何統計事件。網站的所有功能都不受影響。</Card.Description>
         </Card.Header>

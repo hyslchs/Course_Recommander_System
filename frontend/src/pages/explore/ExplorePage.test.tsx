@@ -212,10 +212,15 @@ describe("ExplorePage — layout switches at lg", () => {
 });
 
 describe("ExplorePage — complete filter dialog", () => {
-  it("opens the shared complete filter dialog and returns focus to its trigger", async () => {
+  it("saves the draft filters, closes the dialog, and re-renders tagged results", async () => {
     const user = userEvent.setup();
-    apiMocks.getFacets.mockResolvedValue({ credits: [{ value: "3", label: "3 學分" }] });
-    respondWith([course()]);
+    const items = [
+      course({ course_id: "CS101", name_zh: "三學分課", credits: 3 }),
+      course({ course_id: "CS102", name_zh: "二學分課", credits: 2 }),
+    ];
+    apiMocks.getFacets.mockResolvedValue({ credits: [{ value: "2", label: "2 學分" }, { value: "3", label: "3 學分" }] });
+    apiMocks.getCatalog.mockResolvedValue(items);
+    respondWith(items);
     renderPage();
 
     const trigger = await screen.findByRole("button", { name: "完整篩選條件" });
@@ -225,15 +230,58 @@ describe("ExplorePage — complete filter dialog", () => {
     for (const group of ["時間與課表", "課程條件", "上課方式", "評量方式"]) {
       expect(within(dialog).getByRole("button", { name: new RegExp(group) })).toBeInTheDocument();
     }
-    expect(dialog.querySelector(".recommend-filter-modal-summary")).toHaveTextContent("0 項條件已即時套用");
+    expect(dialog.querySelector(".recommend-filter-modal-summary")).toHaveTextContent("0 項條件待保存");
 
     await user.click(within(dialog).getByRole("button", { name: "3 學分", pressed: false }));
-    expect(dialog.querySelector(".recommend-filter-modal-summary")).toHaveTextContent("1 項條件已即時套用");
-    expect(trigger).toHaveTextContent("完整篩選條件 · 已套用 1 項");
+    expect(dialog.querySelector(".recommend-filter-modal-summary")).toHaveTextContent("1 項條件待保存");
+    expect(trigger).toHaveTextContent("完整篩選條件");
 
-    await user.keyboard("{Escape}");
+    await user.click(within(dialog).getByRole("button", { name: "保存" }));
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "完整篩選條件" })).not.toBeInTheDocument());
     expect(trigger).toHaveFocus();
+    const appliedFilters = screen.getByRole("region", { name: "已套用的篩選條件" });
+    expect(within(appliedFilters).getByText("已套用 1 項條件")).toBeInTheDocument();
+    expect(within(appliedFilters).getByText("3 學分")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "三學分課" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { level: 2, name: "二學分課" })).not.toBeInTheDocument();
+  });
+});
+
+describe("ExplorePage — mobile high-cardinality filter controls", () => {
+  const manyDepartments = Array.from({ length: 13 }, (_, index) => ({ value: `department-${index + 1}`, label: `系所 ${index + 1}` }));
+  const manyTeachers = Array.from({ length: 13 }, (_, index) => ({ value: `teacher-${index + 1}`, label: `老師 ${index + 1}` }));
+
+  it("uses search-first controls for every large multi-select on mobile", async () => {
+    const user = userEvent.setup();
+    apiMocks.getFacets.mockResolvedValue({ departments: manyDepartments, teachers: manyTeachers });
+    respondWith([course()]);
+    renderPage();
+
+    const trigger = await screen.findByRole("button", { name: "完整篩選條件" });
+    await user.click(trigger);
+    const dialog = within(await screen.findByRole("dialog", { name: "完整篩選條件" }));
+
+    expect(dialog.getByRole("checkbox", { name: "系所 1" })).toBeInTheDocument();
+    expect(dialog.getByRole("checkbox", { name: "老師 1" })).toBeInTheDocument();
+    expect(dialog.getAllByText("輸入關鍵字開始搜尋，也可以直接瀏覽下方選項")).toHaveLength(2);
+
+    await user.type(dialog.getByPlaceholderText("搜尋開課單位"), "系所 13");
+    expect(await dialog.findByRole("checkbox", { name: "系所 13" })).toBeInTheDocument();
+  });
+
+  it("keeps the complete option lists on desktop", async () => {
+    setViewport(true);
+    apiMocks.getFacets.mockResolvedValue({ departments: manyDepartments, teachers: manyTeachers });
+    respondWith([course()]);
+    renderPage();
+
+    const trigger = await screen.findByRole("button", { name: "完整篩選條件" });
+    await userEvent.setup().click(trigger);
+    const dialog = within(await screen.findByRole("dialog", { name: "完整篩選條件" }));
+
+    expect(dialog.getByRole("checkbox", { name: "系所 1" })).toBeInTheDocument();
+    expect(dialog.getByRole("checkbox", { name: "老師 1" })).toBeInTheDocument();
+    expect(dialog.queryByText("輸入關鍵字開始搜尋")).not.toBeInTheDocument();
   });
 });
 

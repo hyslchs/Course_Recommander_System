@@ -691,6 +691,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .recommend-full-filter-button{display:none}
 @media (min-width:1024px){.recommend-full-filter-button{display:inline-flex}}
 .applied-filter-note{color:var(--muted);font-size:.9375rem}
+.explore-applied-filters{display:flex;flex-direction:column;align-items:stretch;gap:.6rem;margin-bottom:1rem;padding:.75rem .85rem;border:1px solid var(--border-strong);border-radius:14px;background:var(--surface);color:var(--surface-foreground)}
+.explore-applied-filters .applied-filter-tags{display:flex;flex-direction:column;gap:.4rem;min-width:0}
+.explore-applied-filters .applied-filter-tags .label{margin:0;color:var(--accent);font-weight:700}
+.explore-applied-filters .tag-group__list{display:flex;align-items:flex-start;gap:.5rem;flex-wrap:wrap;min-width:0}
+.explore-applied-filters .tag{flex:0 1 auto;max-width:100%;min-height:2.75rem;padding-inline-end:.25rem;font-size:.9375rem;overflow-wrap:break-word;line-break:strict;word-break:normal;white-space:normal}
+
+.explore-filter-modal-actions{display:flex;justify-content:flex-end;margin-bottom:.5rem}
 
 /* --- Filter panel, shared by the sidebar and the sheet. ------------------ */
 /* `color` alongside the layout: every surface on this page has to re-establish
@@ -752,7 +759,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .filter-option-row:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:1px}
 .filter-option-row input{width:1.15rem;height:1.15rem;accent-color:var(--accent)}
 .filter-option-row>span{display:flex;min-width:0;flex-direction:column;overflow-wrap:anywhere}
-.filter-option-row small,.filter-no-options{color:var(--muted);font-size:.875rem}
+.filter-option-row small,.filter-no-options,.filter-search-first-hint{color:var(--muted);font-size:.875rem}
+.filter-search-first-hint{margin:0;padding:.65rem .45rem;line-height:1.6}
 .filter-inline-clear{align-self:flex-start;min-height:2.75rem;padding:.35rem 0;border:0;background:none;color:var(--accent);font:inherit;font-weight:700}
 .section-chips .toggle-button{display:flex;min-width:3.5rem;flex-direction:column;gap:0;line-height:1.2}
 .section-chips .toggle-button small{font-size:.75rem;font-weight:400}
@@ -760,7 +768,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .percentage-slider>span{display:flex;justify-content:space-between;color:var(--surface-foreground);font-size:.9375rem}
 .percentage-slider output{font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent)}
 .percentage-slider input{width:100%;min-height:2.75rem;accent-color:var(--accent)}
-@media (max-width:1023px){.filter-option-list{max-height:none;overflow:visible}}
+@media (max-width:1023px){.filter-option-list{max-height:none;overflow:visible}.filter-option-list--search-first{max-height:12rem;overflow:auto;overscroll-behavior:contain}}
 /* === T33 recommend page — end ============================================== */
 /* === T35 schedule workspace — begin =======================================
    Appended, never edited in place: the minified block far above is legacy

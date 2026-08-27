@@ -47,6 +47,7 @@ export interface ClassGroupQuery {
 /** Query keys are hashed structurally, so plain objects and arrays are stable keys. */
 export const queryKeys = {
   facets: ["facets"] as const,
+  catalog: ["catalog"] as const,
   departmentCatalog: ["department-catalog"] as const,
   features: ["features"] as const,
   classGroups: (params: ClassGroupQuery | null) => ["class-groups", params] as const,
@@ -68,6 +69,11 @@ function toSearchParams(query: CourseQuery): URLSearchParams {
 /** Shared by RecommendPage and ExplorePage; one cache entry means one request. */
 export function useFacets() {
   return useQuery({ queryKey: queryKeys.facets, queryFn: () => getFacets(), ...referenceData });
+}
+
+/** The full catalogue is loaded only by views that need client-side metadata filtering. */
+export function useCatalog(enabled = true) {
+  return useQuery({ queryKey: queryKeys.catalog, queryFn: () => getCatalog(), enabled, ...referenceData });
 }
 
 export function useDepartmentCatalog() {

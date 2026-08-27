@@ -9,27 +9,39 @@ import {
   Pagination,
   SearchField,
   Select,
+  Tag,
+  TagGroup,
   type SortDescriptor,
 } from "@heroui/react";
 import { FunnelSimple } from "@phosphor-icons/react";
-import { useCourses, useFacets } from "@/data/queries";
+import { useCatalog, useCourses, useCoursesByIds, useFacets } from "@/data/queries";
 import { newInteractionId, track } from "@/analytics/client";
 import { nextSearchStep, type SearchFlowState } from "@/analytics/searchFlow";
 import { getHighCreditOptions } from "@/domain/creditFilter";
-import { evaluateEligibility } from "@/domain/eligibility";
+import { courseConflicts, evaluateEligibility, meetingsConflict } from "@/domain/eligibility";
+import { matchesAdvancedCourseFilters } from "@/domain/courseFilters";
 import { filterDepartmentOptions, type DepartmentOption } from "@/domain/departmentOptions";
+import { classifyRecommendationCategory, matchesTimeOfDayFilter } from "@/domain/recommendation";
 import { weekdayLabels } from "@/domain/schedule";
+import { coursesInPlan, meetingsInPlan } from "@/domain/scheduleUtils";
 import { useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { CourseCard } from "@/components/CourseCard";
 import { NumberTicker } from "@/components/motion/NumberTicker";
 import { EmptyState, LoadingSkeleton, Modal, StateAlert } from "@/components/ui";
 import { FilterPanel, type FacetOption } from "@/pages/recommend/FilterPanel";
-import { activeFilterCount, clearFilters, createFilters, type RecommendFilters } from "@/pages/recommend/filterState";
+import {
+  activeFilterCount,
+  appliedFilterTags,
+  clearFilters,
+  createFilters,
+  removeAppliedFilters,
+  type RecommendFilters,
+} from "@/pages/recommend/filterState";
 import { CourseTable, CourseTableSkeleton, type CourseRow } from "./CourseTable";
 import { useLayoutSwitchFocus } from "./useLayoutSwitchFocus";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
-import type { CompletedCourse } from "@/domain/types";
+import type { CompletedCourse, Course, Profile } from "@/domain/types";
 
 const PAGE_SIZE = 25;
 
@@ -82,6 +94,65 @@ function toDepartmentOption(facet: DepartmentFacet): DepartmentOption {
   };
 }
 
+function createExploreFilters(): RecommendFilters {
+  return {
+    ...createFilters([]),
+    categoryFilters: [],
+    showOtherWeekdays: true,
+  };
+}
+
+function courseSearchText(course: Course): string {
+  return [
+    course.name_zh,
+    course.name_en,
+    course.ava_no,
+    course.teacher,
+    course.teacher_en,
+    course.department,
+    course.department_display,
+    course.official_department_label,
+    course.division,
+  ].filter(Boolean).join(" ").toLocaleLowerCase("zh-Hant");
+}
+
+function matchesExploreQuery(course: Course, query: string, department: string | null, weekday: string | null): boolean {
+  const normalizedQuery = query.trim().toLocaleLowerCase("zh-Hant");
+  if (normalizedQuery && !courseSearchText(course).includes(normalizedQuery)) return false;
+  const courseDepartment = course.department_identity || course.department;
+  if (department && courseDepartment !== department) return false;
+  const weekdayNumber = Number(weekday);
+  if (weekdayNumber && !course.meetings.some((meeting) => meeting.weekday === weekdayNumber)) return false;
+  return true;
+}
+
+function matchesExploreFilters(
+  course: Course,
+  filters: RecommendFilters,
+  profile: Profile | undefined,
+  scheduledCourses: Course[],
+  scheduledMeetings: Course["meetings"],
+): boolean {
+  const broadTime = filters.classTime.mode === "broad"
+    ? filters.classTime.value
+    : filters.classTime.mode === "sections" ? "all" : filters.timeOfDayFilter ?? "all";
+  if (!matchesTimeOfDayFilter(course, broadTime, filters.includeUnknownSchedule)) return false;
+
+  const knownMeetings = course.meetings.filter((meeting) => meeting.weekday !== null);
+  if (!filters.showOtherWeekdays && filters.preferredWeekdays.length > 0) {
+    if (!knownMeetings.length && filters.includeUnknownSchedule !== true) return false;
+    if (knownMeetings.some((meeting) => !filters.preferredWeekdays.includes(meeting.weekday!))) return false;
+  }
+  if (filters.includeScheduleInfo
+    && (courseConflicts(course, scheduledCourses).conflict
+      || meetingsConflict(course.meetings, scheduledMeetings).conflict)) return false;
+  if (!matchesAdvancedCourseFilters(course, filters)) return false;
+  if (filters.creditFilters.length > 0 && (course.credits === null || !filters.creditFilters.includes(course.credits))) return false;
+  if (filters.courseTagFilters.length > 0 && !(course.course_tags ?? []).some((tag) => filters.courseTagFilters.includes(tag.code))) return false;
+  if (filters.categoryFilters.length > 0 && !filters.categoryFilters.includes(classifyRecommendationCategory(course, profile))) return false;
+  return true;
+}
+
 export function ExplorePage() {
   const facetsQuery = useFacets();
   const profile = useProfile();
@@ -95,13 +166,25 @@ export function ExplorePage() {
   const [department, setDepartment] = useState<string | null>(null);
   const [weekday, setWeekday] = useState<string | null>(null);
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<RecommendFilters>(() => ({
-    ...createFilters([]),
-    categoryFilters: [],
-    showOtherWeekdays: true,
-  }));
+  const [filters, setFilters] = useState<RecommendFilters>(createExploreFilters);
+  const [draftFilters, setDraftFilters] = useState<RecommendFilters>(createExploreFilters);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
   const fullFilterReturnFocus = useRef<HTMLButtonElement | null>(null);
+  const filterCount = activeFilterCount(filters);
+  const catalogQuery = useCatalog(filterCount > 0);
+  const scheduledCourseIds = useMemo(
+    () => [...new Set(activePlan?.entries.map((entry) => entry.courseId) ?? [])],
+    [activePlan],
+  );
+  const scheduledCoursesQuery = useCoursesByIds(scheduledCourseIds);
+  const scheduledCourses = useMemo(
+    () => coursesInPlan(scheduledCoursesQuery.data ?? [], activePlan),
+    [activePlan, scheduledCoursesQuery.data],
+  );
+  const scheduledMeetings = useMemo(
+    () => meetingsInPlan(scheduledCoursesQuery.data ?? [], activePlan),
+    [activePlan, scheduledCoursesQuery.data],
+  );
   /*
     Owned here, not in `CourseTable`, because `CourseTable` does not survive the
     breakpoint — see `CourseTableProps.sortDescriptor`. The page does, so the
@@ -159,6 +242,13 @@ export function ExplorePage() {
     () => (facets.course_tags ?? []).map((item) => ({ value: item.value, label: item.label })),
     [facets],
   );
+  const labelMaps = useMemo(() => ({
+    relation: Object.fromEntries(facetOptions("relations").map((item) => [item.value, item.label])),
+    teachingMethod: Object.fromEntries(facetOptions("teaching_methods").map((item) => [item.value, item.label])),
+    assessment: Object.fromEntries(facetOptions("assessments").map((item) => [item.value, item.label])),
+    department: Object.fromEntries(facetOptions("departments").map((item) => [item.value, item.label])),
+    instructor: Object.fromEntries(facetOptions("teachers").map((item) => [item.value, item.label])),
+  }), [facets]);
   const filterPanelProps = {
     activePlanName: activePlan?.name,
     courseTagOptions,
@@ -202,9 +292,30 @@ export function ExplorePage() {
     page,
     pageSize: PAGE_SIZE,
   });
-  const courses = useMemo(() => coursesQuery.data?.items ?? [], [coursesQuery.data]);
-  const total = coursesQuery.data?.total ?? 0;
-  const totalPages = Math.max(1, coursesQuery.data?.total_pages ?? 1);
+  const serverCourses = useMemo(() => coursesQuery.data?.items ?? [], [coursesQuery.data]);
+  const serverTotal = coursesQuery.data?.total ?? 0;
+  const serverTotalPages = Math.max(1, coursesQuery.data?.total_pages ?? 1);
+  const fullFilterLoading = filterCount > 0 && catalogQuery.isPending;
+  const fullFilterError = filterCount > 0 && catalogQuery.error
+    ? (catalogQuery.error as Error).message
+    : "";
+  const filteredCatalog = useMemo(() => {
+    if (!catalogQuery.data) return [];
+    return catalogQuery.data.filter((course) => (
+      matchesExploreQuery(course, debouncedQuery, department, weekday)
+      && matchesExploreFilters(course, filters, profile, scheduledCourses, scheduledMeetings)
+    ));
+  }, [catalogQuery.data, debouncedQuery, department, filters, profile, scheduledCourses, scheduledMeetings, weekday]);
+  const courses = useMemo(
+    () => filterCount > 0
+      ? filteredCatalog.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+      : serverCourses,
+    [filterCount, filteredCatalog, page, serverCourses],
+  );
+  const total = filterCount > 0 ? filteredCatalog.length : serverTotal;
+  const totalPages = filterCount > 0
+    ? Math.max(1, Math.ceil(filteredCatalog.length / PAGE_SIZE))
+    : serverTotalPages;
   const error = coursesQuery.error ? (coursesQuery.error as Error).message : "";
 
   /**
@@ -275,33 +386,45 @@ export function ExplorePage() {
   }, [coursesData, coursesError, isFetching, isPending]);
 
   const selectPage = (value: number) => setPage(Math.min(Math.max(1, value), totalPages));
-  const filterCount = activeFilterCount(filters);
   const fullFilterLabel = filterCount
     ? "完整篩選條件 · 已套用 " + filterCount + " 項"
     : "完整篩選條件";
+  const draftFilterCount = activeFilterCount(draftFilters);
+  const tags = appliedFilterTags(filters, highCreditOptions, labelMaps);
   const openFullFilters = () => {
     const activeElement = document.activeElement;
     fullFilterReturnFocus.current = activeElement instanceof HTMLButtonElement ? activeElement : null;
     track("feature_clicked", { feature: "open_full_filter" });
+    setDraftFilters(filters);
     setFilterDialogOpen(true);
   };
   const closeFullFilters = () => {
     const target = fullFilterReturnFocus.current;
+    setDraftFilters(filters);
     setFilterDialogOpen(false);
     if (target?.isConnected) target.focus();
   };
-  const applyFilters = (next: RecommendFilters) => {
+  const saveFullFilters = () => {
+    const target = fullFilterReturnFocus.current;
+    setFilters(draftFilters);
+    setPage(1);
+    setFilterDialogOpen(false);
+    if (target?.isConnected) target.focus();
+  };
+  const updateAppliedFilters = (next: RecommendFilters) => {
     setFilters(next);
+    setDraftFilters(next);
     setPage(1);
   };
   const clearExploreFilters = () => {
     track("feature_clicked", { feature: "clear_filters" });
-    setQuery(""); setDebouncedQuery(""); setDepartment(null); setWeekday(null); setFilters(clearFilters(filters)); setPage(1);
+    const next = clearFilters(filters);
+    setQuery(""); setDebouncedQuery(""); setDepartment(null); setWeekday(null); setFilters(next); setDraftFilters(next); setPage(1);
   };
 
   const firstItem = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
   const lastItem = Math.min(page * PAGE_SIZE, total);
-  const showResults = !coursesQuery.isPending && !error;
+  const showResults = !coursesQuery.isPending && !error && !fullFilterLoading && !fullFilterError;
   const showEmpty = showResults && !courses.length && !coursesQuery.isFetching;
 
   return (
@@ -437,9 +560,9 @@ export function ExplorePage() {
         </Select>
       </div>
 
-      {coursesQuery.isPending && (isDesktop
-        ? <CourseTableSkeleton label="正在載入課程" />
-        : <LoadingSkeleton count={4} label="正在載入課程" variant="card-grid" />)}
+      {(coursesQuery.isPending || fullFilterLoading) && (isDesktop
+        ? <CourseTableSkeleton label={fullFilterLoading ? "正在套用篩選條件" : "正在載入課程"} />
+        : <LoadingSkeleton count={4} label={fullFilterLoading ? "正在套用篩選條件" : "正在載入課程"} variant="card-grid" />)}
 
       {error && (
         <StateAlert
@@ -448,6 +571,16 @@ export function ExplorePage() {
           tone="danger"
         >
           {error}
+        </StateAlert>
+      )}
+
+      {fullFilterError && (
+        <StateAlert
+          action={<Button className="mt-2 min-h-11" variant="secondary" onPress={() => void catalogQuery.refetch()}>重試</Button>}
+          title="無法套用完整篩選"
+          tone="danger"
+        >
+          {fullFilterError}
         </StateAlert>
       )}
 
@@ -470,6 +603,34 @@ export function ExplorePage() {
         nothing at all. Empty until the first layout switch.
       */}
       <div aria-live="polite" className="sr-only" role="status">{announcement}</div>
+
+      {filterCount > 0 && (
+        <section aria-label="已套用的篩選條件" className="applied-filters explore-applied-filters" aria-live="polite">
+          <TagGroup
+            className="applied-filter-tags"
+            selectionMode="none"
+            onRemove={(keys: Set<Key>) => updateAppliedFilters(removeAppliedFilters(filters, highCreditOptions, [...keys].map(String), labelMaps))}
+          >
+            <Label>已套用 {filterCount} 項條件</Label>
+            <TagGroup.List
+              items={tags}
+              renderEmptyState={() => <span className="applied-filter-note">目前沒有其他篩選條件</span>}
+            >
+              {(tag) => (
+                <Tag id={tag.id} textValue={tag.label}>
+                  {tag.label}
+                  <Tag.RemoveButton aria-label={`移除條件：${tag.label}`} />
+                </Tag>
+              )}
+            </TagGroup.List>
+          </TagGroup>
+          <div className="applied-filter-actions">
+            <Button className="min-h-11" variant="tertiary" onPress={() => updateAppliedFilters(clearFilters(filters))}>
+              清除全部
+            </Button>
+          </div>
+        </section>
+      )}
 
       {showResults && (
         /*
@@ -574,19 +735,22 @@ export function ExplorePage() {
         title="完整篩選條件"
         onClose={closeFullFilters}
       >
+        <div className="explore-filter-modal-actions">
+          <Button className="min-h-11" onPress={saveFullFilters}>保存</Button>
+        </div>
         <div className="recommend-filter-modal-summary">
-          <span><strong>{filterCount}</strong> 項條件已即時套用</span>
+          <span><strong>{draftFilterCount}</strong> 項條件待保存</span>
           <Button
             className="min-h-11"
-            isDisabled={filterCount === 0}
+            isDisabled={draftFilterCount === 0}
             size="sm"
             variant="tertiary"
-            onPress={() => applyFilters(clearFilters(filters))}
+            onPress={() => setDraftFilters(clearFilters(draftFilters))}
           >
             清除全部
           </Button>
         </div>
-        <FilterPanel {...filterPanelProps} mode="modal" value={filters} onChange={applyFilters} />
+        <FilterPanel {...filterPanelProps} mode="modal" value={draftFilters} onChange={setDraftFilters} />
       </Modal>
     </section>
   );

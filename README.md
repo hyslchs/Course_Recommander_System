@@ -151,6 +151,7 @@ export CRS_ARTIFACT_BUNDLE_DIR=/var/lib/crs/artifact-bundles/<immutable-bundle-i
 python3 scripts/verify_artifact_bundle.py --bundle "$CRS_ARTIFACT_BUNDLE_DIR"
 docker compose -f compose.yaml -f compose.build.yaml build
 
+# The image tag contains the immutable bundle ID and source Git revision; update it for every source change.
 # Runtime Compose contains only the immutable image; it does not rebuild or download data.
 docker compose -f compose.yaml up -d --no-build
 ```

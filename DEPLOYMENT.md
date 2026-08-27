@@ -107,6 +107,7 @@ cd /home/hyslchs/CourseRecommanderSystem
 export CRS_ARTIFACT_BUNDLE_DIR=/var/lib/crs/artifact-bundles/<immutable-bundle-id>
 python3 scripts/verify_artifact_bundle.py --bundle "$CRS_ARTIFACT_BUNDLE_DIR"
 
+# The image tag contains the immutable bundle ID and source Git revision; update it for every source change.
 # BuildKit named context copies only the verified bundle into the image.
 docker compose -f compose.yaml -f compose.build.yaml build
 

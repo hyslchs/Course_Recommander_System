@@ -85,6 +85,24 @@ describe("required course selection", () => {
     expect(selectRequiredCourses(courses, { ...profile, grade: 4 })).toEqual([]);
   });
 
+  it("only auto-adds zero-credit department PE in the first year", () => {
+    const sports = course("sports", {
+      name_zh: "體育",
+      credits: 0,
+      department: "資工系體育",
+      raw_department: "資工系體育",
+      grade: null,
+      department_identity: null,
+      department_code: null,
+      official_department_name_zh: null,
+    });
+
+    expect(selectRequiredCourses([sports], { ...profile, grade: 1 }).map((item) => item.course_id)).toEqual(["sports"]);
+    expect(selectRequiredCourses([sports], { ...profile, grade: 2 })).toEqual([]);
+    expect(selectRequiredCourses([sports], { ...profile, grade: 3 })).toEqual([]);
+    expect(selectRequiredCourses([sports], { ...profile, grade: 4 })).toEqual([]);
+  });
+
   it("does not add class-specific courses until a class is selected", () => {
     const result = selectRequiredCourses([
       course("a", { class_group: "甲班" }),

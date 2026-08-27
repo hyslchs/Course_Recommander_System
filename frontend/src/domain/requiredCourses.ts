@@ -32,6 +32,9 @@ const DEPARTMENT_CORE_SUFFIXES = ["人哲", "入門", "專倫", "體育"];
 const DEPARTMENT_CORE_GRADES: Record<string, number> = {
   大學入門: 1,
   人生哲學: 2,
+  // Department-scoped, zero-credit PE rows are published without a grade.
+  // They are first-year requirements, so do not auto-add them for other years.
+  體育: 1,
 };
 
 function normalized(value: string | null | undefined): string {

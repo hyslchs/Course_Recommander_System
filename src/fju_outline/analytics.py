@@ -2,12 +2,14 @@
 
 Design rules this module exists to enforce, in the order they matter:
 
-1. **No identity.** There is no `user_id`, no device id and no persistent UUID
-   anywhere in this file or in the schema it creates. The only correlation keys
+1. **No identity.** There is no `user_id`, no device id and no persistent user
+   UUID anywhere in this file or in the schema it creates. The correlation keys
    are a browser-session `session_id` and a per-operation `interaction_id`, and
    :meth:`AnalyticsStore.maintain` *nulls both out* after
    ``FJU_ANALYTICS_ID_RETENTION_DAYS`` (7) days, so a row older than a week
    cannot be joined to any other row at all.
+   ``event_id`` is only an opaque one-event retry key; it is not exposed in
+   reports and does not identify a browser or student.
 2. **No free text, ever.** Every accepted field is an enum member, a bounded
    integer, or a `course_id` that must already exist in the served catalog.
    Raw search queries are not accepted by any event; see ``README`` §Analytics.
@@ -28,6 +30,9 @@ browser sends, and compatibility analysis needs none of it.
 
 from __future__ import annotations
 
+import hashlib
+import json
+import logging
 import os
 import re
 import sqlite3
@@ -37,7 +42,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Sequence
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+
+logger = logging.getLogger(__name__)
 
 MAX_EVENTS_PER_BATCH = 40
 
@@ -213,10 +220,15 @@ FILTER_VALUE_PATTERN = re.compile(r"^[a-z0-9_.:-]{1,32}$")
 COURSE_ID_PATTERN = re.compile(r"^[A-Za-z0-9._:-]{1,64}$")
 SESSION_ID_PATTERN = re.compile(r"^tmp_[a-z0-9]{6,24}$")
 INTERACTION_ID_PATTERN = re.compile(r"^(?:search|rec|flow)_[a-z0-9]{4,24}$")
+EVENT_ID_PATTERN = re.compile(r"^evt_[a-f0-9]{32}$")
 
 
 class AnalyticsRejection(ValueError):
     """A payload that violates the contract badly enough to answer 4xx with."""
+
+
+class AnalyticsCapacityError(RuntimeError):
+    """The analytics store cannot safely accept another batch."""
 
 
 @dataclass(frozen=True)
@@ -377,6 +389,8 @@ def validate_event(
     raw: Any,
     *,
     course_exists: Callable[[str], bool] | None = None,
+    require_event_id: bool = False,
+    derive_event_id: bool = False,
 ) -> dict[str, Any]:
     """Project one client event onto the typed columns, or raise.
 
@@ -388,7 +402,7 @@ def validate_event(
     if not isinstance(raw, dict):
         raise AnalyticsRejection("event must be an object")
 
-    known_top_level = {"event", "timestamp", "page", "session_id", "interaction_id", "data"}
+    known_top_level = {"event", "event_id", "timestamp", "page", "session_id", "interaction_id", "data"}
     unknown = set(map(str, raw)) - known_top_level
     if unknown:
         raise AnalyticsRejection(f"unknown property: {sorted(unknown)[0]}")
@@ -398,6 +412,21 @@ def validate_event(
         raise AnalyticsRejection(f"unknown event: {name!r}")
 
     row: dict[str, Any] = {"event": name}
+
+    event_id = raw.get("event_id")
+    if event_id is None:
+        if require_event_id:
+            raise AnalyticsRejection("event_id is required")
+    elif not isinstance(event_id, str) or not EVENT_ID_PATTERN.fullmatch(event_id):
+        raise AnalyticsRejection("malformed event_id")
+    else:
+        row["event_id"] = event_id
+    if event_id is None and derive_event_id:
+        try:
+            canonical = json.dumps(raw, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+        except (TypeError, ValueError):
+            raise AnalyticsRejection("event cannot be fingerprinted") from None
+        row["event_id"] = f"evt_{hashlib.sha256(canonical.encode('utf-8')).hexdigest()[:32]}"
 
     session_id = raw.get("session_id")
     if session_id is not None:
@@ -555,10 +584,10 @@ class Retention:
 #: therefore expire on the shorter window.
 DIAGNOSTIC_EVENTS: frozenset[str] = frozenset({"api_performance", "error"})
 
-_INSERT_COLUMNS = ("received_at", "day", "event", "session_id", "interaction_id",
+_INSERT_COLUMNS = ("event_id", "received_at", "day", "event", "session_id", "interaction_id",
                    "browser", "browser_major", "os", "device") + EVENT_COLUMNS
 _INSERT_SQL = (
-    f"INSERT INTO analytics_events ({', '.join(_INSERT_COLUMNS)}) "
+    f"INSERT OR IGNORE INTO analytics_events ({', '.join(_INSERT_COLUMNS)}) "
     f"VALUES ({', '.join('?' * len(_INSERT_COLUMNS))})"
 )
 
@@ -571,19 +600,37 @@ class AnalyticsStore:
     the over-engineering the brief rules out.
     """
 
-    def __init__(self, path: Path, *, retention: Retention | None = None) -> None:
+    def __init__(
+        self,
+        path: Path,
+        *,
+        retention: Retention | None = None,
+        max_rows: int | None = None,
+        max_db_bytes: int | None = None,
+    ) -> None:
         self.path = path
         self.retention = retention or Retention.from_env()
+        self.max_rows = max_rows if max_rows is not None else _env_int(
+            "FJU_ANALYTICS_MAX_ROWS", 250_000, minimum=1, maximum=10_000_000
+        )
+        self.max_db_bytes = max_db_bytes if max_db_bytes is not None else _env_int(
+            "FJU_ANALYTICS_MAX_DB_BYTES", 64 * 1024 * 1024, minimum=1024, maximum=10 * 1024 * 1024 * 1024
+        )
         self._lock = threading.Lock()
         self._last_maintenance = 0.0
+        self._event_row_count = 0
         self.path.parent.mkdir(parents=True, exist_ok=True)
         with self._connect() as connection:
             self._create_schema(connection)
+            self._event_row_count = int(connection.execute("SELECT COUNT(*) FROM analytics_events").fetchone()[0])
 
     def _connect(self) -> sqlite3.Connection:
         connection = sqlite3.connect(self.path, timeout=5)
         connection.execute("PRAGMA journal_mode=WAL")
         connection.execute("PRAGMA busy_timeout=5000")
+        page_size = int(connection.execute("PRAGMA page_size").fetchone()[0])
+        max_pages = max(1, self.max_db_bytes // max(1, page_size))
+        connection.execute(f"PRAGMA max_page_count = {max_pages}")
         return connection
 
     @staticmethod
@@ -594,6 +641,7 @@ class AnalyticsStore:
             """
             CREATE TABLE IF NOT EXISTS analytics_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                event_id TEXT,
                 received_at TEXT NOT NULL,
                 day TEXT NOT NULL,
                 event TEXT NOT NULL,
@@ -624,6 +672,16 @@ class AnalyticsStore:
                 error_code TEXT
             )
             """
+        )
+        columns = {
+            str(row[1]) for row in connection.execute("PRAGMA table_info(analytics_events)").fetchall()
+        }
+        if "event_id" not in columns:
+            # Backward-compatible migration for the already deployed v1 table.
+            connection.execute("ALTER TABLE analytics_events ADD COLUMN event_id TEXT")
+        connection.execute(
+            "CREATE UNIQUE INDEX IF NOT EXISTS analytics_events_event_id "
+            "ON analytics_events(event_id) WHERE event_id IS NOT NULL"
         )
         connection.execute("CREATE INDEX IF NOT EXISTS analytics_events_day ON analytics_events(day, event)")
         connection.execute("CREATE INDEX IF NOT EXISTS analytics_events_course ON analytics_events(course_id)")
@@ -675,6 +733,7 @@ class AnalyticsStore:
         browser, browser_major, operating_system, device = reduce_user_agent(user_agent)
         payload = [
             (
+                row.get("event_id"),
                 received_at,
                 day,
                 row["event"],
@@ -689,9 +748,77 @@ class AnalyticsStore:
             for row in rows
         ]
         with self._lock, self._connect() as connection:
-            connection.executemany(_INSERT_SQL, payload)
+            self._enforce_capacity(connection, incoming=len(payload))
+            before = connection.total_changes
+            try:
+                connection.executemany(_INSERT_SQL, payload)
+            except sqlite3.DatabaseError as exc:
+                connection.rollback()
+                if "full" in str(exc).lower() or "max_page_count" in str(exc).lower():
+                    raise AnalyticsCapacityError("analytics storage capacity reached") from None
+                raise
+            written = connection.total_changes - before
             connection.commit()
-        return len(payload)
+        self._event_row_count += written
+        return written
+
+    def _database_size(self) -> int:
+        """Return the SQLite file set size, including WAL sidecars."""
+        total = 0
+        for candidate in (self.path, Path(f"{self.path}-wal"), Path(f"{self.path}-shm")):
+            try:
+                total += candidate.stat().st_size
+            except FileNotFoundError:
+                pass
+        return total
+
+    def _delete_oldest(self, connection: sqlite3.Connection, count: int) -> int:
+        if count <= 0 or self._event_row_count <= 0:
+            return 0
+        rows = connection.execute(
+            "SELECT id, day FROM analytics_events ORDER BY id LIMIT ?", (count,)
+        ).fetchall()
+        if not rows:
+            return 0
+        # Preserve aggregates before raw rows are evicted. A later maintenance
+        # pass will recompute the affected day if it still receives events.
+        for day in {str(row[1]) for row in rows}:
+            self._aggregate_day(connection, day)
+        placeholders = ", ".join("?" for _ in rows)
+        deleted = connection.execute(
+            f"DELETE FROM analytics_events WHERE id IN ({placeholders})",
+            tuple(int(row[0]) for row in rows),
+        ).rowcount
+        deleted = max(0, int(deleted))
+        self._event_row_count = max(0, self._event_row_count - deleted)
+        return deleted
+
+    def _compact(self, connection: sqlite3.Connection) -> None:
+        """Best-effort reclaim of pages after capacity eviction."""
+        connection.commit()
+        try:
+            connection.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+            connection.execute("VACUUM")
+        except sqlite3.DatabaseError as exc:
+            logger.warning("security_event=analytics_capacity_compaction_failure error_type=%s", type(exc).__name__)
+
+    def _enforce_capacity(self, connection: sqlite3.Connection, *, incoming: int) -> int:
+        """Evict oldest events before accepting a batch, without per-insert COUNT."""
+        deleted = self._delete_oldest(
+            connection,
+            max(0, self._event_row_count + incoming - self.max_rows),
+        )
+        if self._database_size() > self.max_db_bytes:
+            # Size pressure is checked on each write, but row counts are kept in
+            # memory so the common path does not scan the table.
+            target = max(1, min(self._event_row_count, max(1000, self._event_row_count // 10)))
+            deleted += self._delete_oldest(connection, target)
+            self._compact(connection)
+        if self._database_size() > self.max_db_bytes:
+            raise AnalyticsCapacityError("analytics storage capacity reached")
+        if deleted:
+            logger.warning("security_event=analytics_capacity_cleanup deleted_rows=%d", deleted)
+        return deleted
 
     # -- maintenance -------------------------------------------------------- #
 
@@ -719,6 +846,10 @@ class AnalyticsStore:
             for day in days:
                 self._aggregate_day(connection, day)
             summary = self._expire(connection, moment)
+            self._event_row_count = max(
+                0, self._event_row_count - int(summary.get("deleted_rows", 0))
+            )
+            summary["capacity_deleted"] = self._enforce_capacity(connection, incoming=0)
             connection.commit()
         return {"aggregated_days": len(days), **summary}
 
@@ -743,6 +874,7 @@ class AnalyticsStore:
             "scrubbed_identifiers": max(0, identifiers),
             "deleted_diagnostics": max(0, diagnostics),
             "deleted_events": max(0, expired),
+            "deleted_rows": max(0, diagnostics) + max(0, expired),
         }
 
     @staticmethod
@@ -1071,6 +1203,8 @@ def validate_batch(
     events: Iterable[Any],
     *,
     course_exists: Callable[[str], bool] | None = None,
+    require_event_id: bool = False,
+    derive_event_id: bool = False,
 ) -> tuple[list[dict[str, Any]], list[str]]:
     """Validate a whole batch, keeping the good rows and reporting the rest.
 
@@ -1084,7 +1218,14 @@ def validate_batch(
     rejected: list[str] = []
     for event in events:
         try:
-            accepted.append(validate_event(event, course_exists=course_exists))
+            accepted.append(
+                validate_event(
+                    event,
+                    course_exists=course_exists,
+                    require_event_id=require_event_id,
+                    derive_event_id=derive_event_id,
+                )
+            )
         except AnalyticsRejection as error:
             rejected.append(str(error))
     return accepted, rejected

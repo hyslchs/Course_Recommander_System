@@ -50,7 +50,11 @@ RUN python scripts/verify_artifact_bundle.py \
     --lock /app/artifact-lock.json \
     --require-app-validator
 RUN python -c 'from sentence_transformers import SentenceTransformer; m=SentenceTransformer("google/embeddinggemma-300m", revision="57c266a740f537b4dc058e1b0cda161fd15afa75", device="cpu", local_files_only=True); assert m.get_sentence_embedding_dimension() == 768'
-RUN mkdir -p /app/data/runtime
+RUN addgroup --system --gid 10001 crs \
+    && adduser --system --uid 10001 --ingroup crs --home /app --no-create-home crs \
+    && mkdir -p /app/data/runtime \
+    && chown crs:crs /app/data/runtime
+USER crs
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=5s --start-period=180s --retries=5 CMD python -c 'import urllib.request; urllib.request.urlopen("http://127.0.0.1:8080/health/ready", timeout=3)'
 CMD ["uvicorn", "fju_outline.web:app", "--host", "0.0.0.0", "--port", "8080", "--no-access-log"]

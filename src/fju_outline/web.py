@@ -11,6 +11,7 @@ import time
 import unicodedata
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
+from ipaddress import ip_address, ip_network
 from pathlib import Path
 from typing import Any, AsyncIterator
 
@@ -26,6 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from .analytics import (
     MAX_EVENTS_PER_BATCH,
     AnalyticsRejection,
+    AnalyticsCapacityError,
     AnalyticsStore,
     assert_no_forbidden_keys,
     build_store,
@@ -65,6 +67,8 @@ FRONTEND_DIST = (
 )
 DEFAULT_ARTIFACTS_DIR = Path("new-vector-data/1151-embeddinggemma-768")
 MAX_REQUEST_BYTES = 16 * 1024
+DEFAULT_TRUSTED_PROXY_IPS = "127.0.0.1,::1,172.16.0.0/12"
+DOCS_PATHS = frozenset({"/docs", "/redoc", "/openapi.json"})
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
 
@@ -383,6 +387,69 @@ class RateLimiter:
             return True
 
 
+def _trusted_proxy_networks() -> list[Any]:
+    """Return explicitly trusted local/cloudflared peer networks."""
+    configured = os.environ.get("FJU_TRUSTED_PROXY_IPS", DEFAULT_TRUSTED_PROXY_IPS)
+    networks = []
+    for value in configured.split(","):
+        value = value.strip()
+        if not value:
+            continue
+        try:
+            networks.append(ip_network(value, strict=False))
+        except ValueError:
+            # Invalid entries are ignored; the request then falls back to its
+            # socket peer instead of trusting a malformed proxy configuration.
+            continue
+    return networks
+
+
+def get_rate_limit_client_key(request: Request) -> str:
+    """Return a rate-limit key without unconditionally trusting proxy headers.
+
+    ``CF-Connecting-IP`` is accepted only from the configured local/cloudflared
+    upstream. Generic forwarded headers are deliberately ignored. The returned
+    key is used only in memory and is never persisted or logged.
+    """
+    peer = request.client.host if request.client else "unknown"
+    if not peer or peer == "unknown":
+        return "peer:unknown"
+    try:
+        peer_address = ip_address(peer)
+    except ValueError:
+        return f"peer:{peer}"
+    if any(peer_address in network for network in _trusted_proxy_networks()):
+        supplied = request.headers.get("cf-connecting-ip", "").strip()
+        try:
+            client_address = ip_address(supplied)
+        except ValueError:
+            client_address = None
+        if client_address is not None:
+            return f"cf:{client_address.compressed}"
+    return f"peer:{peer_address.compressed}"
+
+
+def _allow_rate_limit(request: Request, limiter: RateLimiter, endpoint: str) -> bool:
+    if limiter.allow(get_rate_limit_client_key(request)):
+        return True
+    logger.warning("security_event=rate_limit_hit endpoint=%s", endpoint)
+    return False
+
+
+def _openai_api_key_configured() -> bool:
+    return bool(os.environ.get("OPENAI_API_KEY", "").strip())
+
+
+def _api_docs_enabled() -> bool:
+    explicit = os.environ.get("FJU_ENABLE_API_DOCS", "").strip().lower()
+    if explicit in {"1", "true", "yes", "on"}:
+        return True
+    if explicit in {"0", "false", "no", "off"}:
+        return False
+    environment = os.environ.get("FJU_ENV", "production").strip().lower()
+    return environment in {"development", "dev", "test"}
+
+
 def create_app(
     *,
     store: ArtifactStore | None = None,
@@ -397,14 +464,14 @@ def create_app(
             try:
                 app.state.analytics_store = build_store()
             except Exception as exc:  # noqa: BLE001 - analytics must never block boot
-                logger.warning("Analytics store unavailable: %s", exc)
+                logger.warning("security_event=analytics_store_unavailable error_type=%s", type(exc).__name__)
         if app.state.analytics_store is not None:
             # Retention is enforced on every boot as well as during traffic, so a
             # service that sits idle past a window still expires its rows.
             try:
                 app.state.analytics_store.maintain(force=True)
             except Exception as exc:  # noqa: BLE001
-                logger.warning("Analytics maintenance failed: %s", exc)
+                logger.warning("security_event=analytics_maintenance_failure error_type=%s", type(exc).__name__)
         if load_runtime and app.state.store is None:
             try:
                 artifact_dir = Path(
@@ -424,19 +491,25 @@ def create_app(
                     raise ValueError("Query model dimension does not match artifact dimension")
                 app.state.runtime_error = None
             except Exception as exc:  # noqa: BLE001
-                app.state.runtime_error = str(exc)
-        if app.state.store is not None and app.state.rag_service is None:
+                logger.error("security_event=artifact_integrity_failure error_type=%s", type(exc).__name__)
+                app.state.runtime_error = "Runtime unavailable"
+        if app.state.store is not None and app.state.rag_service is None and app.state.ai_configured:
             app.state.rag_service = _build_rag_service(app.state.store.catalog)
         yield
 
+    docs_enabled = _api_docs_enabled()
     application = FastAPI(
         title="FJU Course Recommender",
         version="1.0.0",
         lifespan=lifespan,
+        docs_url="/docs" if docs_enabled else None,
+        redoc_url="/redoc" if docs_enabled else None,
+        openapi_url="/openapi.json" if docs_enabled else None,
     )
     application.state.store = store
     application.state.query_encoder = query_encoder
-    application.state.rag_service = rag_service
+    application.state.ai_configured = _openai_api_key_configured()
+    application.state.rag_service = rag_service if application.state.ai_configured else None
     application.state.analytics_store = analytics_store
     application.state.runtime_error = None
     application.state.rate_limiter = RateLimiter()
@@ -445,10 +518,14 @@ def create_app(
     )
     # A batch carries up to 40 events, so 60 batches/minute is ~2400 events per
     # client per minute — far above any real session and low enough that a
-    # single client cannot flood the table. The limiter keys on the client
-    # address and keeps nothing but a deque of monotonic timestamps in memory.
+    # single client cannot flood the table. The limiter key is resolved by the
+    # centralized deployment-aware helper and keeps nothing but a deque of
+    # monotonic timestamps in memory.
     application.state.analytics_rate_limiter = RateLimiter(
         requests=_env_int("FJU_ANALYTICS_REQUESTS_PER_MINUTE", 60, minimum=1, maximum=1000)
+    )
+    application.state.analytics_admin_rate_limiter = RateLimiter(
+        requests=_env_int("FJU_ANALYTICS_ADMIN_REQUESTS_PER_MINUTE", 5, minimum=1, maximum=100)
     )
     application.state.ai_error = None
     application.add_middleware(GZipMiddleware, minimum_size=1000, compresslevel=5)
@@ -470,6 +547,30 @@ def create_app(
                 if len(body) > MAX_REQUEST_BYTES:
                     return JSONResponse({"detail": "Request body too large"}, status_code=413)
         return await call_next(request)
+
+    @application.middleware("http")
+    async def security_hardening(request: Request, call_next):
+        if not docs_enabled and request.url.path.rstrip("/") in DOCS_PATHS:
+            response = JSONResponse({"detail": "Not Found"}, status_code=404)
+        else:
+            response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; base-uri 'self'; object-src 'none'; "
+            "frame-ancestors 'none'; form-action 'self'; frame-src 'none'; "
+            "script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
+            "font-src 'self'; img-src 'self' data: blob:; media-src 'self'; connect-src 'self'"
+            if not docs_enabled
+            else
+            "default-src 'self'; base-uri 'self'; object-src 'none'; "
+            "frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; "
+            "img-src 'self' data: blob:; connect-src 'self'"
+        )
+        return response
 
     register_routes(application)
     _mount_frontend(application)
@@ -497,7 +598,11 @@ def register_routes(application: FastAPI) -> None:
             "model_name": request.app.state.store.manifest["model_name"],
             "query_planner_mode": "disabled",
             "compound_query_enabled": _compound_enabled(),
-            "ai_assistant_enabled": request.app.state.rag_service is not None,
+            "ai_assistant_enabled": (
+                request.app.state.rag_service is not None
+                and request.app.state.ai_configured
+                and _openai_api_key_configured()
+            ),
         }
 
     @application.get("/api/v1/catalog/manifest")
@@ -631,7 +736,11 @@ def register_routes(application: FastAPI) -> None:
             "compound_query_enabled": _compound_enabled(),
             "query_analysis_version": ANALYSIS_VERSION,
             "analytics_enabled": application.state.analytics_store is not None,
-            "ai_assistant_enabled": application.state.rag_service is not None,
+            "ai_assistant_enabled": (
+                application.state.rag_service is not None
+                and application.state.ai_configured
+                and _openai_api_key_configured()
+            ),
             "ai_model": os.environ.get("FJU_AI_MODEL", "gpt-5.6-luna"),
             "ai_max_question_chars": _ai_max_question_chars(),
         }
@@ -654,8 +763,7 @@ def register_routes(application: FastAPI) -> None:
             # status would only make it retry work that has nowhere to land.
             return JSONResponse({"accepted": 0, "rejected": 0}, status_code=202)
 
-        client = request.client.host if request.client else "unknown"
-        if not request.app.state.analytics_rate_limiter.allow(client):
+        if not _allow_rate_limit(request, request.app.state.analytics_rate_limiter, "analytics_events"):
             raise HTTPException(status_code=429, detail="Too many analytics requests")
 
         try:
@@ -678,12 +786,15 @@ def register_routes(application: FastAPI) -> None:
 
         catalog = request.app.state.store
         course_exists = (lambda course_id: course_id in catalog.by_id) if catalog else None
-        accepted, rejected = validate_batch(events, course_exists=course_exists)
+        accepted, rejected = validate_batch(events, course_exists=course_exists, derive_event_id=True)
         try:
             written = store.record(accepted, user_agent=request.headers.get("user-agent"))
             store.maintain()
+        except AnalyticsCapacityError:
+            logger.warning("security_event=analytics_capacity_reject")
+            written = 0
         except Exception as exc:  # noqa: BLE001 - analytics never breaks the app
-            logger.warning("Analytics write failed: %s", exc)
+            logger.warning("security_event=analytics_write_failure error_type=%s", type(exc).__name__)
             written = 0
         return JSONResponse({"accepted": written, "rejected": len(rejected)}, status_code=202)
 
@@ -692,9 +803,11 @@ def register_routes(application: FastAPI) -> None:
         if not expected:
             # Never open by default: an unset token means the report is off, not
             # that anyone may read it.
+            logger.warning("security_event=analytics_admin_auth_unavailable")
             raise HTTPException(status_code=503, detail="FJU_ANALYTICS_ADMIN_TOKEN is not configured")
         supplied = request.headers.get("x-analytics-token", "")
         if not secrets.compare_digest(supplied, expected):
+            logger.warning("security_event=analytics_admin_auth_failure")
             raise HTTPException(status_code=401, detail="Invalid analytics token")
         store = request.app.state.analytics_store
         if store is None:
@@ -707,6 +820,12 @@ def register_routes(application: FastAPI) -> None:
         days: int = Query(30, ge=1, le=400),
         course_limit: int = Query(25, ge=1, le=500),
     ) -> dict[str, Any]:
+        if not _allow_rate_limit(
+            request,
+            request.app.state.analytics_admin_rate_limiter,
+            "analytics_report",
+        ):
+            raise HTTPException(status_code=429, detail="Too many analytics report requests")
         return _require_analytics_admin(request).report(days=days, course_limit=course_limit)
 
     @application.get("/api/v1/analytics/dashboard", include_in_schema=False)
@@ -717,12 +836,15 @@ def register_routes(application: FastAPI) -> None:
 
     @application.post("/api/v1/ai/ask")
     def ai_ask(payload: AIAskRequest, request: Request) -> dict[str, Any]:
+        if not _allow_rate_limit(request, request.app.state.ai_rate_limiter, "ai_ask"):
+            raise HTTPException(status_code=429, detail="AI 詢問過於頻繁，請稍後再試。")
+        if not _openai_api_key_configured() or not request.app.state.ai_configured:
+            logger.info("security_event=ai_feature_disabled reason=missing_api_key")
+            raise HTTPException(status_code=503, detail="AI 小幫手尚未設定 API key")
         service = request.app.state.rag_service
         if service is None:
+            logger.info("security_event=ai_provider_unavailable")
             raise HTTPException(status_code=503, detail="AI 小幫手尚未設定 API key")
-        client = request.client.host if request.client else "unknown"
-        if not request.app.state.ai_rate_limiter.allow(client):
-            raise HTTPException(status_code=429, detail="AI 詢問過於頻繁，請稍後再試。")
         try:
             return service.ask(payload)
         except RagError as exc:
@@ -766,8 +888,7 @@ def register_routes(application: FastAPI) -> None:
     @application.post("/api/v1/query-embedding")
     def query_embedding(payload: QueryEmbeddingRequest, request: Request) -> dict[str, Any]:
         store = require_store(request)
-        client = request.client.host if request.client else "unknown"
-        if not request.app.state.rate_limiter.allow(client):
+        if not _allow_rate_limit(request, request.app.state.rate_limiter, "query_embedding"):
             raise HTTPException(status_code=429, detail="Too many embedding requests")
         encoder = request.app.state.query_encoder
         if encoder is None:
@@ -784,8 +905,7 @@ def register_routes(application: FastAPI) -> None:
     @application.post("/api/v1/query-embeddings")
     def query_embeddings(payload: QueryEmbeddingsRequest, request: Request) -> dict[str, Any]:
         store = require_store(request)
-        client = request.client.host if request.client else "unknown"
-        if not request.app.state.rate_limiter.allow(client):
+        if not _allow_rate_limit(request, request.app.state.rate_limiter, "query_embeddings"):
             raise HTTPException(status_code=429, detail="Too many embedding requests")
         encoder = request.app.state.query_encoder
         if encoder is None:
@@ -929,6 +1049,7 @@ def _mount_frontend(application: FastAPI) -> None:
 def _build_rag_service(catalog: list[dict[str, Any]]) -> CourseRagService | None:
     api_key = os.environ.get("OPENAI_API_KEY", "").strip()
     if not api_key:
+        logger.info("security_event=ai_feature_disabled reason=missing_api_key")
         return None
     try:
         from openai import OpenAI
@@ -938,7 +1059,8 @@ def _build_rag_service(catalog: list[dict[str, Any]]) -> CourseRagService | None
             timeout=float(_env_int("FJU_AI_TIMEOUT_SECONDS", 25, minimum=1, maximum=120)),
             max_retries=1,
         )
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("security_event=ai_provider_unavailable error_type=%s", type(exc).__name__)
         return None
 
     moderator = None
@@ -948,8 +1070,9 @@ def _build_rag_service(catalog: list[dict[str, Any]]) -> CourseRagService | None
                 result = client.moderations.create(model="omni-moderation-latest", input=text)
                 results = getattr(result, "results", None) or []
                 return bool(results and getattr(results[0], "flagged", False))
-            except Exception:  # noqa: BLE001
+            except Exception as exc:  # noqa: BLE001
                 # Course RAG has no tools or privileged actions; keep availability if moderation is unavailable.
+                logger.warning("security_event=ai_moderation_unavailable error_type=%s", type(exc).__name__)
                 return False
 
         moderator = moderate

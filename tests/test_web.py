@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import builtins
 from pathlib import Path
 
 import numpy as np
 from fastapi.testclient import TestClient
+from starlette.requests import Request
 
 from fju_outline.artifacts import build_artifacts
-from fju_outline.web import ArtifactStore, create_app
+from fju_outline.web import ArtifactStore, RateLimiter, create_app, get_rate_limit_client_key
 
 from test_artifacts import FakeEncoder, _record
 
@@ -29,6 +31,41 @@ def _client(tmp_path: Path) -> TestClient:
     return TestClient(app)
 
 
+def _request(peer: str, headers: dict[str, str] | None = None) -> Request:
+    return Request({
+        "type": "http",
+        "method": "GET",
+        "path": "/",
+        "query_string": b"",
+        "headers": [(key.lower().encode(), value.encode()) for key, value in (headers or {}).items()],
+        "client": (peer, 12345),
+        "server": ("testserver", 80),
+        "scheme": "http",
+    })
+
+
+def test_rate_limit_key_uses_trusted_cloudflare_client_ip(monkeypatch):
+    monkeypatch.delenv("FJU_TRUSTED_PROXY_IPS", raising=False)
+    first = get_rate_limit_client_key(_request("127.0.0.1", {"CF-Connecting-IP": "203.0.113.10"}))
+    second = get_rate_limit_client_key(_request("127.0.0.1", {"CF-Connecting-IP": "203.0.113.11"}))
+    assert first != second
+    assert first == get_rate_limit_client_key(_request("127.0.0.1", {"CF-Connecting-IP": "203.0.113.10"}))
+    limiter = RateLimiter(requests=1)
+    assert limiter.allow(first)
+    assert limiter.allow(second)
+    assert not limiter.allow(first)
+
+
+def test_rate_limit_key_rejects_spoofed_or_missing_proxy_headers(monkeypatch):
+    monkeypatch.setenv("FJU_TRUSTED_PROXY_IPS", "127.0.0.1")
+    spoofed = get_rate_limit_client_key(
+        _request("198.51.100.9", {"CF-Connecting-IP": "203.0.113.99", "X-Forwarded-For": "203.0.113.99"})
+    )
+    unchanged = get_rate_limit_client_key(_request("198.51.100.9", {"CF-Connecting-IP": "198.0.2.1"}))
+    fallback = get_rate_limit_client_key(_request("198.51.100.9"))
+    assert spoofed == unchanged == fallback == "peer:198.51.100.9"
+
+
 def test_health_catalog_and_embedding_api(tmp_path):
     with _client(tmp_path) as client:
         assert client.get("/health/ready").status_code == 200
@@ -41,6 +78,30 @@ def test_health_catalog_and_embedding_api(tmp_path):
         response = client.post("/api/v1/query-embedding", json={"text": "我想學資料分析"})
         assert response.status_code == 200
         assert response.json()["dimension"] == 3
+
+
+def test_production_hardening_headers_are_present_and_api_docs_are_hidden(tmp_path, monkeypatch):
+    monkeypatch.delenv("FJU_ENV", raising=False)
+    monkeypatch.delenv("FJU_ENABLE_API_DOCS", raising=False)
+    with _client(tmp_path) as client:
+        response = client.get("/health/live")
+        assert response.status_code == 200
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
+        assert response.headers["X-Frame-Options"] == "DENY"
+        assert response.headers["Referrer-Policy"] == "strict-origin-when-cross-origin"
+        assert "camera=()" in response.headers["Permissions-Policy"]
+        assert "frame-ancestors 'none'" in response.headers["Content-Security-Policy"]
+        for path in ("/docs", "/redoc", "/openapi.json"):
+            assert client.get(path).status_code == 404
+
+
+def test_development_can_keep_api_docs_enabled(tmp_path, monkeypatch):
+    monkeypatch.setenv("FJU_ENV", "development")
+    monkeypatch.delenv("FJU_ENABLE_API_DOCS", raising=False)
+    with _client(tmp_path) as client:
+        assert client.get("/docs").status_code == 200
+        assert client.get("/redoc").status_code == 200
+        assert client.get("/openapi.json").status_code == 200
 
 
 def test_batch_and_lookup_course_api(tmp_path):
@@ -81,13 +142,53 @@ def test_embedding_api_rejects_profile_fields_and_blank_text(tmp_path):
         assert response.status_code == 422
 
 
-def test_ai_endpoint_is_disabled_without_api_key(tmp_path):
+def test_ai_endpoint_is_disabled_without_api_key(tmp_path, monkeypatch):
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+    import fju_outline.web as web_module
+
+    original_import = builtins.__import__
+
+    def reject_openai_import(name, *args, **kwargs):
+        if name == "openai":
+            raise AssertionError("OpenAI provider must not be imported without an API key")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", reject_openai_import)
+    assert web_module._build_rag_service([]) is None
     with _client(tmp_path) as client:
         response = client.post(
             "/api/v1/ai/ask",
             json={"question": "推薦資料科學課", "context": {}, "hard_constraints": {}},
         )
         assert response.status_code == 503
+
+
+def test_missing_api_key_blocks_even_an_injected_rag_service(tmp_path, monkeypatch):
+    class ProviderSpy:
+        calls = 0
+
+        def ask(self, payload):
+            self.calls += 1
+            return {"answer": "unexpected", "recommendations": []}
+
+    monkeypatch.setenv("OPENAI_API_KEY", "")
+    output = tmp_path / "artifacts"
+    build_artifacts([_record("1", "資料科學")], output, encoder=FakeEncoder(), year=115, semester=1)
+    spy = ProviderSpy()
+    app = create_app(
+        store=ArtifactStore(output),
+        query_encoder=FakeQueryEncoder(),
+        rag_service=spy,
+        load_runtime=False,
+    )
+    with TestClient(app) as client:
+        response = client.post(
+            "/api/v1/ai/ask",
+            json={"question": "推薦資料科學課", "context": {}, "hard_constraints": {}},
+        )
+        assert response.status_code == 503
+        assert spy.calls == 0
+        assert client.get("/api/v1/features").json()["ai_assistant_enabled"] is False
 
 
 def test_ai_request_body_limit_is_preserved(tmp_path):
@@ -98,6 +199,7 @@ def test_ai_request_body_limit_is_preserved(tmp_path):
             headers={"content-type": "application/json"},
         )
         assert response.status_code == 413
+        assert response.headers["X-Content-Type-Options"] == "nosniff"
 
 
 def test_batch_embedding_features_and_route_artifacts(tmp_path, monkeypatch):

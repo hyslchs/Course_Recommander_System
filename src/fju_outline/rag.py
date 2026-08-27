@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import math
 import re
 import sqlite3
@@ -16,6 +17,9 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from .eligibility import infer_study_level, is_no_prerequisite_text
 
 from .eligibility import evaluate_eligibility
+
+
+logger = logging.getLogger(__name__)
 
 
 MAX_CANDIDATES = 5
@@ -443,6 +447,7 @@ class CourseRagService:
                 self.ledger.record_result(input_tokens=0, output_tokens=0, success=False)
             lowered = str(exc).lower()
             status = 504 if "timeout" in lowered or "timed out" in lowered else 429 if "429" in lowered or "rate limit" in lowered else 502
+            logger.warning("security_event=ai_provider_error status=%d error_type=%s", status, type(exc).__name__)
             raise RagError(status, "AI 服務暫時無法回應，請稍後重試。") from exc
 
         candidate_by_id = {str(item.course.get("course_id")): item for item in context_candidates}

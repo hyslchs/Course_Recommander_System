@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -239,6 +240,82 @@ def test_events_are_stored_in_typed_columns_without_a_json_blob(tmp_path):
     assert not columns & {"data", "payload", "json", "body", "properties"}
 
 
+def test_duplicate_event_id_is_ignored_and_does_not_poison_aggregates(tmp_path):
+    store = _store(tmp_path)
+    event = {
+        "event": "page_view",
+        "event_id": "evt_" + "a" * 32,
+        "timestamp": "2026-08-27T08:20:31Z",
+        "data": {"page": "schedule"},
+    }
+    accepted, rejected = validate_batch([event])
+    assert not rejected
+    assert store.record(accepted, user_agent=None) == 1
+    assert store.record(accepted, user_agent=None) == 0
+    assert store.report(days=7)["events"] == {"page_view": 1.0}
+
+
+def test_http_retry_of_the_same_event_is_idempotent(tmp_path):
+    payload = {
+        "events": [{
+            "event": "page_view",
+            "timestamp": "2026-08-27T08:20:31Z",
+            "data": {"page": "schedule"},
+        }]
+    }
+    with _client(tmp_path) as client:
+        first = client.post("/api/v1/analytics/events", json=payload)
+        retry = client.post("/api/v1/analytics/events", json=payload)
+        assert first.status_code == retry.status_code == 202
+        assert first.json() == {"accepted": 1, "rejected": 0}
+        assert retry.json() == {"accepted": 0, "rejected": 0}
+
+
+def test_capacity_row_ceiling_evicts_oldest_events_without_failure(tmp_path):
+    store = AnalyticsStore(
+        tmp_path / "analytics.sqlite3",
+        retention=Retention(),
+        max_rows=3,
+        max_db_bytes=64 * 1024 * 1024,
+    )
+    rows = [{"event": "page_view", "page": "schedule"} for _ in range(3)]
+    assert store.record(rows, user_agent=None) == 3
+    assert store.record([{"event": "page_view", "page": "recommendation"}], user_agent=None) == 1
+    with store._connect() as connection:  # noqa: SLF001
+        count = connection.execute("SELECT COUNT(*) FROM analytics_events").fetchone()[0]
+        pages = {row[0] for row in connection.execute("SELECT page FROM analytics_events")}
+    assert count == 3
+    assert pages == {"schedule", "recommendation"}
+
+
+def test_v1_analytics_database_gets_event_id_column_without_data_loss(tmp_path):
+    path = tmp_path / "legacy-analytics.sqlite3"
+    with sqlite3.connect(path) as connection:
+        connection.execute(
+            "CREATE TABLE analytics_events ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, received_at TEXT NOT NULL, day TEXT NOT NULL, "
+            "event TEXT NOT NULL, session_id TEXT, interaction_id TEXT, browser TEXT, browser_major INTEGER, "
+            "os TEXT, device TEXT, page TEXT, course_id TEXT, position INTEGER, method TEXT, source TEXT, "
+            "feature TEXT, filter_name TEXT, filter_value TEXT, search_mode TEXT, query_length INTEGER, "
+            "result_count INTEGER, latency_ms INTEGER, refinement_index INTEGER, conflict_count INTEGER, "
+            "action TEXT, endpoint TEXT, status INTEGER, component TEXT, error_code TEXT)"
+        )
+        connection.execute(
+            "INSERT INTO analytics_events(received_at, day, event, page) "
+            "VALUES ('2026-08-27T08:20:31+00:00', '2026-08-27', 'page_view', 'schedule')"
+        )
+        connection.commit()
+
+    store = AnalyticsStore(path, retention=Retention())
+    with store._connect() as connection:  # noqa: SLF001
+        columns = {row[1] for row in connection.execute("PRAGMA table_info(analytics_events)")}
+        count = connection.execute("SELECT COUNT(*) FROM analytics_events").fetchone()[0]
+        index_names = {row[1] for row in connection.execute("PRAGMA index_list(analytics_events)")}
+    assert "event_id" in columns
+    assert count == 1
+    assert "analytics_events_event_id" in index_names
+
+
 def test_identifiers_are_scrubbed_before_raw_events_expire(tmp_path):
     store = _store(tmp_path, events_days=180, diagnostics_days=90, identifier_days=7)
     store.record(
@@ -398,6 +475,14 @@ def test_report_requires_the_right_token(tmp_path, monkeypatch):
         ok = client.get("/api/v1/analytics/report", headers={"X-Analytics-Token": "s3cret"})
         assert ok.status_code == 200
         assert ok.json()["retention"]["raw_search_query"] == "never stored"
+
+
+def test_report_token_attempts_are_rate_limited_before_report_generation(tmp_path, monkeypatch):
+    monkeypatch.setenv("FJU_ANALYTICS_ADMIN_REQUESTS_PER_MINUTE", "2")
+    with _client(tmp_path, token="s3cret", monkeypatch=monkeypatch) as client:
+        assert client.get("/api/v1/analytics/report", headers={"X-Analytics-Token": "wrong"}).status_code == 401
+        assert client.get("/api/v1/analytics/report", headers={"X-Analytics-Token": "wrong"}).status_code == 401
+        assert client.get("/api/v1/analytics/report", headers={"X-Analytics-Token": "s3cret"}).status_code == 429
 
 
 def test_dashboard_page_carries_no_data(tmp_path):

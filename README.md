@@ -123,6 +123,11 @@ third-party analytics service is involved.
   `course_id`s that are not in the served catalog are all rejected, and a
   denylist (`email`, `student_id`, `token`, `schedule`, `ip`, …) fails the whole
   request. Events land in typed columns — there is no JSON blob.
+- **Retry-safe.** Each event is assigned an opaque idempotency key (or a
+  server-derived canonical digest for older clients), backed by a SQLite unique
+  index so an identical network retry is ignored.
+- **Bounded storage.** Retention remains time-based, with configurable row and
+  database-size ceilings that evict the oldest events before rejecting a batch.
 
 ```http
 POST /api/v1/analytics/events        # batched, ≤40 events, fire-and-forget (202)
@@ -135,6 +140,10 @@ switch collection off. The student-facing disclosure and opt-out live at
 `/privacy`; the browser's Do Not Track signal is honoured without one.
 Student profiles, completed courses, favorites, and schedules remain in the
 browser; request bodies are not logged.
+
+For the Cloudflare Tunnel deployment, rate limiting accepts `CF-Connecting-IP`
+only when the socket peer is in `FJU_TRUSTED_PROXY_IPS`; `X-Forwarded-For` is
+never trusted. Production API docs are disabled by default with `FJU_ENV=production`.
 
 Evaluate the relevance set after changing the embedding model or retrieval strategy.
 The report compares the dense baseline with the query-only hybrid RRF ranking:
@@ -177,8 +186,10 @@ course contexts, then asks `gpt-5.6-luna` for a structured Traditional Chinese
 answer. The model can only recommend course IDs in those retrieved contexts;
 course details, warnings, and official links are filled from the local catalog.
 
-Copy `.env.example` to `.env`, add `OPENAI_API_KEY`, and start the already-built
-immutable image with Compose (never commit `.env`):
+Copy `.env.example` to `.env` and start the already-built immutable image with
+Compose (never commit `.env`). Keep `OPENAI_API_KEY` empty to leave the
+assistant disabled; when it is empty the API returns `503 feature unavailable`
+and does not initialise or call an OpenAI provider:
 
 ```bash
 cp .env.example .env
@@ -187,8 +198,9 @@ docker compose up -d --no-build
 ```
 
 The assistant limits questions to 500 characters, keeps only two recent turns
-in browser memory, rate-limits each IP, and enforces a monthly provider-call
-limit. Usage totals are stored without prompt or profile content under
+in browser memory, rate-limits the deployment-aware client key, and enforces a
+monthly provider-call limit. Usage totals are stored without prompt or profile
+content under
 `data/runtime/ai-usage.sqlite3`. Set an OpenAI Project budget/alert separately
 as a second billing safeguard. With the default Luna price and the planned
 4,000 input / 800 output token profile, 10,000 calls are roughly US$17.60

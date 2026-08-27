@@ -1,192 +1,248 @@
 # FJU Course Recommender System
 
-An open-source course discovery and decision-support system for students at Fu Jen Catholic University.
+An open-source course discovery and course-selection decision-support system for students at Fu Jen Catholic University.
 
-The project combines structured course data, semantic retrieval, keyword search, eligibility rules, and timetable tools to help students explore and compare courses more efficiently.
+The project combines structured course-outline data, semantic retrieval, BM25 lexical search, eligibility rules, filters, and timetable information to help students discover and compare courses.
 
-> This is an independent open-source project and is not an official Fu Jen Catholic University service.
+> This is an independent open-source project. It is not an official Fu Jen Catholic University service.
 
 ## Demo
 
-**Live demo: https://crs.sixhuang.com**
+**Live demo:** https://crs.sixhuang.com
 
-
-![FJU Course Recommender System screenshot](assets/overview.png)
+![FJU Course Recommender System](assets/overview.png)
 
 ## Features
 
-* **Semantic course search**
-
-  * Search with natural-language goals such as "database and backend development".
-  * Queries do not need to exactly match words in a course title or syllabus.
-
-* **Hybrid retrieval**
-
-  * Combines dense semantic retrieval with BM25 keyword search.
-  * Uses Reciprocal Rank Fusion (RRF) to merge retrieval results.
-
-* **Eligibility-aware recommendations**
-
-  * Uses structured information such as study level, department, and grade.
-  * Unknown eligibility conditions are handled conservatively instead of automatically excluding a course.
-
-* **Course discovery and filtering**
-
-  * Filter by weekday, time, credits, course type, department, and other catalog metadata.
-  * Designed to support both in-department and cross-department course exploration.
-
-* **Timetable and conflict detection**
-
-  * Add courses to a timetable while exploring alternatives.
-  * Detect schedule conflicts without preventing students from comparing competing course choices.
-
-* **Local-first student data**
-
-  * Profiles, completed courses, favorites, and timetables are primarily stored in browser IndexedDB.
-  * The core recommendation experience does not require an account.
-
-* **No generative LLM in the core recommendation path**
-
-  * Core course retrieval does not depend on Chat Completion or another generative model.
-  * Runtime search primarily uses embeddings, retrieval, deterministic rules, and ranking.
+* **Semantic course search** — describe what you want to learn in natural language instead of relying only on exact course-title matches.
+* **Hybrid retrieval** — combines course embeddings with field-weighted BM25 lexical search.
+* **Eligibility-aware recommendations** — uses available study-level, department, grade, prerequisite, and audience information.
+* **Course filtering** — filter courses by schedule, credits, course type, department, teaching method, assessment method, language, and other available metadata.
+* **Timetable and conflict detection** — compare courses while detecting conflicts with an existing schedule.
+* **Course-family deduplication and diversity** — groups closely related offerings and uses diversity-aware ranking to avoid filling the result list with near-duplicates.
+* **Local-first student data** — profiles, completed courses, favorites, dismissed courses, schedules, and recommendation preferences are stored in browser IndexedDB.
+* **No generative LLM in the core recommendation path** — the main recommender uses embeddings, deterministic query processing, filtering, and ranking rather than Chat Completion.
+* **Optional compound-query analysis** — a deterministic frontend parser can recognize multiple goals, exclusions, contexts, and supported hard constraints. This feature is controlled by `FJU_COMPOUND_QUERY_ENABLED` and is disabled by default.
 
 ## How Recommendation Works
 
-At a high level:
+The recommendation pipeline is primarily executed in the browser.
 
 ```text
-User Query
+User query
     │
-    ├── Query Embedding
-    │
-    ├── BM25 Keyword Search
-    │
-    ▼
-Dense Retrieval + BM25
-    │
-    ▼
-Reciprocal Rank Fusion (RRF)
-    │
-    ▼
-Eligibility / Hard Constraints
-    │
-    ▼
-Filtering & Ranking
-    │
-    ▼
-Recommended Courses
+    ├─────────────────────────────────────┐
+    │                                     │
+    ▼                                     ▼
+FastAPI query-embedding API         Deterministic query analysis
+    │                               (when enabled)
+    ▼                                     │
+Query vector                              │
+    │                                     │
+    └─────────────────┬───────────────────┘
+                      ▼
+              Browser-side ranking
+                      │
+        ┌─────────────┴─────────────┐
+        ▼                           ▼
+Dense semantic ranking        BM25 lexical ranking
+        │                           │
+        └─────────────┬─────────────┘
+                      ▼
+          Reciprocal Rank Fusion
+                      │
+                      ▼
+       Eligibility / hard constraints
+       Schedule / user-selected filters
+                      │
+                      ▼
+           Course-family grouping
+                      │
+                      ▼
+          Diversity selection (MMR)
+                      │
+                      ▼
+             Recommended courses
 ```
 
-### 1. Course representation
+### Dense retrieval
 
-Normalized course records are converted into a searchable catalog. Embeddings are built from course information such as the title, objectives, syllabus content, and other structured metadata.
+Course embeddings are downloaded from the backend and cached by the frontend. For each query, the backend generates a compatible query embedding and the browser compares it against course vectors.
 
-The current production artifact uses:
+The pinned production artifact currently uses:
 
-* Model: `google/embeddinggemma-300m`
-* Dimension: `768`
-* Vector format: `float32`
+|                |                              |
+| -------------- | ---------------------------- |
+| Model          | `google/embeddinggemma-300m` |
+| Dimension      | `768`                        |
+| Vector type    | `float32`                    |
+| Catalog schema | `fju_catalog_v4`             |
+| Course records | `4,565`                      |
 
-Model revisions and artifact metadata are pinned so that the catalog, embeddings, and runtime model remain reproducible.
+The exact model revision, canonical-data checksum, artifact checksums, and build metadata are recorded in:
 
-### 2. Query retrieval
+[`artifact-locks/1151-embeddinggemma-768.json`](artifact-locks/1151-embeddinggemma-768.json)
 
-For each search query, the system:
+### Lexical retrieval
 
-1. Generates a query embedding.
-2. Performs dense semantic retrieval.
-3. Performs BM25 keyword retrieval.
-4. Combines the rankings using RRF.
+The frontend also builds a field-weighted BM25 index over:
 
-This gives the system both:
+* course title
+* course objective
+* weekly progress
+* prerequisites
+* materials
+* skills
 
-* semantic recall when a course uses different wording from the query, and
-* strong lexical matching when specific terms matter.
+The dense and lexical rankings are combined using **Reciprocal Rank Fusion (RRF)**.
 
-### 3. Eligibility and constraints
+### Eligibility, filtering, and diversity
 
-Retrieved candidates are then evaluated using structured course information, including:
+Before a course is presented as a recommendation, the frontend can account for information such as:
 
-* study level
-* grade
-* department / intended audience
-* known enrollment restrictions
-* user-selected filters
+* student profile and study level
+* department relationship
+* completed courses
+* known prerequisites
+* existing timetable conflicts
+* preferred weekdays
+* course category
+* credits
+* advanced course filters
+* supported query-level hard constraints
 
-Only restrictions that can be supported by available course data are treated as confirmed blockers. Missing information is generally surfaced as something that should be checked rather than being interpreted as definite ineligibility.
+Confirmed restrictions may block a course. Conditions that cannot be determined from available data can instead remain marked as requiring confirmation.
 
-More detailed design and evaluation documentation should live in `docs/recommendation.md` and `docs/evaluation.md`.
+After retrieval, similar course offerings are grouped into course families and a **Maximal Marginal Relevance (MMR)** step is used to improve result diversity.
+
+### Compound queries
+
+The repository also contains an optional deterministic query-analysis layer for queries such as:
+
+```text
+資料庫＋後端
+企業法務實習
+不要星期三的通識
+```
+
+It can distinguish supported relations such as single-goal, coverage, intersection, filtering, exclusions, and selected metadata constraints.
+
+It does **not** use a generative LLM to interpret these searches.
+
+The feature is disabled by default:
+
+```text
+FJU_COMPOUND_QUERY_ENABLED=0
+```
+
+Evaluation material for this feature is available in [`evaluation/`](evaluation/).
 
 ## Architecture
 
 ```text
-                     ┌──────────────────────┐
-                     │       Browser        │
-                     │ React / TypeScript   │
-                     │ IndexedDB profile    │
-                     └──────────┬───────────┘
-                                │
-                                │ HTTP API
-                                ▼
-                     ┌──────────────────────┐
-                     │       FastAPI        │
-                     │ Catalog / Retrieval  │
-                     │ Eligibility Rules    │
-                     └──────────┬───────────┘
-                                │
-                    ┌───────────┴───────────┐
-                    ▼                       ▼
-          ┌──────────────────┐    ┌──────────────────┐
-          │ Course Catalog   │    │ Vector Artifacts │
-          │ Structured Data  │    │ EmbeddingGemma   │
-          └──────────────────┘    └──────────────────┘
-                    ▲
-                    │
-          ┌─────────┴──────────┐
-          │   Data Pipeline    │
-          │ Crawl → Normalize  │
-          │ Validate → Build   │
-          └────────────────────┘
+┌──────────────────────────────────────────────┐
+│                  Browser                     │
+│                                              │
+│ React / TypeScript                           │
+│                                              │
+│ • Course discovery UI                        │
+│ • Query analysis                             │
+│ • Eligibility and schedule checks            │
+│ • Dense + BM25 + RRF ranking                 │
+│ • Course-family grouping + MMR               │
+│ • IndexedDB user data                        │
+│ • Cached catalog and vector artifacts        │
+└──────────────────────┬───────────────────────┘
+                       │ HTTP
+                       ▼
+┌──────────────────────────────────────────────┐
+│                  FastAPI                     │
+│                                              │
+│ • Course catalog APIs                        │
+│ • Facets / department metadata               │
+│ • Query embedding                            │
+│ • Catalog and embedding artifacts            │
+│ • Optional analytics                         │
+│ • Optional AI assistant                      │
+└──────────────────────┬───────────────────────┘
+                       │
+                       ▼
+┌──────────────────────────────────────────────┐
+│               Artifact Bundle                │
+│                                              │
+│ canonical catalog                            │
+│ course embeddings                            │
+│ embedding index                              │
+│ query-route artifacts                        │
+│ pinned model runtime                         │
+└──────────────────────────────────────────────┘
 ```
 
-Main technologies:
+### Main technologies
 
-| Layer         | Technology                   |
-| ------------- | ---------------------------- |
-| Frontend      | React 19, TypeScript, Vite   |
-| UI            | HeroUI, Tailwind CSS         |
-| Client data   | IndexedDB                    |
-| Backend       | FastAPI                      |
-| Embedding     | EmbeddingGemma               |
-| Retrieval     | Dense retrieval + BM25 + RRF |
-| Data pipeline | Python                       |
-| Deployment    | Docker                       |
+| Layer             | Technology                   |
+| ----------------- | ---------------------------- |
+| Frontend          | React 19, TypeScript, Vite   |
+| UI                | HeroUI, Tailwind CSS         |
+| Client-side state | IndexedDB, TanStack Query    |
+| Backend           | FastAPI                      |
+| Embedding         | EmbeddingGemma               |
+| Retrieval         | Dense retrieval + BM25 + RRF |
+| Diversification   | MMR                          |
+| Data pipeline     | Python                       |
+| Deployment        | Docker                       |
 
-## Dataset
+## Dataset and Data Pipeline
 
-The current primary dataset contains course outlines for **Academic Year 115, Semester 1** at Fu Jen Catholic University.
+The current production artifact is based on Fu Jen Catholic University course-outline data for:
 
-Course information is collected from public interfaces used by the university's course-outline system and processed through:
+* Academic year: **115**
+* Semester: **1**
+* Course type: `100`
+* Language setting: `1028`
+
+The crawler accesses the public JSON APIs used by the university's course-outline system.
+
+The pipeline consists of:
 
 ```text
-Discovery
-   ↓
-Crawling
-   ↓
+Course discovery
+      ↓
+Department metadata
+      ↓
+Course crawling
+      ↓
 Normalization
-   ↓
+      ↓
 Validation
-   ↓
-Canonical Catalog
-   ↓
-Embedding / Search Artifacts
+      ↓
+Canonical JSONL
+      ↓
+Embedding artifact build
 ```
 
-The current production catalog contains approximately **4,565 course records**.
+The main CLI commands are:
 
-Complete production runtime artifacts are not treated as source code and are not committed directly to the Git repository.
+```bash
+fju-outline discover --hy 115 --ht 1
+fju-outline departments --hy 115 --lcid 1028
+fju-outline crawl --hy 115 --ht 1
+fju-outline normalize --hy 115 --ht 1
+fju-outline export --hy 115 --ht 1
+fju-outline validate --hy 115 --ht 1
+```
 
-See `docs/data-pipeline.md` for data processing and artifact-generation details.
+Generated raw course data, canonical datasets, derived tables, and production artifact bundles are not all committed to this repository.
+
+The tracked `data/` directory currently contains reference data used by the project, including department metadata and department-matching review data.
+
+The production-compatible EmbeddingGemma builder is:
+
+[`scripts/build_embedding_bundle.py`](scripts/build_embedding_bundle.py)
+
+Artifact verification is implemented in:
+
+[`scripts/verify_artifact_bundle.py`](scripts/verify_artifact_bundle.py)
 
 ## Quick Start
 
@@ -203,142 +259,170 @@ git clone https://github.com/hyslchs/Course_Recommender_System.git
 cd Course_Recommender_System
 ```
 
-### Backend
-
-Create a Python environment and install the project:
+Create a Python environment:
 
 ```bash
 python -m venv .venv
+```
 
+Activate it:
+
+```bash
 # Linux / macOS
 source .venv/bin/activate
+```
 
+```powershell
 # Windows PowerShell
-# .venv\Scripts\Activate.ps1
+.venv\Scripts\Activate.ps1
+```
 
+Install the backend, pipeline dependencies, and test dependencies:
+
+```bash
 pip install -e ".[pipeline,test]"
 ```
 
-Run the test suite:
+Run backend tests:
 
 ```bash
 pytest -q
 ```
 
-### Frontend
+### Frontend development
 
 ```bash
 cd frontend
 pnpm install
+pnpm test
 pnpm dev
 ```
 
-During development, Vite proxies `/api` requests to the backend.
+The Vite development server proxies `/api` and `/health` to:
 
-### Running the complete recommender
+```text
+http://127.0.0.1:8080
+```
 
-The complete recommendation system requires a compatible:
+### Running the complete application
 
-* canonical course catalog
-* embedding artifact set
-* artifact metadata / lock file
-* query embedding model
+A fresh clone does **not** contain the complete production artifact bundle.
 
-Production artifacts are **not included directly in the Git repository**.
+The backend requires a compatible vector artifact directory containing the catalog, embedding index, course vectors, and model metadata.
 
 If you already have a compatible artifact bundle:
 
 ```bash
 fju-outline-web \
-  --artifacts-dir /path/to/artifact-bundle/vector \
+  --artifacts-dir /path/to/vector-artifacts \
   --port 8080
 ```
 
-Then start the frontend in another terminal:
+Then run the frontend in another terminal:
 
 ```bash
 cd frontend
 pnpm dev
 ```
 
-To rebuild the dataset and embedding artifacts from source data, see `docs/data-pipeline.md`.
-
-## Data Pipeline
-
-The crawler and dataset pipeline are also part of this repository.
-
-For example:
+For rebuilding the pinned EmbeddingGemma artifact format, inspect the builder options with:
 
 ```bash
-python -m fju_outline.cli discover --hy 115 --ht 1
-python -m fju_outline.cli departments --hy 115 --lcid 1028
-python -m fju_outline.cli crawl --hy 115 --ht 1
-python -m fju_outline.cli normalize --hy 115 --ht 1
-python -m fju_outline.cli validate --hy 115 --ht 1
+python scripts/build_embedding_bundle.py --help
 ```
 
-These commands handle course discovery, collection, normalization, and validation.
+Before using a generated production bundle, it can be checked with:
 
-The production EmbeddingGemma artifacts use a separate pinned build process. Detailed build and verification instructions belong in:
+```bash
+python scripts/verify_artifact_bundle.py --help
+```
+
+## Evaluation
+
+The repository includes recommendation and compound-query evaluation resources under [`evaluation/`](evaluation/).
+
+These include:
+
+* `relevance_v1.json`
+* `manual_test_cases_v1.csv`
+* `manual_test_cases_v1.json`
+* `compound_queries_v1.json`
+* RESQUE user-simulation reports
+
+The hybrid recommendation evaluator compares dense retrieval against the hybrid ranking using **Recall@10** and **NDCG@10**:
+
+```bash
+python -m fju_outline.evaluation \
+  --artifacts-dir /path/to/vector-artifacts
+```
+
+The compound-query evaluation material and its review status are documented in:
+
+[`evaluation/README.md`](evaluation/README.md)
+
+Some evaluation files are explicitly drafts or require manual review; they should not automatically be treated as validated relevance ground truth.
+
+## Local Data and Optional Services
+
+Student-side application data is stored in browser IndexedDB.
+
+The current stores include:
 
 ```text
-docs/data-pipeline.md
+profile
+completedCourses
+favorites
+dismissedCourses
+schedulePlans
+recommendationPreferences
+catalogCache
+preferences
 ```
+
+The repository also contains two optional server-side features:
+
+**Product analytics**
+
+Analytics support exists in the backend and frontend, but the example configuration disables collection by default:
+
+```text
+FJU_ANALYTICS_ENABLED=0
+```
+
+**AI course assistant**
+
+An optional AI course assistant is also implemented separately from the main recommender. It requires an explicitly configured `OPENAI_API_KEY`.
+
+The example configuration leaves the key empty, so the feature is not enabled by default.
+
+Neither feature is required for the core semantic recommendation flow.
+
+See [`.env.example`](.env.example) for the available runtime configuration.
 
 ## Repository Structure
 
 ```text
 .
-├── frontend/          # React / TypeScript frontend
-├── src/fju_outline/   # Backend, crawler and data pipeline
-├── scripts/           # Artifact build and verification tools
-├── evaluation/        # Recommendation evaluation resources
-├── artifact-locks/    # Versioned production artifact metadata
-├── data/              # Local/generated data workspace
+├── .github/
+│   └── workflows/             # CI
+├── artifact-locks/            # Pinned production artifact metadata
+├── assets/
+│   └── overview.png           # README screenshot
+├── data/
+│   └── reference/             # Tracked reference datasets
+├── evaluation/                # Recommendation and query evaluation data
+├── frontend/                  # React / TypeScript application
+├── scripts/                   # Artifact and deployment utilities
+├── src/
+│   └── fju_outline/           # Backend, crawler, pipeline and evaluation code
+├── .env.example
 ├── Dockerfile
 ├── compose.yaml
 ├── pyproject.toml
+├── THIRD_PARTY_NOTICES.md
+├── LICENSE
 └── README.md
 ```
-
-## Privacy
-
-The project follows a local-first approach.
-
-For normal course discovery and recommendation flows, the following data primarily remains in the user's browser:
-
-* student profile
-* completed courses
-* favorite courses
-* timetable
-
-The product analytics layer is designed around aggregate product usage rather than maintaining identifiable user profiles, and the application does not require an account for the core recommendation flow.
-
-The repository also contains an optional AI course assistant. It is separate from the core recommendation pipeline and is currently disabled on the public deployment.
-
-Detailed documentation for analytics, retention, opt-out behavior, and any external AI-provider data flow should be maintained in:
-
-```text
-docs/privacy.md
-```
-
-## Documentation
-
-The README intentionally contains only the information needed to understand and start working with the project.
-
-Detailed maintainer documentation should be separated into:
-
-```text
-docs/
-├── architecture.md       # Components and system architecture
-├── data-pipeline.md      # Crawling, normalization and artifact builds
-├── recommendation.md     # Retrieval and recommendation logic
-├── evaluation.md         # Relevance sets and recommendation evaluation
-├── privacy.md            # Analytics, privacy and optional AI data flows
-└── deployment.md         # Production deployment, networking and rollback
-```
-
-Production server paths, Docker subnets, trusted-proxy configuration, Cloudflare Tunnel settings, rollback procedures, and other operator-specific information belong in `docs/deployment.md`, not in the project homepage.
 
 ## Development
 
@@ -358,28 +442,33 @@ pnpm test
 pnpm build
 ```
 
-Changes to the embedding model, retrieval strategy, or ranking logic should be followed by recommendation evaluation rather than only checking that the application starts successfully.
+Changes to embedding generation, lexical retrieval, ranking, eligibility rules, or compound-query behavior should also be checked against the relevant evaluation material.
 
 ## License
 
-Source code created as part of this project is licensed under the **Apache License 2.0**.
+Original source code developed for this project is licensed under the **Apache License 2.0**.
 
-Apache-2.0 does **not** automatically relicense every dataset, model, font, dependency, or other third-party resource associated with this repository.
+The Apache License 2.0 for this repository's original source code does not automatically apply to third-party materials such as:
 
-This includes, but is not limited to:
-
-* Fu Jen Catholic University public course data
-* EmbeddingGemma models and model artifacts
+* Fu Jen Catholic University course data
+* EmbeddingGemma model files
 * Noto Sans TC
-* Python and JavaScript dependencies
-* other third-party resources
+* third-party Python and JavaScript dependencies
+* other externally provided data or services
 
-Those materials remain subject to their respective licenses and terms of use.
+Those materials remain subject to their respective licenses, terms, and applicable laws.
 
-See [LICENSE](LICENSE) and the repository's third-party notices for details.
+See:
+
+* [LICENSE](LICENSE)
+* [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+
+for details.
 
 ## Disclaimer
 
 This project is an independent tool for course discovery, recommender-system research, and course-selection decision support.
 
-Recommendations and eligibility assessments are provided for reference only. Official course availability, enrollment eligibility, prerequisites, capacity, and course changes should always be verified through **Fu Jen Catholic University's official course registration and course-outline systems**.
+Recommendation results and eligibility assessments are for reference only.
+
+Official course availability, enrollment restrictions, prerequisites, capacity, schedules, and other registration requirements should always be verified through Fu Jen Catholic University's official systems.

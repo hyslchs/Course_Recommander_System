@@ -1,0 +1,8 @@
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.f32 -text
+*.sqlite3 -text
+*.sqlite3-* -text
+*.jsonl text eol=lf
+*.json text eol=lf

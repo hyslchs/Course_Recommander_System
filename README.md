@@ -178,6 +178,58 @@ docker compose -f compose.yaml -f compose.build.yaml build
 docker compose -f compose.yaml up -d --no-build
 ```
 
+## Production Docker network
+
+Production Compose uses the operator-managed external network
+`crs-production-network`. Its fixed configuration is:
+
+```text
+subnet:  172.24.0.0/24
+gateway: 172.24.0.1
+```
+
+Create this network once, after checking that its subnet does not overlap any
+Docker, VPN, or host network on the production server:
+
+```bash
+docker network create \
+  --driver bridge \
+  --subnet 172.24.0.0/24 \
+  --gateway 172.24.0.1 \
+  crs-production-network
+```
+
+This is a protected production resource. Do not run `docker network rm` or
+`docker network prune` against it. Compose does not create or remove this
+external network, and `deploy.sh` fails before stopping the current application
+container if the network is missing or its driver, subnet, or gateway is wrong.
+
+The deployment still uses a commit-scoped Compose project and keeps the
+revision-specific container identity needed by the existing rollback handler.
+Only one revision may publish `127.0.0.1:8080` at a time, so cutover remains
+stop-before-start; the old container is retained for rollback. The CRS network
+must not be mixed with `freshrss_default`, and `cloudflared` continues to use
+`http://127.0.0.1:8080`.
+
+Set the production environment once to:
+
+```text
+FJU_TRUSTED_PROXY_IPS=172.24.0.1/32
+```
+
+The Docker gateway is the socket peer seen by FastAPI on the localhost
+published-port path. Future commit deployments reuse the same external network
+and do not require another trusted-proxy change. The application never trusts
+`X-Forwarded-For`.
+
+During the first legacy-network to fixed-network migration, the old container
+may still be attached to the legacy network and retain its legacy environment.
+If the new container fails, restore the old container and confirm the
+operator-managed `.env` matches the active legacy topology before another
+deployment. Do not delete the legacy network until the rollback window has
+closed. After the migration succeeds, future rollback keeps both revisions on
+the fixed network and does not recreate or remove any network.
+
 ## AI course assistant
 
 The `/assistant` page is a separate, keyword/BM25 RAG flow. It does not call the

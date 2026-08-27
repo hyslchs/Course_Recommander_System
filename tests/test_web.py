@@ -45,19 +45,50 @@ def _request(peer: str, headers: dict[str, str] | None = None) -> Request:
 
 
 def test_rate_limit_key_uses_trusted_cloudflare_client_ip(monkeypatch):
-    monkeypatch.delenv("FJU_TRUSTED_PROXY_IPS", raising=False)
-    first = get_rate_limit_client_key(_request("127.0.0.1", {"CF-Connecting-IP": "203.0.113.10"}))
-    second = get_rate_limit_client_key(_request("127.0.0.1", {"CF-Connecting-IP": "203.0.113.11"}))
+    monkeypatch.setenv("FJU_ENV", "production")
+    monkeypatch.setenv("FJU_TRUSTED_PROXY_IPS", "172.24.0.1/32")
+    first = get_rate_limit_client_key(_request("172.24.0.1", {"CF-Connecting-IP": "203.0.113.10"}))
+    second = get_rate_limit_client_key(_request("172.24.0.1", {"CF-Connecting-IP": "203.0.113.11"}))
     assert first != second
-    assert first == get_rate_limit_client_key(_request("127.0.0.1", {"CF-Connecting-IP": "203.0.113.10"}))
+    assert first == get_rate_limit_client_key(_request("172.24.0.1", {"CF-Connecting-IP": "203.0.113.10"}))
     limiter = RateLimiter(requests=1)
     assert limiter.allow(first)
     assert limiter.allow(second)
     assert not limiter.allow(first)
 
 
+def test_development_missing_trusted_proxy_uses_local_peers(monkeypatch):
+    monkeypatch.setenv("FJU_ENV", "development")
+    monkeypatch.delenv("FJU_TRUSTED_PROXY_IPS", raising=False)
+    assert get_rate_limit_client_key(
+        _request("127.0.0.1", {"CF-Connecting-IP": "203.0.113.10"})
+    ) == "cf:203.0.113.10"
+
+
+def test_production_missing_trusted_proxy_fails_closed(monkeypatch):
+    monkeypatch.setenv("FJU_ENV", "production")
+    monkeypatch.delenv("FJU_TRUSTED_PROXY_IPS", raising=False)
+    assert get_rate_limit_client_key(
+        _request("172.23.0.1", {"CF-Connecting-IP": "203.0.113.10"})
+    ) == "peer:172.23.0.1"
+
+
+def test_production_proxy_allowlist_rejects_broad_default_and_invalid_entries(monkeypatch):
+    monkeypatch.setenv("FJU_ENV", "production")
+    monkeypatch.delenv("FJU_TRUSTED_PROXY_IPS", raising=False)
+    assert get_rate_limit_client_key(
+        _request("172.16.12.4", {"CF-Connecting-IP": "203.0.113.10"})
+    ) == "peer:172.16.12.4"
+
+    monkeypatch.setenv("FJU_TRUSTED_PROXY_IPS", "172.24.0.1/32,not-an-ip")
+    assert get_rate_limit_client_key(
+        _request("172.24.0.1", {"CF-Connecting-IP": "203.0.113.10"})
+    ) == "peer:172.24.0.1"
+
+
 def test_rate_limit_key_rejects_spoofed_or_missing_proxy_headers(monkeypatch):
-    monkeypatch.setenv("FJU_TRUSTED_PROXY_IPS", "127.0.0.1")
+    monkeypatch.setenv("FJU_ENV", "production")
+    monkeypatch.setenv("FJU_TRUSTED_PROXY_IPS", "172.24.0.1/32")
     spoofed = get_rate_limit_client_key(
         _request("198.51.100.9", {"CF-Connecting-IP": "203.0.113.99", "X-Forwarded-For": "203.0.113.99"})
     )

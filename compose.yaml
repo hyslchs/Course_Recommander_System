@@ -16,3 +16,8 @@ services:
       timeout: 5s
       retries: 5
       start_period: 180s
+
+networks:
+  default:
+    name: crs-production-network
+    external: true

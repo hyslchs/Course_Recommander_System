@@ -9,6 +9,8 @@ readonly READY_URL="${CRS_READY_URL:-http://127.0.0.1:8080/health/ready}"
 readonly PUBLIC_READY_URL="${CRS_PUBLIC_READY_URL:-https://crs.sixhuang.com/health/ready}"
 readonly HEALTH_TIMEOUT_SECONDS="${CRS_HEALTH_TIMEOUT_SECONDS:-240}"
 
+source "$SCRIPT_DIR/scripts/deployment_network.sh"
+
 deployment_project_name=""
 cutover_started=0
 previous_container_id=""
@@ -72,6 +74,13 @@ trap rollback_on_error EXIT
 [ -x scripts/verify_artifact_bundle.py ] || die 'artifact verifier is missing or not executable'
 [ -d "$BUNDLE_DIR" ] || die "artifact bundle is missing: $BUNDLE_DIR"
 
+# This must remain before cutover_started and before stopping the current
+# application container. The deploy script never creates or removes this
+# operator-managed external network.
+verify_fixed_network || die 'fixed production network preflight failed'
+verify_trusted_proxy_setting .env || \
+  die 'fixed production trusted proxy setting preflight failed'
+
 if [ -n "$(git status --porcelain=v1)" ]; then
   die 'deployment worktree is dirty; refusing to deploy'
 fi
@@ -130,6 +139,9 @@ while :; do
   [ "$(date +%s)" -lt "$deadline" ] || die "readiness timeout: $READY_URL"
   sleep 2
 done
+
+verify_container_on_fixed_network "$container_id" || \
+  die 'new application container is not attached to the fixed production network'
 
 curl --fail --silent --show-error --max-time 5 "$LIVE_URL" >/dev/null
 curl --fail --silent --show-error --max-time 5 "$READY_URL" >/dev/null

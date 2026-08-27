@@ -67,7 +67,7 @@ FRONTEND_DIST = (
 )
 DEFAULT_ARTIFACTS_DIR = Path("new-vector-data/1151-embeddinggemma-768")
 MAX_REQUEST_BYTES = 16 * 1024
-DEFAULT_TRUSTED_PROXY_IPS = "127.0.0.1,::1,172.16.0.0/12"
+DEVELOPMENT_TRUSTED_PROXY_IPS = "127.0.0.1,::1"
 DOCS_PATHS = frozenset({"/docs", "/redoc", "/openapi.json"})
 mimetypes.add_type("application/javascript", ".js")
 mimetypes.add_type("text/css", ".css")
@@ -388,9 +388,20 @@ class RateLimiter:
 
 
 def _trusted_proxy_networks() -> list[Any]:
-    """Return explicitly trusted local/cloudflared peer networks."""
-    configured = os.environ.get("FJU_TRUSTED_PROXY_IPS", DEFAULT_TRUSTED_PROXY_IPS)
+    """Return trusted peer networks, failing closed for production misconfigurations."""
+    environment = os.environ.get("FJU_ENV", "production").strip().lower()
+    configured = os.environ.get("FJU_TRUSTED_PROXY_IPS", "").strip()
     networks = []
+    if not configured:
+        if environment in {"development", "dev", "test"}:
+            configured = DEVELOPMENT_TRUSTED_PROXY_IPS
+        else:
+            logger.error(
+                "security_event=trusted_proxy_config_missing environment=%s",
+                environment or "production",
+            )
+            return []
+
     for value in configured.split(","):
         value = value.strip()
         if not value:
@@ -398,9 +409,19 @@ def _trusted_proxy_networks() -> list[Any]:
         try:
             networks.append(ip_network(value, strict=False))
         except ValueError:
-            # Invalid entries are ignored; the request then falls back to its
-            # socket peer instead of trusting a malformed proxy configuration.
-            continue
+            # A malformed production allowlist must not partially enable proxy
+            # trust. No header is accepted if any configured entry is invalid.
+            logger.error(
+                "security_event=trusted_proxy_config_invalid environment=%s",
+                environment or "production",
+            )
+            return []
+    if not networks:
+        logger.error(
+            "security_event=trusted_proxy_config_invalid environment=%s",
+            environment or "production",
+        )
+        return []
     return networks
 
 

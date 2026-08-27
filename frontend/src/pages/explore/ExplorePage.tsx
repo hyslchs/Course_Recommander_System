@@ -11,16 +11,21 @@ import {
   Select,
   type SortDescriptor,
 } from "@heroui/react";
+import { FunnelSimple } from "@phosphor-icons/react";
 import { useCourses, useFacets } from "@/data/queries";
 import { newInteractionId, track } from "@/analytics/client";
 import { nextSearchStep, type SearchFlowState } from "@/analytics/searchFlow";
+import { getHighCreditOptions } from "@/domain/creditFilter";
 import { evaluateEligibility } from "@/domain/eligibility";
 import { filterDepartmentOptions, type DepartmentOption } from "@/domain/departmentOptions";
 import { weekdayLabels } from "@/domain/schedule";
 import { useLocalRecords, useProfile } from "@/hooks/localData";
+import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { CourseCard } from "@/components/CourseCard";
 import { NumberTicker } from "@/components/motion/NumberTicker";
-import { EmptyState, LoadingSkeleton, StateAlert } from "@/components/ui";
+import { EmptyState, LoadingSkeleton, Modal, StateAlert } from "@/components/ui";
+import { FilterPanel, type FacetOption } from "@/pages/recommend/FilterPanel";
+import { activeFilterCount, clearFilters, createFilters, type RecommendFilters } from "@/pages/recommend/filterState";
 import { CourseTable, CourseTableSkeleton, type CourseRow } from "./CourseTable";
 import { useLayoutSwitchFocus } from "./useLayoutSwitchFocus";
 import { useIsDesktop } from "@/hooks/useIsDesktop";
@@ -80,6 +85,7 @@ function toDepartmentOption(facet: DepartmentFacet): DepartmentOption {
 export function ExplorePage() {
   const facetsQuery = useFacets();
   const profile = useProfile();
+  const { activePlan } = useSchedulePlans();
   const completed = useLocalRecords<CompletedCourse & { id: string }>("completedCourses");
   const isDesktop = useIsDesktop();
   const { announcement, regionRef } = useLayoutSwitchFocus(isDesktop);
@@ -89,6 +95,13 @@ export function ExplorePage() {
   const [department, setDepartment] = useState<string | null>(null);
   const [weekday, setWeekday] = useState<string | null>(null);
   const [page, setPage] = useState(1);
+  const [filters, setFilters] = useState<RecommendFilters>(() => ({
+    ...createFilters([]),
+    categoryFilters: [],
+    showOtherWeekdays: true,
+  }));
+  const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const fullFilterReturnFocus = useRef<HTMLButtonElement | null>(null);
   /*
     Owned here, not in `CourseTable`, because `CourseTable` does not survive the
     breakpoint — see `CourseTableProps.sortDescriptor`. The page does, so the
@@ -131,6 +144,37 @@ export function ExplorePage() {
       .map(toDepartmentOption)
       .sort((left, right) => left.aliases[0].localeCompare(right.aliases[0], "zh-Hant"));
   }, [facetsQuery.data]);
+
+  const facets = facetsQuery.data ?? {};
+  const facetOptions = (key: string) => (facets[key] ?? []) as FacetOption[];
+  const creditOptions = useMemo(() => (facets.credits ?? [])
+    .map((item) => Number(item.value))
+    .filter((value) => Number.isFinite(value)), [facets]);
+  const highCreditOptions = useMemo(() => getHighCreditOptions(creditOptions), [creditOptions]);
+  const individualCreditOptions = useMemo(
+    () => creditOptions.filter((credits) => !highCreditOptions.includes(credits)),
+    [creditOptions, highCreditOptions],
+  );
+  const courseTagOptions = useMemo(
+    () => (facets.course_tags ?? []).map((item) => ({ value: item.value, label: item.label })),
+    [facets],
+  );
+  const filterPanelProps = {
+    activePlanName: activePlan?.name,
+    courseTagOptions,
+    relationOptions: facetOptions("relations"),
+    teachingMethodOptions: facetOptions("teaching_methods"),
+    assessmentOptions: facetOptions("assessments"),
+    teachingLanguageOptions: facetOptions("teaching_languages"),
+    materialLanguageOptions: facetOptions("material_languages"),
+    divisionOptions: facetOptions("divisions"),
+    departmentOptions: facetOptions("departments"),
+    instructorOptions: facetOptions("teachers"),
+    sectionOptions: facetOptions("sections"),
+    profileDepartmentIdentity: profile?.department_identity,
+    highCreditOptions,
+    individualCreditOptions,
+  };
 
   /**
    * `defaultFilter` is per-item and receives that item's `textValue`, so — as on
@@ -231,9 +275,28 @@ export function ExplorePage() {
   }, [coursesData, coursesError, isFetching, isPending]);
 
   const selectPage = (value: number) => setPage(Math.min(Math.max(1, value), totalPages));
+  const filterCount = activeFilterCount(filters);
+  const fullFilterLabel = filterCount
+    ? "完整篩選條件 · 已套用 " + filterCount + " 項"
+    : "完整篩選條件";
+  const openFullFilters = () => {
+    const activeElement = document.activeElement;
+    fullFilterReturnFocus.current = activeElement instanceof HTMLButtonElement ? activeElement : null;
+    track("feature_clicked", { feature: "open_full_filter" });
+    setFilterDialogOpen(true);
+  };
+  const closeFullFilters = () => {
+    const target = fullFilterReturnFocus.current;
+    setFilterDialogOpen(false);
+    if (target?.isConnected) target.focus();
+  };
+  const applyFilters = (next: RecommendFilters) => {
+    setFilters(next);
+    setPage(1);
+  };
   const clearExploreFilters = () => {
     track("feature_clicked", { feature: "clear_filters" });
-    setQuery(""); setDebouncedQuery(""); setDepartment(null); setWeekday(null); setPage(1);
+    setQuery(""); setDebouncedQuery(""); setDepartment(null); setWeekday(null); setFilters(clearFilters(filters)); setPage(1);
   };
 
   const firstItem = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
@@ -256,7 +319,19 @@ export function ExplorePage() {
         {/* One of the two places §4.6 allows a ticker: a total that settles
             after a fetch, not a live filter count that would re-run on every
             keystroke. */}
-        <strong><NumberTicker value={total} /> 門結果</strong>
+        <div className="explore-heading-actions">
+          <strong><NumberTicker value={total} /> 門結果</strong>
+          <Button
+            aria-expanded={filterDialogOpen}
+            aria-haspopup="dialog"
+            className="explore-full-filter-button min-h-11"
+            variant="secondary"
+            onPress={openFullFilters}
+          >
+            <FunnelSimple aria-hidden="true" />
+            {fullFilterLabel}
+          </Button>
+        </div>
       </div>
 
       {/*
@@ -491,6 +566,28 @@ export function ExplorePage() {
           </Pagination>
         </>
       )}
+
+      <Modal
+        className="recommend-filter-modal"
+        closeLabel="關閉完整篩選"
+        open={filterDialogOpen}
+        title="完整篩選條件"
+        onClose={closeFullFilters}
+      >
+        <div className="recommend-filter-modal-summary">
+          <span><strong>{filterCount}</strong> 項條件已即時套用</span>
+          <Button
+            className="min-h-11"
+            isDisabled={filterCount === 0}
+            size="sm"
+            variant="tertiary"
+            onPress={() => applyFilters(clearFilters(filters))}
+          >
+            清除全部
+          </Button>
+        </div>
+        <FilterPanel {...filterPanelProps} mode="modal" value={filters} onChange={applyFilters} />
+      </Modal>
     </section>
   );
 }

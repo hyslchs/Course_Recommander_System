@@ -211,6 +211,32 @@ describe("ExplorePage — layout switches at lg", () => {
   });
 });
 
+describe("ExplorePage — complete filter dialog", () => {
+  it("opens the shared complete filter dialog and returns focus to its trigger", async () => {
+    const user = userEvent.setup();
+    apiMocks.getFacets.mockResolvedValue({ credits: [{ value: "3", label: "3 學分" }] });
+    respondWith([course()]);
+    renderPage();
+
+    const trigger = await screen.findByRole("button", { name: "完整篩選條件" });
+    await user.click(trigger);
+
+    const dialog = await screen.findByRole("dialog", { name: "完整篩選條件" });
+    for (const group of ["時間與課表", "課程條件", "上課方式", "評量方式"]) {
+      expect(within(dialog).getByRole("button", { name: new RegExp(group) })).toBeInTheDocument();
+    }
+    expect(dialog.querySelector(".recommend-filter-modal-summary")).toHaveTextContent("0 項條件已即時套用");
+
+    await user.click(within(dialog).getByRole("button", { name: "3 學分", pressed: false }));
+    expect(dialog.querySelector(".recommend-filter-modal-summary")).toHaveTextContent("1 項條件已即時套用");
+    expect(trigger).toHaveTextContent("完整篩選條件 · 已套用 1 項");
+
+    await user.keyboard("{Escape}");
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "完整篩選條件" })).not.toBeInTheDocument());
+    expect(trigger).toHaveFocus();
+  });
+});
+
 describe("ExplorePage — sorting", () => {
   const rows = [
     row({ course_id: "b", name_zh: "乙課", credits: 1 }),

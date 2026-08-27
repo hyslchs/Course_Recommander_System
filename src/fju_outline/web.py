@@ -582,14 +582,15 @@ def create_app(
         response.headers["Content-Security-Policy"] = (
             "default-src 'self'; base-uri 'self'; object-src 'none'; "
             "frame-ancestors 'none'; form-action 'self'; frame-src 'none'; "
-            "script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; "
-            "font-src 'self'; img-src 'self' data: blob:; media-src 'self'; connect-src 'self'"
+            "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com; "
+            "style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: blob:; "
+            "media-src 'self'; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com"
             if not docs_enabled
             else
             "default-src 'self'; base-uri 'self'; object-src 'none'; "
-            "frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+            "frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://www.googletagmanager.com; "
             "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; "
-            "img-src 'self' data: blob:; connect-src 'self'"
+            "img-src 'self' data: blob:; connect-src 'self' https://www.google-analytics.com https://region1.google-analytics.com https://analytics.google.com"
         )
         return response
 

@@ -20,7 +20,7 @@ Docker 容器 (crs-app / FastAPI + React SPA + SentenceTransformer)
 ```
 
 - **公開網址**：`https://crs.sixhuang.com`
-- **專案路徑**：`/home/hyslchs/CourseRecommanderSystem`
+- **部署 worktree**：`/home/hyslchs/CourseRecommanderSystem-deploy`
 - **本機監聽**：`127.0.0.1:8080`（未對外公開 8080，透過 Tunnel 反向代理存取）
 - **應用技術**：FastAPI、SentenceTransformer (`google/embeddinggemma-300m`, CPU-only)、React SPA (Vite)
 
@@ -61,12 +61,13 @@ Docker 容器 (crs-app / FastAPI + React SPA + SentenceTransformer)
 所有指令請在專案目錄下執行：
 
 ```bash
-cd /home/hyslchs/CourseRecommanderSystem
+cd /home/hyslchs/CourseRecommanderSystem-deploy
 ```
 
 ### 啟動服務
 ```bash
-docker compose up -d
+# 正式更新請使用 deploy.sh；這裡僅保留已驗證 image 的手動啟動方式。
+docker compose up -d --no-build
 ```
 
 ### 查看容器狀態
@@ -85,7 +86,7 @@ docker compose logs -f
 
 ### 停止服務
 ```bash
-docker compose down
+docker compose stop
 ```
 
 ### 重啟服務
@@ -97,27 +98,23 @@ docker compose restart
 
 ## 4. 重新建置與更新流程
 
-當前端程式碼、後端邏輯或 artifacts 資料更新時，依以下步驟重新建置與部署：
+當前端程式碼、後端邏輯或 immutable artifact bundle 更新時，正式主機只使用以下流程：
 
 ```bash
-cd /home/hyslchs/CourseRecommanderSystem
-
-# The artifact bundle is provisioned outside Git and contains vector data,
-# canonical JSONL, bundle-lock.json, and the offline model cache.
-export CRS_ARTIFACT_BUNDLE_DIR=/var/lib/crs/artifact-bundles/<immutable-bundle-id>
-python3 scripts/verify_artifact_bundle.py --bundle "$CRS_ARTIFACT_BUNDLE_DIR"
-
-# The image tag contains the immutable bundle ID and source Git revision; update it for every source change.
-# BuildKit named context copies only the verified bundle into the image.
-docker compose -f compose.yaml -f compose.build.yaml build
-
-# Runtime Compose uses the just-built immutable local tag; do not trigger a second build.
-docker compose -f compose.yaml up -d --no-build
-
-# Check status and readiness.
-docker compose ps
-curl -s http://127.0.0.1:8080/health/ready
+cd /home/hyslchs/CourseRecommanderSystem-deploy
+./deploy.sh
 ```
+
+`deploy.sh` 依序執行：
+
+1. `git pull --ff-only origin main`
+2. immutable bundle lock、hash、canonical record count、dimension、index order 與 provenance 驗證
+3. BuildKit named-context Docker build，將已驗證 artifacts 與 offline model bake 進 image
+4. 以 source revision 建立獨立 Compose project，切換前只停止既有 running app container
+5. Docker health、local live/ready 與 public ready 檢查
+
+它要求 `.env` target 權限為 600；工作樹 dirty、bundle 缺失／驗證失敗或 health 失敗都會停止。
+bundle 位於 Git 外部；若路徑不同，請設定 `CRS_ARTIFACT_BUNDLE_DIR`，不要把 artifacts 加回 Git。
 
 ---
 
@@ -325,9 +322,16 @@ curl -s --connect-timeout 3 http://140.136.153.101:8080
 3. 至 Cloudflare Zero Trust Dashboard 確認 Tunnel `crs-linux-server` 狀態為 Healthy。
 
 ### 症狀 3：回滾至前一版本
-回滾只切換到已存在的 immutable image tag，不修改 git 工作樹：
+回滾不修改 Git 工作樹，也不刪除舊 image、container 或 volume。
+
+`deploy.sh` 在切換後 health 失敗時會保留新失敗 container，並嘗試啟動切換前
+仍在運作的 app container。
+
+若需手動回滾，先確認目標 container ID，再只執行 stop／start：
+
 ```bash
-cd /home/hyslchs/CourseRecommanderSystem
-# 將 compose.yaml 的 image 改為已驗證的上一個本機 tag，再執行：
-docker compose up -d --no-build
+docker ps -a --filter 'label=com.docker.compose.service=crs-app'
+docker stop <current-container-id>
+docker start <previous-container-id>
+curl --fail http://127.0.0.1:8080/health/ready
 ```

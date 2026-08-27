@@ -145,6 +145,19 @@ python -m fju_outline.evaluation --artifacts-dir /var/lib/crs/artifact-bundles/<
 
 The production build is a single container:
 
+On the production host, use the guarded deployment script from the clean
+deployment worktree:
+
+```bash
+cd /home/hyslchs/CourseRecommanderSystem-deploy
+./deploy.sh
+```
+
+The script performs fast-forward-only `git pull`, immutable bundle verification,
+named-context Docker build, and local/public readiness checks. It uses a
+revision-scoped Compose project so previous containers remain available for
+rollback; it never copies `.env` or secrets into the image.
+
 ```bash
 # Verify a staged immutable bundle, then build with the external named context.
 export CRS_ARTIFACT_BUNDLE_DIR=/var/lib/crs/artifact-bundles/<immutable-bundle-id>

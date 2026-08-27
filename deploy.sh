@@ -68,7 +68,7 @@ require_command python3
 trap rollback_on_error EXIT
 
 [ -f .env ] || die '.env is missing'
-[ "$(stat -c '%a' .env)" = 600 ] || die '.env must have mode 600'
+[ "$(stat -c '%a' -L .env)" = 600 ] || die '.env must have mode 600'
 [ -f compose.yaml ] || die 'compose.yaml is missing'
 [ -f compose.build.yaml ] || die 'compose.build.yaml is missing'
 [ -x scripts/verify_artifact_bundle.py ] || die 'artifact verifier is missing or not executable'

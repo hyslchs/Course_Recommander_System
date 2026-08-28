@@ -150,12 +150,12 @@ export function RecommendPage() {
     setFilters((current) => ({ ...current, preferredWeekdays }));
   }, [profile?.preferredWeekdays]);
   useEffect(() => {
-    if (!profile) return;
-    // Profile completion is the intent signal for this route. The promise is
-    // shared with the button-triggered request, so a click never downloads a
-    // second copy of the catalog or vectors.
+    // The promise is shared with the button-triggered request, so a click never
+    // downloads a second copy of the catalog or vectors. Assets do not depend
+    // on profile data, so begin as soon as the route mounts rather than waiting
+    // for the local profile read to finish.
     void preloadRecommendationAssets("prefetch").catch(() => undefined);
-  }, [profile]);
+  }, []);
 
   const creditOptions = useMemo(() => (facets.credits ?? [])
     .map((item) => Number(item.value))
@@ -305,6 +305,7 @@ export function RecommendPage() {
       setValidationError("請至少勾選一個偏好的上課星期，才能產生推薦。");
       return;
     }
+    const startedAt = performance.now();
     setValidationError("");
     if (profile) {
       try {
@@ -325,7 +326,7 @@ export function RecommendPage() {
     const flow = nextSearchStep(searchFlow.current, Date.now());
     searchFlow.current = flow;
     const interactionId = recommendationRun.start();
-    activeRequest.current = { interactionId, flow, queryLength: sanitizedPreview.subjectQuery.length, startedAt: performance.now() };
+    activeRequest.current = { interactionId, flow, queryLength: sanitizedPreview.subjectQuery.length, startedAt };
 
     sources.mutate(sanitizedPreview.subjectQuery, {
       onError: () => {

@@ -19,24 +19,47 @@ import type { CourseSummary } from "@/domain/types";
  * requests on every keystroke of the explore search, and counting those as
  * failures would make the error rate a measure of how fast people type.
  */
-async function timedFetch(endpoint: ApiEndpointName, url: string, init?: RequestInit): Promise<Response> {
+type TimedFetchReader<T> = (response: Response) => Promise<T>;
+
+/**
+ * Fetch and consume a response before recording its latency.
+ *
+ * `fetch()` resolves at headers, but a recommendation cannot continue until
+ * the body has arrived and been decoded. Keeping the reader inside this
+ * helper makes `api_performance` describe the usable response rather than a
+ * headers-only milestone.
+ */
+async function timedFetch<T>(
+  endpoint: ApiEndpointName,
+  url: string,
+  init: RequestInit | undefined,
+  read: TimedFetchReader<T>,
+): Promise<{ response: Response; data: T }> {
   const startedAt = performance.now();
+  let status = 0;
   try {
     const response = await fetch(url, init);
-    track("api_performance", { endpoint, latency_ms: Math.round(performance.now() - startedAt), status: response.status });
-    return response;
+    status = response.status;
+    const data = await read(response);
+    track("api_performance", { endpoint, latency_ms: Math.round(performance.now() - startedAt), status });
+    return { response, data };
   } catch (error) {
     if ((error as Error | undefined)?.name === "AbortError") throw error;
     // `status: 0` is the agreed encoding for "never reached the server", and the
     // dashboard counts it with the 4xx/5xx in `api_error_rate`.
-    track("api_performance", { endpoint, latency_ms: Math.round(performance.now() - startedAt), status: 0 });
+    track("api_performance", { endpoint, latency_ms: Math.round(performance.now() - startedAt), status });
     throw error;
   }
 }
 
 async function getJsonWithResponse<T>(endpoint: ApiEndpointName, url: string, init?: RequestInit): Promise<{ data: T; response: Response }> {
-  const response = await timedFetch(endpoint, url, init);
-  const body = await response.text();
+  const { response, data: parsedBody } = await timedFetch(endpoint, url, init, async (response) => {
+    const body = await response.text();
+    // Parse successful JSON inside timedFetch so the telemetry includes the
+    // complete browser-side step needed before callers can use the data.
+    return { body, data: response.ok ? JSON.parse(body) as T : undefined };
+  });
+  const { body, data } = parsedBody;
   if (!response.ok) {
     let detail = "";
     try {
@@ -45,21 +68,31 @@ async function getJsonWithResponse<T>(endpoint: ApiEndpointName, url: string, in
     } catch { /* response may be plain text */ }
     throw new Error(detail || `${response.status} ${body}`);
   }
-  return { data: JSON.parse(body) as T, response };
+  return { data: data as T, response };
 }
 
 async function getJson<T>(endpoint: ApiEndpointName, url: string, init?: RequestInit): Promise<T> {
   return (await getJsonWithResponse<T>(endpoint, url, init)).data;
 }
 
-export async function getManifest(): Promise<ArtifactManifest> {
-  const manifest = await getJson<ArtifactManifest>("catalog_manifest", "/api/v1/catalog/manifest");
-  setAnalyticsProvenance({
-    client_artifact_version: manifest.artifact_version,
-    client_artifact_bundle_id: (manifest as ArtifactManifest & { bundle_id?: string }).bundle_id,
-    client_model_revision: manifest.model_revision,
+let manifestPromise: Promise<ArtifactManifest> | undefined;
+
+export function getManifest(): Promise<ArtifactManifest> {
+  if (manifestPromise) return manifestPromise;
+  const request = getJson<ArtifactManifest>("catalog_manifest", "/api/v1/catalog/manifest").then((manifest) => {
+    setAnalyticsProvenance({
+      client_artifact_version: manifest.artifact_version,
+      client_artifact_bundle_id: (manifest as ArtifactManifest & { bundle_id?: string }).bundle_id,
+      client_model_revision: manifest.model_revision,
+    });
+    return manifest;
   });
-  return manifest;
+  const shared = request.catch((error) => {
+    if (manifestPromise === shared) manifestPromise = undefined;
+    throw error;
+  });
+  manifestPromise = shared;
+  return shared;
 }
 
 export interface CatalogSummaryPayload {
@@ -235,9 +268,14 @@ async function getEmbeddingBundleWithSource(): Promise<EmbeddingBundleLoad> {
   ]);
   let data = cached?.data;
   if (!data) {
-    const response = await timedFetch("embeddings_data", "/api/v1/embeddings/data");
+    const { response, data: body } = await timedFetch(
+      "embeddings_data",
+      "/api/v1/embeddings/data",
+      undefined,
+      (response) => response.arrayBuffer(),
+    );
     if (!response.ok) throw new Error("無法下載課程向量");
-    data = await response.arrayBuffer();
+    data = body;
     await putRecord("catalogCache", { id: key, data });
   }
   const vectors = new Float32Array(data);
@@ -376,13 +414,18 @@ export async function askCourseAssistant(input: {
 
 export async function getRouteBundle(): Promise<RouteBundle> {
   const index = await getJson<{ routes: RouteInfo[]; dimension: number; threshold?: number; margin?: number }>("query_routes_index", "/api/v1/query-routes/index");
-  const response = await timedFetch("query_routes_data", "/api/v1/query-routes/data");
+  const { response, data: body } = await timedFetch(
+    "query_routes_data",
+    "/api/v1/query-routes/data",
+    undefined,
+    (response) => response.arrayBuffer(),
+  );
   if (!response.ok) throw new Error("無法下載查詢情境向量");
   return {
     routes: index.routes,
     dimension: index.dimension,
     threshold: index.threshold,
     margin: index.margin,
-    vectors: new Float32Array(await response.arrayBuffer()),
+    vectors: new Float32Array(body),
   };
 }

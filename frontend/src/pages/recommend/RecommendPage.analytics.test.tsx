@@ -219,5 +219,6 @@ describe("recommend page analytics", () => {
     expect(eventsNamed("search")).toHaveLength(0);
     expect(eventsNamed("recommendation_skipped")).toHaveLength(0);
     expect(JSON.stringify(trackMock.mock.calls)).not.toContain("資料分析");
+    await waitFor(() => expect(screen.getByRole("button", { name: "產生推薦" })).toBeEnabled());
   });
 });

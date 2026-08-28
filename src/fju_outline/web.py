@@ -153,7 +153,15 @@ class ArtifactStore:
         self.index = normalize_embedding_index(raw_index, self.manifest)
         self.catalog = load_catalog_for_artifact(artifacts_dir, self.manifest, raw_index)
         self.by_id = {str(item["course_id"]): item for item in self.catalog}
-        self.catalog_summary = self._load_catalog_summary(artifacts_dir / "catalog-summary.json")
+        summary_path = artifacts_dir / "catalog-summary.json"
+        self.catalog_summary = self._load_catalog_summary(summary_path)
+        # Some older bundles do not carry the pre-serialized summary. Build the
+        # compressed fallback once at startup; doing zlib level 9 on every
+        # recommendation-page request makes a 4k-course catalog look like an
+        # API/embedding problem and can block the server thread for seconds.
+        self.catalog_summary_payload = (
+            None if summary_path.exists() else serialize_catalog_summary(self.catalog_summary)
+        )
         dataset_year = artifacts_dir.name.split("-", 1)[0]
         self.academic_year = int(
             self.manifest.get("academic_year")
@@ -805,7 +813,7 @@ def register_routes(application: FastAPI) -> None:
                 headers={"Cache-Control": "public, max-age=86400"},
             )
         return JSONResponse(
-            serialize_catalog_summary(store.catalog_summary),
+            store.catalog_summary_payload or serialize_catalog_summary(store.catalog_summary),
             headers={"Cache-Control": "public, max-age=86400"},
         )
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import builtins
+import json
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -12,6 +13,7 @@ from fastapi.testclient import TestClient
 from starlette.requests import Request
 
 from fju_outline.artifacts import build_artifacts, deserialize_catalog_summary
+import fju_outline.web as web_module
 from fju_outline.web import ArtifactStore, QueryEncoder, RateLimiter, create_app, get_rate_limit_client_key
 
 from test_artifacts import FakeEncoder, _record
@@ -121,6 +123,34 @@ def test_health_catalog_and_embedding_api(tmp_path):
         response = client.post("/api/v1/query-embedding", json={"text": "我想學資料分析"})
         assert response.status_code == 200
         assert response.json()["dimension"] == 3
+
+
+def test_missing_catalog_summary_is_serialized_once_at_store_start(tmp_path, monkeypatch):
+    output = tmp_path / "artifacts"
+    build_artifacts([_record("1", "資料科學")], output, encoder=FakeEncoder(), year=115, semester=1)
+    summary_path = output / "catalog-summary.json"
+    summary_path.unlink()
+    manifest_path = output / "artifact-manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["files"].pop("catalog-summary.json", None)
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+
+    original = web_module.serialize_catalog_summary
+    calls = 0
+
+    def counted(summary):
+        nonlocal calls
+        calls += 1
+        return original(summary)
+
+    monkeypatch.setattr(web_module, "serialize_catalog_summary", counted)
+    store = ArtifactStore(output)
+    assert calls == 1
+    app = create_app(store=store, query_encoder=FakeQueryEncoder(), load_runtime=False)
+    with TestClient(app) as client:
+        assert client.get("/api/v1/catalog/summary").json()["encoding"] == "deflate-base64-v1"
+        assert client.get("/api/v1/catalog/summary").status_code == 200
+    assert calls == 1
 
 
 def test_query_encoder_singleflight_and_cache_metrics(monkeypatch):

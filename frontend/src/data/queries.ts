@@ -167,6 +167,10 @@ export function useRecommendationSources() {
         : "network";
       const embeddingStarted = performance.now();
       const assetPromise = preloadRecommendationAssets("search");
+      const assetWithTiming = assetPromise.then((assets) => ({
+        assets,
+        waitMs: performance.now() - assetStarted,
+      }));
       const queryPromise = typeof embedQueryDetailed === "function"
         ? embedQueryDetailed(subjectQuery)
         : embedQuery(subjectQuery).then((vector) => ({
@@ -176,7 +180,7 @@ export function useRecommendationSources() {
           queryCacheState: "unknown" as QueryCacheState,
           requestMs: performance.now() - embeddingStarted,
         }));
-      const [assets, query] = await Promise.all([assetPromise, queryPromise]);
+      const [{ assets, waitMs: assetWaitMs }, query] = await Promise.all([assetWithTiming, queryPromise]);
       const assetState = initialAssetState === "network" && assets.assetSource === "indexed_db"
         ? "indexed_db"
         : initialAssetState;
@@ -187,7 +191,7 @@ export function useRecommendationSources() {
         dimension: assets.dimension,
         query: query.vector,
         searchIndex: assets.searchIndex,
-        assetWaitMs: performance.now() - assetStarted,
+        assetWaitMs,
         embeddingMs: query.requestMs ?? performance.now() - embeddingStarted,
         assetState,
         queryCacheState: query.queryCacheState,

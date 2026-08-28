@@ -1385,15 +1385,15 @@ class AnalyticsStore:
             FROM (
                 SELECT day, elapsed_origin,
                        CASE
-                         WHEN elapsed_ms < 1_000 THEN 'under_1s'
-                         WHEN elapsed_ms < 5_000 THEN '1s_to_5s'
-                         WHEN elapsed_ms < 10_000 THEN '5s_to_10s'
-                         WHEN elapsed_ms < 30_000 THEN '10s_to_30s'
-                         WHEN elapsed_ms < 60_000 THEN '30s_to_60s'
-                         WHEN elapsed_ms < 300_000 THEN '1m_to_5m'
-                         WHEN elapsed_ms < 900_000 THEN '5m_to_15m'
-                         WHEN elapsed_ms < 1_800_000 THEN '15m_to_30m'
-                         WHEN elapsed_ms < 3_600_000 THEN '30m_to_60m'
+                         WHEN elapsed_ms < 1000 THEN 'under_1s'
+                         WHEN elapsed_ms < 5000 THEN '1s_to_5s'
+                         WHEN elapsed_ms < 10000 THEN '5s_to_10s'
+                         WHEN elapsed_ms < 30000 THEN '10s_to_30s'
+                         WHEN elapsed_ms < 60000 THEN '30s_to_60s'
+                         WHEN elapsed_ms < 300000 THEN '1m_to_5m'
+                         WHEN elapsed_ms < 900000 THEN '5m_to_15m'
+                         WHEN elapsed_ms < 1800000 THEN '15m_to_30m'
+                         WHEN elapsed_ms < 3600000 THEN '30m_to_60m'
                          ELSE '60m_to_120m'
                        END AS bucket
                 FROM analytics_events

@@ -85,6 +85,65 @@ def test_valid_event_is_projected_onto_typed_columns():
     assert "timestamp" not in row
 
 
+def test_search_timing_fields_are_validated_without_accepting_query_text():
+    row = validate_event({
+        "event": "search",
+        "data": {
+            "search_mode": "semantic",
+            "query_length": 8,
+            "result_count": 20,
+            "latency_ms": 1800,
+            "asset_wait_ms": 900,
+            "embedding_ms": 700,
+            "ranking_ms": 200,
+            "total_ms": 1800,
+            "asset_state": "prefetched",
+            "query_cache_state": "miss",
+        },
+    })
+    assert row["asset_wait_ms"] == 900
+    assert row["embedding_ms"] == 700
+    assert row["ranking_ms"] == 200
+    assert row["total_ms"] == 1800
+    assert row["asset_state"] == "prefetched"
+    assert row["query_cache_state"] == "miss"
+    with pytest.raises(AnalyticsRejection):
+        validate_event({
+            "event": "search",
+            "data": {
+                "search_mode": "semantic", "query_length": 8, "result_count": 1,
+                "latency_ms": 10, "query": "不可保存",
+            },
+        })
+
+
+def test_search_timing_percentiles_and_states_are_reported(tmp_path):
+    store = _store(tmp_path)
+    store.record(
+        [
+            {
+                "event": "search", "search_mode": "semantic", "query_length": 4,
+                "result_count": 3, "latency_ms": total, "total_ms": total,
+                "asset_wait_ms": asset, "embedding_ms": embedding, "ranking_ms": ranking,
+                "asset_state": state, "query_cache_state": cache,
+            }
+            for total, asset, embedding, ranking, state, cache in (
+                (1000, 100, 700, 200, "prefetched", "miss"),
+                (2000, 200, 1200, 300, "indexed_db", "hit"),
+                (4000, 500, 2800, 500, "network", "miss"),
+            )
+        ],
+        user_agent=None,
+    )
+    report = store.report(days=1)
+    timing = report["search"]["timing"]
+    assert timing["total_ms"]["p50"] == 2000
+    assert timing["total_ms"]["p95"] == 4000
+    assert timing["embedding_ms"]["p95"] == 2800
+    assert report["search"]["asset_state"] == {"indexed_db": 1.0, "network": 1.0, "prefetched": 1.0}
+    assert report["search"]["query_cache_state"] == {"hit": 1.0, "miss": 2.0}
+
+
 def test_unknown_event_is_rejected():
     with pytest.raises(AnalyticsRejection):
         validate_event({"event": "anything", "data": {"whatever": "..."}})

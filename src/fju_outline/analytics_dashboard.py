@@ -108,7 +108,8 @@ function ranked(map, headers) {
 }
 
 function render(data) {
-  const o = data.overview, api = data.api;
+  const o = data.overview, api = data.api, search = data.search || {};
+  const timing = search.timing || {};
   const endpoints = Object.keys(api.requests || {}).sort((a, b) => (api.requests[b] || 0) - (api.requests[a] || 0));
   const courses = data.courses.map((c) => {
     const lowCtr = c.impressions >= 20 && c.ctr !== null && c.ctr < 0.05;
@@ -148,7 +149,15 @@ function render(data) {
     '<div class="cols">',
     "<div><h3>Searches by mode</h3>" + ranked(data.search.by_mode, ["Mode", "次數"]) + "</div>",
     "<div><h3>Zero result by mode</h3>" + ranked(data.search.zero_result_by_mode, ["Mode", "次數"]) + "</div>",
-    "<div><h3>Result count 分布</h3>" + ranked(data.search.result_count_buckets, ["Bucket", "次數"]) + "</div>",
+    "<div><h3>Result count 分布</h3>" + ranked(search.result_count_buckets, ["Bucket", "次數"]) + "</div>",
+    "</div>",
+    "<div class=\"cols\">",
+    "<div><h3>Semantic latency phases</h3>" + table(["Phase", "P50", "P95", "P99"],
+      ["total_ms", "asset_wait_ms", "embedding_ms", "ranking_ms"].map((phase) => [
+        esc(phase), ms(timing[phase]?.p50), ms(timing[phase]?.p95), ms(timing[phase]?.p99),
+      ])) + "</div>",
+    "<div><h3>Asset state</h3>" + ranked(search.asset_state, ["State", "次數"]) +
+      "<h3>Query cache</h3>" + ranked(search.query_cache_state, ["State", "次數"]) + "</div>",
     "</div>",
     "<h2>UX</h2>",
     '<div class="cols">',

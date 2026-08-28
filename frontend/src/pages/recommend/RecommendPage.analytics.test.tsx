@@ -10,10 +10,12 @@ import type { Profile, SchedulePlan } from "@/domain/types";
 
 const apiMocks = vi.hoisted(() => ({
   embedQuery: vi.fn(),
+  embedQueryDetailed: vi.fn(),
   getCatalog: vi.fn(),
   getEmbeddingBundle: vi.fn(),
   preloadRecommendationAssets: vi.fn(),
   getFacets: vi.fn(),
+  getRecommendationAssetState: vi.fn(),
 }));
 const dbMocks = vi.hoisted(() => ({ getAllRecords: vi.fn(), putRecord: vi.fn() }));
 const rankMock = vi.hoisted(() => vi.fn());
@@ -78,6 +80,11 @@ describe("recommend page analytics", () => {
       manifest: {},
     });
     apiMocks.embedQuery.mockResolvedValue(new Float32Array([1]));
+    apiMocks.embedQueryDetailed.mockResolvedValue({
+      vector: new Float32Array([1]), modelVersion: "test", dimension: 1,
+      queryCacheState: "miss", requestMs: 0,
+    });
+    apiMocks.getRecommendationAssetState.mockReturnValue("prefetched");
     dbMocks.getAllRecords.mockResolvedValue([]);
     dbMocks.putRecord.mockResolvedValue(undefined);
     render(
@@ -99,8 +106,15 @@ describe("recommend page analytics", () => {
 
     await waitFor(() => expect(eventsNamed("search")).toHaveLength(1));
     const [, data, context] = eventsNamed("search")[0];
-    expect(data).toMatchObject({ search_mode: "semantic", query_length: 4, result_count: 3 });
+    expect(data).toMatchObject({
+      search_mode: "semantic", query_length: 4, result_count: 3,
+      asset_state: "prefetched", query_cache_state: "miss",
+    });
     expect(data.latency_ms).toBeGreaterThanOrEqual(0);
+    expect(data.total_ms).toBe(data.latency_ms);
+    expect(data.asset_wait_ms).toBeGreaterThanOrEqual(0);
+    expect(data.embedding_ms).toBeGreaterThanOrEqual(0);
+    expect(data.ranking_ms).toBeGreaterThanOrEqual(0);
     expect(context.interactionId).toMatch(/^rec_/);
     // The text the student typed appears in no event, in any field.
     expect(JSON.stringify(trackMock.mock.calls)).not.toContain("資料分析");
@@ -191,7 +205,7 @@ describe("recommend page analytics", () => {
   */
 
   it("reports a failed recommendation as a fixed error code and no run", async () => {
-    apiMocks.embedQuery.mockRejectedValue(new Error("query 向量服務失效：資料分析"));
+    apiMocks.embedQueryDetailed.mockRejectedValue(new Error("query 向量服務失效：資料分析"));
     const user = userEvent.setup();
     await runSearch(user, "資料分析");
 

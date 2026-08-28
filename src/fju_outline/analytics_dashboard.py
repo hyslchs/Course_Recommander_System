@@ -154,7 +154,7 @@ function renderLegacy(data) {
     "<div><h3>Zero result by mode</h3>" + ranked(data.search.zero_result_by_mode, ["Mode", "次數"]) + "</div>",
     "<div><h3>Result count 分布</h3>" + ranked(search.result_count_buckets, ["Bucket", "次數"]) + "</div>",
     "</div>",
-    "<div class=\"cols\">",
+    '<div class="cols">',
     "<div><h3>Semantic latency phases</h3>" + table(["Phase", "P50", "P95", "P99"],
       ["total_ms", "asset_wait_ms", "embedding_ms", "ranking_ms"].map((phase) => [
         esc(phase), ms(timing[phase]?.p50), ms(timing[phase]?.p95), ms(timing[phase]?.p99),

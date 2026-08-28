@@ -23,7 +23,7 @@ import {
 import { coursesInPlan } from "@/domain/scheduleUtils";
 import { rankScheduleSlotCourses } from "@/domain/scheduleRecommendation";
 import type { ScheduleSlotRecommendationResult } from "@/domain/scheduleRecommendation";
-import { useProfile } from "@/hooks/localData";
+import { useLocalDataState, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { ConfirmDialog, Modal, StateAlert, useFeedback } from "@/components/ui";
 import type { CompletedCourse, Course, FixedScheduleEntry, RecommendationCategory, ScheduleEntry, SchedulePlan } from "@/domain/types";
@@ -47,11 +47,18 @@ interface LoadedSlotRecommendationData {
   dismissedIds: string[];
 }
 
-export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
+export interface ScheduleLoadWarning {
+  message: string;
+  retry: () => void;
+  retrying: boolean;
+}
+
+export function ScheduleWorkspace({ catalog, loadWarning }: { catalog: Course[]; loadWarning?: ScheduleLoadWarning }) {
   // Plans and profile come from context, not props (plan §6.3-2). `catalog` stays
   // a prop: it is the schedule route's own fetch, not shared app state.
   const { plans, activePlan: active, selectPlan } = useSchedulePlans();
   const profile = useProfile();
+  const { writable } = useLocalDataState();
   // The undo action now outlives the render that queued it (it lives in the
   // toast queue, not in component state), so it has to read the current plans
   // rather than the ones captured when the course was removed.
@@ -221,6 +228,7 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
     applySlotCategoryFilters(categoryFilters);
   };
   const addRecommendedCourse = async (courseId: string) => {
+    if (!writable) return;
     if (!active || addingRecommendedCourseId) return;
     const course = loadedSlotRecommendationData?.catalog.find((item) => item.course_id === courseId) ?? catalog.find((item) => item.course_id === courseId);
     if (!course) return;
@@ -288,43 +296,49 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
   };
 
   const createPlan = () => {
+    if (!writable) return;
     setPlanName("方案 " + (plans.length + 1));
     setPlanDialog("create");
   };
   const renamePlan = () => {
-    if (!active) return;
+    if (!active || !writable) return;
     setPlanName(active.name);
     setPlanDialog("rename");
   };
   const savePlanName = async () => {
+    if (!writable) return;
     const name = planName.trim();
     if (!name) return;
-    if (planDialog === "create") {
-      const now = new Date().toISOString();
-      const plan: SchedulePlan = { id: crypto.randomUUID(), name, entries: [], createdAt: now, updatedAt: now };
-      await putRecord("schedulePlans", plan);
-      await selectPlan(plan.id);
-      notify("已建立課表方案「" + name + "」");
-    } else if (active && name !== active.name) {
-      await putRecord("schedulePlans", { ...active, name, updatedAt: new Date().toISOString() });
-      notify("課表方案已重新命名");
-    }
-    setPlanDialog("");
+    try {
+      if (planDialog === "create") {
+        const now = new Date().toISOString();
+        const plan: SchedulePlan = { id: crypto.randomUUID(), name, entries: [], createdAt: now, updatedAt: now };
+        await putRecord("schedulePlans", plan);
+        await selectPlan(plan.id);
+        notify("已建立課表方案「" + name + "」");
+      } else if (active && name !== active.name) {
+        await putRecord("schedulePlans", { ...active, name, updatedAt: new Date().toISOString() });
+        notify("課表方案已重新命名");
+      }
+      setPlanDialog("");
+    } catch (error) { notify("儲存課表方案失敗：" + (error as Error).message, "error"); }
   };
   const duplicatePlan = async () => {
-    if (!active) return;
+    if (!active || !writable) return;
     const now = new Date().toISOString();
     const plan: SchedulePlan = { ...active, id: crypto.randomUUID(), name: `${active.name}（副本）`, entries: active.entries.map((entry) => ({ ...entry, meetingsOverride: entry.meetingsOverride?.map((meeting) => ({ ...meeting, sections: [...meeting.sections] })) })), fixedEntries: active.fixedEntries?.map((entry) => ({ ...entry, meetings: entry.meetings.map((meeting) => ({ ...meeting, sections: [...meeting.sections] })) })), createdAt: now, updatedAt: now };
-    await putRecord("schedulePlans", plan);
-    await selectPlan(plan.id);
+    try {
+      await putRecord("schedulePlans", plan);
+      await selectPlan(plan.id);
+    } catch (error) { notify("建立課表副本失敗：" + (error as Error).message, "error"); }
   };
   const requestDeletePlan = () => {
-    if (!active || plans.length <= 1 || planDeleteBusy) return;
+    if (!active || !writable || plans.length <= 1 || planDeleteBusy) return;
     setPlanDeleteRequest(active);
   };
   const deletePlan = async () => {
     const plan = planDeleteRequest;
-    if (!plan || plans.length <= 1 || planDeleteBusy) return;
+    if (!plan || !writable || plans.length <= 1 || planDeleteBusy) return;
     const nextPlan = plans.find((item) => item.id !== plan.id);
     if (!nextPlan) return;
     setPlanDeleteBusy(true);
@@ -345,14 +359,20 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
     window.setTimeout(() => window.print(), 0);
   };
   const toggleLock = async (courseId: string) => {
-    if (!active) return;
-    await putRecord("schedulePlans", { ...active, entries: active.entries.map((item) => item.courseId === courseId ? { ...item, locked: !item.locked } : item), updatedAt: new Date().toISOString() });
+    if (!active || !writable) return;
+    try { await putRecord("schedulePlans", { ...active, entries: active.entries.map((item) => item.courseId === courseId ? { ...item, locked: !item.locked } : item), updatedAt: new Date().toISOString() }); }
+    catch (error) { notify("更新課程鎖定狀態失敗：" + (error as Error).message, "error"); }
   };
   const removeEntry = async (courseId: string, { resolvingConflict = false } = {}) => {
-    if (!active) return;
+    if (!active || !writable) return;
     const entry = active.entries.find((item) => item.courseId === courseId);
     if (!entry) return;
-    await putRecord("schedulePlans", { ...active, entries: active.entries.filter((item) => item.courseId !== courseId), updatedAt: new Date().toISOString() });
+    try {
+      await putRecord("schedulePlans", { ...active, entries: active.entries.filter((item) => item.courseId !== courseId), updatedAt: new Date().toISOString() });
+    } catch (error) {
+      notify("移除課程失敗：" + (error as Error).message, "error");
+      return;
+    }
     // Course-level only, and deliberately *not* linked to whichever add it
     // undoes: there is no identifier that would survive long enough to do that,
     // which is the point. The dashboard labels it aggregate behaviour.
@@ -370,12 +390,16 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
     }
   };
   const requestRemove = (block: ScheduleBlock) => {
-    if (block.source !== "course") return;
+    if (block.source !== "course" || !writable) return;
     setRemoveRequest({ courseId: block.sourceId, courseName: block.name, conflicting: Boolean(block.conflict) });
   };
   const undoRemove = async (removed: { planId: string; entry: ScheduleEntry }) => {
+    if (!writable) return;
     const plan = plansRef.current.find((item) => item.id === removed.planId);
-    if (plan && !plan.entries.some((item) => item.courseId === removed.entry.courseId)) await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, removed.entry], updatedAt: new Date().toISOString() });
+    if (plan && !plan.entries.some((item) => item.courseId === removed.entry.courseId)) {
+      try { await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, removed.entry], updatedAt: new Date().toISOString() }); }
+      catch (error) { notify("復原課程失敗：" + (error as Error).message, "error"); }
+    }
   };
 
   const slotRecommendationValue: SlotRecommendationContextValue = {
@@ -392,9 +416,10 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
     selectAllCategories: () => applySlotCategoryFilters([...scheduleRecommendationCategories]),
   };
 
-  return <section className="page" data-page="schedule"><div className="page-heading"><div><div className="eyebrow">安排多個選課方案</div><h1>我的課表</h1></div><button className="primary" type="button" onClick={createPlan}>新增方案</button></div>
+  return <section className="page" data-page="schedule"><div className="page-heading"><div><div className="eyebrow">安排多個選課方案</div><h1>我的課表</h1></div><button className="primary" type="button" disabled={!writable} onClick={createPlan}>新增方案</button></div>
+    {loadWarning ? <StateAlert action={<Button className="mt-2 min-h-11" isDisabled={loadWarning.retrying} isPending={loadWarning.retrying} variant="secondary" onPress={loadWarning.retry}>{loadWarning.retrying ? "重新載入中…" : "重新載入課表"}</Button>} live="polite" title="無法更新課表" tone="warning">{loadWarning.message}</StateAlert> : null}
     {/* `<h2>`, not `<h1>`: the page heading above already owns this route's single `<h1>` (plan R9). */}
-    {!active ? <section className="empty-state"><h2 className="page-title">先建立一個課表方案</h2><p>建立課表後，你可以加入課程並檢查衝堂。</p><button className="primary" type="button" onClick={createPlan}>建立第一個方案</button></section> :
+    {!active ? <section className="empty-state"><h2 className="page-title">先建立一個課表方案</h2><p>建立課表後，你可以加入課程並檢查衝堂。</p><button className="primary" type="button" disabled={!writable} onClick={createPlan}>建立第一個方案</button></section> :
       /* The hand-rolled tablist (a `role="tablist"` div, manual `aria-selected`,
          manual `tabIndex` and an `onPlanTabKeyDown` that re-implemented
          Arrow/Home/End) is gone: React Aria's `Tabs` owns the roving tabindex,
@@ -403,7 +428,7 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
       <Tabs selectedKey={active.id} onSelectionChange={(key) => void selectPlan(String(key))}>
       <Tabs.ListContainer ref={planTabsRef}><Tabs.List aria-label="課表方案" className="schedule-plan-tabs">{plans.map((plan) => <Tabs.Tab id={plan.id} key={plan.id}>{plan.name}<Tabs.Indicator /></Tabs.Tab>)}</Tabs.List></Tabs.ListContainer>
       <Tabs.Panel id={active.id}>
-      <Toolbar aria-label="課表方案操作" className="schedule-plan-actions"><strong>目前方案：{active.name}</strong><Button variant="secondary" onPress={renamePlan}>重新命名</Button><Button variant="secondary" onPress={() => void duplicatePlan()}>建立副本</Button><Button variant="secondary" onPress={printSchedule}>列印／另存 PDF</Button><Button aria-describedby={plans.length <= 1 ? "schedule-plan-delete-hint" : undefined} aria-label={plans.length <= 1 ? "無法刪除課表方案，至少保留一個方案" : `刪除課表方案「${active.name}」`} isDisabled={plans.length <= 1 || planDeleteBusy} variant="danger" onPress={requestDeletePlan}>{planDeleteBusy ? "刪除中…" : plans.length <= 1 ? "無法刪除" : "刪除方案"}</Button>{plans.length <= 1 && <span className="schedule-plan-delete-hint" id="schedule-plan-delete-hint">至少保留一個課表方案，無法刪除。</span>}</Toolbar>
+      <Toolbar aria-label="課表方案操作" className="schedule-plan-actions"><strong>目前方案：{active.name}</strong><Button isDisabled={!writable} variant="secondary" onPress={renamePlan}>重新命名</Button><Button isDisabled={!writable} variant="secondary" onPress={() => void duplicatePlan()}>建立副本</Button><Button variant="secondary" onPress={printSchedule}>列印／另存 PDF</Button><Button aria-describedby={plans.length <= 1 ? "schedule-plan-delete-hint" : undefined} aria-label={plans.length <= 1 ? "無法刪除課表方案，至少保留一個方案" : `刪除課表方案「${active.name}」`} isDisabled={!writable || plans.length <= 1 || planDeleteBusy} variant="danger" onPress={requestDeletePlan}>{planDeleteBusy ? "刪除中…" : plans.length <= 1 ? "無法刪除" : "刪除方案"}</Button>{plans.length <= 1 && <span className="schedule-plan-delete-hint" id="schedule-plan-delete-hint">至少保留一個課表方案，無法刪除。</span>}</Toolbar>
       <ManualCoursePanel catalog={catalog} plan={active} />
       <div className="schedule-summary"><strong>{courses.length} 門課</strong><span>{credits} 學分</span>{fixedEntries.length > 0 && <span>{fixedEntries.length} 個固定時段</span>}</div>
       {/* Was a `.schedule-conflict-summary` span wedged into the count strip, i.e.
@@ -470,7 +495,7 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
           })}
         </div>)}
       </div><div className="mobile-schedule-list">{!mobileBlocks.length && <p className="muted">星期{weekdayLabels[mobileDay - 1]}目前沒有課程。</p>}{mobileBlocks.map((block) => <ClassBlock block={block} key={block.id} locked={lockedCourseIds.has(block.sourceId)} onRemove={() => requestRemove(block)} onSelect={openDetails} onToggleLock={() => void toggleLock(block.sourceId)} variant="list" />)}<div className="mobile-open-slots"><strong>點空堂找課</strong><div>{mobileOpenSections.map((section) => <button type="button" key={section} aria-label={`找課：星期${weekdayLabels[mobileDay - 1]} ${section} ${SCHEDULE_SECTION_TIMES[section]} 可以排入的課程`} onClick={() => void loadSlotRecommendations({ weekday: mobileDay, section })}><Sparkle aria-hidden="true" /><span><strong>{section}</strong><time>{SCHEDULE_SECTION_TIMES[section]}</time></span></button>)}</div></div></div></div>
-      {unplacedCourses.length > 0 && <section className="unplaced-courses"><h2>時間未定／待安排</h2><StateAlert live="polite" tone="warning">{unplacedCourses.length} 門課的上課時間未定。它們不會被誤放進星期一，指定時間後才會出現在格狀課表。</StateAlert>{unplacedCourses.map((course) => <div className="unplaced-course-row" key={course.course_id}><button onClick={(event) => openDetails(unplacedBlock(course), event.currentTarget)}><strong>{course.name_zh}</strong><span>{formatMeetings(course)}</span></button><button aria-label={`移除課程：${course.name_zh}`} className="unplaced-course-remove" type="button" onClick={(event) => { event.stopPropagation(); setRemoveRequest({ courseId: course.course_id, courseName: course.name_zh, conflicting: false }); }}><X aria-hidden="true" /></button></div>)}</section>}
+      {unplacedCourses.length > 0 && <section className="unplaced-courses"><h2>時間未定／待安排</h2><StateAlert live="polite" tone="warning">{unplacedCourses.length} 門課的上課時間未定。它們不會被誤放進星期一，指定時間後才會出現在格狀課表。</StateAlert>{unplacedCourses.map((course) => <div className="unplaced-course-row" key={course.course_id}><button onClick={(event) => openDetails(unplacedBlock(course), event.currentTarget)}><strong>{course.name_zh}</strong><span>{formatMeetings(course)}</span></button><button aria-label={`移除課程：${course.name_zh}`} className="unplaced-course-remove" disabled={!writable} type="button" onClick={(event) => { event.stopPropagation(); setRemoveRequest({ courseId: course.course_id, courseName: course.name_zh, conflicting: false }); }}><X aria-hidden="true" /></button></div>)}</section>}
       {selectedBlock && <CourseDetails block={selectedBlock} catalog={catalog} scheduledCourses={courses} plan={active} onClose={closeDetails} />}
       <RecommendationSurface value={slotRun.surface}><SlotRecommendationContext.Provider value={slotRecommendationValue}><SlotRecommendationDialog /></SlotRecommendationContext.Provider></RecommendationSurface>
       </Tabs.Panel>
@@ -478,7 +503,7 @@ export function ScheduleWorkspace({ catalog }: { catalog: Course[] }) {
     <Modal open={Boolean(planDialog)} title={planDialog === "create" ? "建立課表方案" : "重新命名課表方案"} onClose={() => setPlanDialog("")} initialFocusRef={planNameRef}>
       <label htmlFor="plan-name"><strong>方案名稱</strong></label>
       <input ref={planNameRef} id="plan-name" value={planName} maxLength={80} onChange={(event) => setPlanName(event.target.value)} />
-      <div className="dialog-actions"><button type="button" className="secondary" onClick={() => setPlanDialog("")}>取消</button><button type="button" disabled={!planName.trim()} onClick={() => void savePlanName()}>儲存</button></div>
+      <div className="dialog-actions"><button type="button" className="secondary" onClick={() => setPlanDialog("")}>取消</button><button type="button" disabled={!writable || !planName.trim()} onClick={() => void savePlanName()}>儲存</button></div>
     </Modal>
     <ConfirmDialog
       busy={planDeleteBusy}

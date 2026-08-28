@@ -3,7 +3,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router";
 import { ErrorBoundary } from "./ErrorBoundary";
 import { AI_ASSISTANT_VISIBLE } from "./navigation";
 import { EmptyState, LoadingSkeleton } from "@/components/ui";
-import { useLocalDataReady, useProfile } from "@/hooks/localData";
+import { useLocalDataState, useProfile } from "@/hooks/localData";
 
 // Route-level code splitting: every page is its own chunk.
 const OnboardingPage = lazy(async () => ({ default: (await import("@/pages/onboarding/OnboardingPage")).OnboardingPage }));
@@ -28,9 +28,9 @@ function NotFoundPage() {
 
 export function AppRoutes() {
   const profile = useProfile();
-  const localDataReady = useLocalDataReady();
+  const { status: localDataStatus } = useLocalDataState();
   const location = useLocation();
-  if (!localDataReady) return <RouteFallback />;
+  if (localDataStatus !== "ready" && localDataStatus !== "degraded") return <RouteFallback />;
   return (
     // Keyed by path so a thrown route does not keep the whole app on the error
     // fallback after the student navigates somewhere else.

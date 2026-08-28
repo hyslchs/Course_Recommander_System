@@ -8,8 +8,9 @@ import { navigationItems } from "./navigation";
 // would drag `motion` (~44 kB gzip) into the entry chunk and load it on
 // /onboarding and /schedule, which have no motion at all. Measured: it did.
 import { ThemeToggle } from "@/components/motion/ThemeToggle";
-import { SideDrawer } from "@/components/ui";
-import { useProfile } from "@/hooks/localData";
+import { Button } from "@heroui/react";
+import { SideDrawer, StateAlert } from "@/components/ui";
+import { useLocalDataState, useProfile } from "@/hooks/localData";
 
 /**
  * Header, primary navigation, main landmark and footer.
@@ -22,6 +23,7 @@ import { useProfile } from "@/hooks/localData";
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const profile = useProfile();
+  const { status: localDataStatus, error: localDataError, retry, retrying } = useLocalDataState();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuFirstRef = useRef<HTMLAnchorElement>(null);
   const profileLabel = profile ? profile.department + " " + profile.grade + " 年級" : "開始設定";
@@ -47,6 +49,17 @@ export function AppShell({ children }: { children: ReactNode }) {
           </button>
         </header>
         <main id="main-content">
+          {localDataStatus === "degraded" ? (
+            <StateAlert
+              action={<Button className="mt-2 min-h-11" isDisabled={retrying} isPending={retrying} variant="secondary" onPress={() => void retry()}>{retrying ? "重新連線中…" : "重新連線儲存空間"}</Button>}
+              className="mx-auto mt-4 w-[calc(100%-2rem)] max-w-6xl"
+              live="polite"
+              title="個人資料暫時為唯讀"
+              tone="warning"
+            >
+              {localDataError?.message ?? "已保留上次成功載入的資料；重新連線前無法儲存變更。"}
+            </StateAlert>
+          ) : null}
           <RouteFocusManager />
           {children}
         </main>

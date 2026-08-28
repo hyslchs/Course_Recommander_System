@@ -36,6 +36,7 @@ function installFakeIndexedDB(failWritesTo?: string): Map<string, Map<string, { 
   };
 
   const database = {
+    close: () => undefined,
     objectStoreNames: { contains: (name: string) => stores.has(name) },
     createObjectStore: (name: string) => stores.set(name, new Map()),
     transaction(names: string | string[], mode?: string) {
@@ -97,6 +98,37 @@ function installFakeIndexedDB(failWritesTo?: string): Map<string, Map<string, { 
   (globalThis as unknown as { indexedDB: unknown }).indexedDB = { open };
   return stores;
 }
+
+describe("IndexedDB recovery", () => {
+  beforeEach(() => vi.resetModules());
+
+  it("does not cache a rejected open request", async () => {
+    installFakeIndexedDB();
+    const successfulOpen = (globalThis as unknown as { indexedDB: { open: () => unknown } }).indexedDB.open;
+    let attempts = 0;
+    (globalThis as unknown as { indexedDB: { open: () => unknown } }).indexedDB.open = () => {
+      attempts += 1;
+      if (attempts > 1) return successfulOpen();
+      const handle = { error: new Error("open blocked"), onerror: null as (() => void) | null, onsuccess: null, onupgradeneeded: null };
+      setTimeout(() => handle.onerror?.(), 0);
+      return handle;
+    };
+    const { getAllRecords } = await import("./db");
+
+    await expect(getAllRecords("profile")).rejects.toThrow("open blocked");
+    await expect(getAllRecords("profile")).resolves.toEqual([]);
+    expect(attempts).toBe(2);
+  });
+
+  it("removes its write probe before recovery completes", async () => {
+    const stores = installFakeIndexedDB();
+    const { recoverPersonalDataStorage } = await import("./db");
+
+    await recoverPersonalDataStorage();
+
+    expect(stores.get("preferences")?.has("__storage_recovery_probe__")).toBe(false);
+  });
+});
 
 function backupWith(counts: { completed: number; favorites: number; plans: number }): BackupV1 {
   return {

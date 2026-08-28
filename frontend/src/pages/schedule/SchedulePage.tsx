@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { Button } from "@heroui/react";
 import { ScheduleWorkspace } from "./ScheduleWorkspace";
 import { useCoursesByIds } from "@/data/queries";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
@@ -12,10 +13,14 @@ export function SchedulePage() {
   // loading panel — that is what the old `setLoading(Boolean(courseIds.length))` did.
   const loading = courseIds.length > 0 && coursesQuery.isPending;
   const error = coursesQuery.error ? (coursesQuery.error as Error).message : "";
-  // Transient states deliberately render no `<h1>`: the route's single `<h1>` is
-  // the workspace's own page heading, and `RouteFocusManager` waits for it
-  // instead of focusing a heading that is about to unmount (plan R9).
+  // The short-lived loading state deliberately has no `<h1>`: RouteFocusManager
+  // waits for the workspace heading. A terminal error does own an `<h1>`, since
+  // it remains until the student explicitly retries.
   if (loading) return <section className="page"><LoadingSkeleton caption={<><h2 className="page-title">正在載入課表</h2><p>只讀取目前方案中的課程。</p></>} count={4} label="正在載入課表" variant="list" /></section>;
-  if (error) return <section className="page"><h2 className="page-title">無法載入課表</h2><StateAlert tone="danger">{error}</StateAlert></section>;
-  return <ScheduleWorkspace catalog={coursesQuery.data ?? []} />;
+  const retryAction = <Button className="mt-2 min-h-11" isDisabled={coursesQuery.isFetching} isPending={coursesQuery.isFetching} variant="secondary" onPress={() => void coursesQuery.refetch()}>{coursesQuery.isFetching ? "重新載入中…" : "重新載入課表"}</Button>;
+  if (error && !coursesQuery.data) return <section className="page"><h1 className="page-title">無法載入課表</h1><StateAlert action={retryAction} title="課表資料暫時無法取得" tone="danger">{error}</StateAlert></section>;
+  return <ScheduleWorkspace
+    catalog={coursesQuery.data ?? []}
+    loadWarning={error ? { message: "課表更新失敗，目前顯示上次取得的資料。", retry: () => void coursesQuery.refetch(), retrying: coursesQuery.isFetching } : undefined}
+  />;
 }

@@ -15,7 +15,7 @@ import {
 } from "@/domain/eligibility";
 import { classifyRecommendationCategory } from "@/domain/recommendation";
 import { formatMeetings } from "@/domain/schedule";
-import { useLocalRecords, useProfile } from "@/hooks/localData";
+import { useLocalDataState, useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { ConfirmDialog, useFeedback } from "@/components/ui";
 import { CategoryChip, EligibilityChip } from "./statusPresentation";
@@ -66,6 +66,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
   const completed = useLocalRecords<CompletedCourse & { id: string }>("completedCourses");
   const favorites = useLocalRecords<{ id: string }>("favorites");
   const profile = useProfile();
+  const { writable } = useLocalDataState();
   const { activePlan, selectPlan } = useSchedulePlans();
   const fetchCoursesByIds = useFetchCoursesByIds();
   const { notify } = useFeedback();
@@ -98,7 +99,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
   const scheduled = Boolean(activePlan?.entries.some((item) => item.courseId === selectedCourse.course_id));
 
   const toggleFavorite = async () => {
-    if (pending) return;
+    if (pending || !writable) return;
     setPending("favorite");
     track("feature_clicked", { feature: "toggle_favorite" });
     try {
@@ -108,7 +109,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
     finally { setPending(""); }
   };
   const toggleCompleted = async () => {
-    if (pending) return;
+    if (pending || !writable) return;
     setPending("completed");
     track("feature_clicked", { feature: "mark_completed" });
     try {
@@ -118,7 +119,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
     finally { setPending(""); }
   };
   const dismiss = async () => {
-    if (pending) return;
+    if (pending || !writable) return;
     setPending("dismiss");
     track("feature_clicked", { feature: "dismiss_recommendation" });
     const id = selectedCourse.course_id;
@@ -130,6 +131,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
     finally { setPending(""); }
   };
   const commitSchedule = async (plan: SchedulePlan) => {
+    if (!writable) return;
     setPending("schedule");
     try {
       await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, { courseId: selectedCourse.course_id, locked: false }], updatedAt: new Date().toISOString() });
@@ -151,7 +153,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
     finally { setPending(""); setConflictRequest(undefined); }
   };
   const addSchedule = async () => {
-    if (pending || scheduled) return;
+    if (pending || scheduled || !writable) return;
     let plan = activePlan;
     if (!plan) plan = { id: crypto.randomUUID(), name: "我的課表", entries: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     let scheduledCourses: Course[];
@@ -197,7 +199,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
               delays are passed explicitly rather than read from
               `--tooltip-delay`, which resolves to "" under jsdom. */}
           <Tooltip closeDelay={300} delay={700}>
-            <ToggleButton aria-label={favoriteLabel} className="heart min-h-11 min-w-11" isIconOnly isSelected={favorite} onChange={() => void toggleFavorite()} variant="ghost">
+            <ToggleButton aria-label={favoriteLabel} className="heart min-h-11 min-w-11" isDisabled={!writable} isIconOnly isSelected={favorite} onChange={() => void toggleFavorite()} variant="ghost">
               <Heart aria-hidden="true" weight={favorite ? "fill" : "regular"} />
             </ToggleButton>
             <Tooltip.Content className="course-card-tooltip">{favoriteLabel}</Tooltip.Content>
@@ -303,13 +305,13 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
           order mid-interaction. `min-h-11` restores the 44px touch target §5.3
           asks for — HeroUI's `md` button is 40px, and 36px from `md:` up. */}
       <Card.Footer className="card-actions">
-        <Button className="min-h-11" isDisabled={scheduled} isPending={pending === "schedule"} onPress={() => void addSchedule()}>
+        <Button className="min-h-11" isDisabled={scheduled || !writable} isPending={pending === "schedule"} onPress={() => void addSchedule()}>
           {scheduled ? "已加入課表" : pending === "schedule" ? "加入中…" : "加入 " + (activePlan?.name ?? "我的課表")}
         </Button>
-        <Button className="min-h-11" isPending={pending === "completed"} onPress={() => void toggleCompleted()} variant="secondary">
+        <Button className="min-h-11" isDisabled={!writable} isPending={pending === "completed"} onPress={() => void toggleCompleted()} variant="secondary">
           {pending === "completed" ? "更新中…" : isCompleted ? "取消已修" : "標記已修"}
         </Button>
-        <Button className="quiet min-h-11" isPending={pending === "dismiss"} onPress={() => void dismiss()} variant="ghost">
+        <Button className="quiet min-h-11" isDisabled={!writable} isPending={pending === "dismiss"} onPress={() => void dismiss()} variant="ghost">
           {pending === "dismiss" ? "處理中…" : "不感興趣"}
         </Button>
         <a className="dcard-review-link button-link" href={dcardCourseSearchUrl(selectedCourse.name_zh, selectedCourse.teacher)} rel="noreferrer" target="_blank" onClick={() => { track("feature_clicked", { feature: "open_dcard_reviews" }); recordRecommendationClick(); }}><span>到 Dcard 查詢課程評價</span><ArrowSquareOut aria-hidden="true" /></a>

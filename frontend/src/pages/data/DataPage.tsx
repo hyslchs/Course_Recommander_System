@@ -11,7 +11,7 @@ import {
   validateBackup,
 } from "@/data/db";
 import { track } from "@/analytics/client";
-import { useLocalRecords } from "@/hooks/localData";
+import { useLocalDataState, useLocalRecords } from "@/hooks/localData";
 import { ConfirmDialog, EmptyState, Modal, StateAlert, useFeedback } from "@/components/ui";
 import type { CompletedCourse } from "@/domain/types";
 
@@ -19,6 +19,7 @@ import type { CompletedCourse } from "@/domain/types";
 const asHeading2 = (props: React.JSX.IntrinsicElements["h2"]) => <h2 {...props} />;
 
 export function DataPage() {
+  const { writable } = useLocalDataState();
   const completed = useLocalRecords<CompletedCourse & { id: string }>("completedCourses");
   const favorites = useLocalRecords<{ id: string; addedAt: string }>("favorites");
   const dismissed = useLocalRecords<{ id: string; addedAt: string }>("dismissedCourses");
@@ -52,7 +53,7 @@ export function DataPage() {
   const codesRef = useRef<HTMLTextAreaElement>(null);
 
   const addCodes = async () => {
-    if (!codes.trim() || busy) return;
+    if (!codes.trim() || busy || !writable) return;
     setBusy("recognize");
     try {
       const values = codes.split(/[\s,，;；]+/).map((item) => item.trim().toLowerCase()).filter(Boolean);
@@ -101,7 +102,7 @@ export function DataPage() {
     }
   };
   const confirmImport = async () => {
-    if (!importPreview) return;
+    if (!importPreview || !writable) return;
     setBusy("import");
     try {
       await importBackup(importPreview, overwriteProfile);
@@ -111,6 +112,7 @@ export function DataPage() {
     finally { setBusy(""); }
   };
   const clearAll = async () => {
+    if (!writable) return;
     setBusy("clear");
     track("feature_clicked", { feature: "clear_local_data" });
     try { await clearPersonalData(); notify("這台裝置上的個人資料已清除"); setClearOpen(false); }
@@ -118,16 +120,30 @@ export function DataPage() {
     finally { setBusy(""); }
   };
   const removeCompleted = async (item: CompletedCourse & { id: string }) => {
-    await deleteRecord("completedCourses", item.id);
-    notify("已移除「" + item.courseName + "」", "success", { label: "復原", onAction: () => putRecord("completedCourses", item) });
+    if (!writable) return;
+    try {
+      await deleteRecord("completedCourses", item.id);
+      notify("已移除「" + item.courseName + "」", "success", { label: "復原", onAction: () => putRecord("completedCourses", item) });
+    } catch (error) { notify("移除失敗：" + (error as Error).message, "error"); }
   };
   const removeFavorite = async (item: { id: string; addedAt: string }, courseName?: string) => {
-    await deleteRecord("favorites", item.id);
-    notify("已取消收藏「" + (courseName ?? item.id) + "」", "success", { label: "復原", onAction: () => putRecord("favorites", item) });
+    if (!writable) return;
+    try {
+      await deleteRecord("favorites", item.id);
+      notify("已取消收藏「" + (courseName ?? item.id) + "」", "success", { label: "復原", onAction: () => putRecord("favorites", item) });
+    } catch (error) { notify("取消收藏失敗：" + (error as Error).message, "error"); }
   };
   const restoreDismissed = async (item: { id: string; addedAt: string }, courseName?: string) => {
-    await deleteRecord("dismissedCourses", item.id);
-    notify("已恢復推薦「" + (courseName ?? item.id) + "」", "success", { label: "復原", onAction: () => putRecord("dismissedCourses", item) });
+    if (!writable) return;
+    try {
+      await deleteRecord("dismissedCourses", item.id);
+      notify("已恢復推薦「" + (courseName ?? item.id) + "」", "success", { label: "復原", onAction: () => putRecord("dismissedCourses", item) });
+    } catch (error) { notify("恢復推薦失敗：" + (error as Error).message, "error"); }
+  };
+  const toggleContinueLearning = async (item: CompletedCourse & { id: string }) => {
+    if (!writable) return;
+    try { await putRecord("completedCourses", { ...item, continueLearning: !item.continueLearning }); }
+    catch (error) { notify("更新已修課程失敗：" + (error as Error).message, "error"); }
   };
 
   return (
@@ -159,7 +175,7 @@ export function DataPage() {
           <Card.Footer>
             <Button
               className="min-h-11 w-full sm:w-auto"
-              isDisabled={!codes.trim() || busy === "recognize"}
+              isDisabled={!writable || !codes.trim() || busy === "recognize"}
               isPending={busy === "recognize"}
               onPress={() => void addCodes()}
             >
@@ -198,7 +214,7 @@ export function DataPage() {
             </Button>
             <Button
               className="min-h-11 w-full sm:w-auto"
-              isDisabled={busy === "import"}
+              isDisabled={!writable || busy === "import"}
               isPending={busy === "import"}
               variant="secondary"
               onPress={() => fileRef.current?.click()}
@@ -207,7 +223,7 @@ export function DataPage() {
             </Button>
             <input ref={fileRef} hidden type="file" accept="application/json" onChange={(event) => event.target.files?.[0] && void readImport(event.target.files[0])} />
             {/* Irreversible: never wired straight to the handler (ux `Confirmation Dialogs`). */}
-            <Button className="min-h-11 w-full sm:w-auto" variant="danger" onPress={() => setClearOpen(true)}>清除所有個人資料</Button>
+            <Button className="min-h-11 w-full sm:w-auto" isDisabled={!writable} variant="danger" onPress={() => setClearOpen(true)}>清除所有個人資料</Button>
           </Card.Footer>
         </Card>
       </div>
@@ -244,7 +260,7 @@ export function DataPage() {
               </div>
               <div className="favorite-actions flex flex-wrap items-center gap-2">
                 {course?.source_url ? <a className="data-course-link" href={course.source_url} rel="noreferrer" target="_blank">查看官方課綱</a> : null}
-                <Button className="min-h-11" variant="secondary" onPress={() => void removeFavorite(favorite, course?.name_zh)}>取消收藏</Button>
+                <Button className="min-h-11" isDisabled={!writable} variant="secondary" onPress={() => void removeFavorite(favorite, course?.name_zh)}>取消收藏</Button>
               </div>
             </div>
           )) : null}
@@ -283,7 +299,7 @@ export function DataPage() {
               </div>
               <div className="dismissed-actions flex flex-wrap items-center gap-2">
                 {course?.source_url ? <a className="data-course-link" href={course.source_url} rel="noreferrer" target="_blank">查看官方課綱</a> : null}
-                <Button className="min-h-11" variant="secondary" onPress={() => void restoreDismissed(item, course?.name_zh)}>恢復推薦</Button>
+                <Button className="min-h-11" isDisabled={!writable} variant="secondary" onPress={() => void restoreDismissed(item, course?.name_zh)}>恢復推薦</Button>
               </div>
             </div>
           )) : null}
@@ -308,15 +324,16 @@ export function DataPage() {
               <span className="completed-name flex-1">{item.courseName}</span>
               <div className="completed-actions">
                 <Checkbox
+                  isDisabled={!writable}
                   isSelected={item.continueLearning}
-                  onChange={() => void putRecord("completedCourses", { ...item, continueLearning: !item.continueLearning })}
+                  onChange={() => void toggleContinueLearning(item)}
                 >
                   <Checkbox.Content className="min-h-11">
                     <Checkbox.Control><Checkbox.Indicator /></Checkbox.Control>
                     想繼續深入
                   </Checkbox.Content>
                 </Checkbox>
-                <Button className="min-h-11" variant="secondary" onPress={() => void removeCompleted(item)}>移除</Button>
+                <Button className="min-h-11" isDisabled={!writable} variant="secondary" onPress={() => void removeCompleted(item)}>移除</Button>
               </div>
             </div>
           ))}
@@ -334,7 +351,7 @@ export function DataPage() {
         </div>}
         <div className="dialog-actions">
           <Button className="min-h-11" isDisabled={busy === "import"} variant="secondary" onPress={() => setImportPreview(undefined)}>取消</Button>
-          <Button className="min-h-11" isDisabled={busy === "import"} isPending={busy === "import"} onPress={() => void confirmImport()}>{busy === "import" ? "匯入中…" : "匯入並合併"}</Button>
+          <Button className="min-h-11" isDisabled={!writable || busy === "import"} isPending={busy === "import"} onPress={() => void confirmImport()}>{busy === "import" ? "匯入中…" : "匯入並合併"}</Button>
         </div>
       </Modal>
       <ConfirmDialog open={clearOpen} title="清除所有個人資料？" description={<p>將清除這台裝置上的個人設定、已修課、收藏、不感興趣的課程與課表。此操作無法復原。</p>} confirmLabel="清除所有資料" destructive busy={busy === "clear"} onCancel={() => setClearOpen(false)} onConfirm={clearAll} />

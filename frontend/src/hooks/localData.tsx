@@ -1,5 +1,9 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { getAllRecords } from "@/data/db";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  getAllRecords,
+  recoverPersonalDataStorage,
+  type PersonalStorageErrorDetail,
+} from "@/data/db";
 import type { Profile } from "@/domain/types";
 
 /**
@@ -18,6 +22,7 @@ export const LOCAL_DATA_STORES = [
 
 export type LocalDataStore = (typeof LOCAL_DATA_STORES)[number];
 export type LocalDataSnapshot = Record<LocalDataStore, unknown[]>;
+const PERSONAL_STORAGE_ERROR_EVENT = "fju-personal-storage-error";
 
 function emptySnapshot(): LocalDataSnapshot {
   return Object.fromEntries(LOCAL_DATA_STORES.map((store) => [store, []])) as unknown as LocalDataSnapshot;
@@ -25,7 +30,35 @@ function emptySnapshot(): LocalDataSnapshot {
 
 const LocalDataContext = createContext<LocalDataSnapshot>(emptySnapshot());
 export const ProfileContext = createContext<Profile | undefined>(undefined);
-const LocalDataReadyContext = createContext(false);
+
+export type LocalDataStatus = "loading" | "ready" | "degraded" | "unavailable";
+
+export interface LocalDataError {
+  operation: "read" | "write";
+  message: string;
+}
+
+export interface LocalDataState {
+  status: LocalDataStatus;
+  writable: boolean;
+  retrying: boolean;
+  error?: LocalDataError;
+  retry: () => Promise<void>;
+}
+
+const LocalDataStateContext = createContext<LocalDataState>({
+  status: "ready",
+  writable: true,
+  retrying: false,
+  retry: async () => undefined,
+});
+
+function storageMessage(operation: "read" | "write", hasSnapshot: boolean): string {
+  if (!hasSnapshot) return "目前無法讀取這台裝置的個人資料，尚未確認資料是否存在。";
+  return operation === "write"
+    ? "目前無法儲存變更。已保留上次成功載入的資料，系統暫時為唯讀。"
+    : "目前無法重新讀取個人資料。畫面保留上次成功載入的內容，系統暫時為唯讀。";
+}
 
 /**
  * One subscription per store for the whole app (plan §6.3-1).
@@ -37,44 +70,95 @@ const LocalDataReadyContext = createContext(false);
  */
 export function LocalDataProvider({ children }: { children: ReactNode }) {
   const [snapshot, setSnapshot] = useState(emptySnapshot);
-  const [ready, setReady] = useState(false);
+  const [status, setStatus] = useState<LocalDataStatus>("loading");
+  const [retrying, setRetrying] = useState(false);
+  const retryingRef = useRef(false);
+  const [error, setError] = useState<LocalDataError>();
+  const mounted = useRef(true);
+  const hasSnapshot = useRef(false);
+
+  const readStores = useCallback(async (stores: readonly LocalDataStore[]) => {
+    const results = await Promise.all(stores.map((store) => getAllRecords<unknown>(store)));
+    if (!mounted.current) return;
+    setSnapshot((current) => {
+      const next = { ...current };
+      stores.forEach((store, index) => { next[store] = results[index]; });
+      return next;
+    });
+  }, []);
+
+  const fail = useCallback((operation: "read" | "write", cause: unknown) => {
+    console.error("無法存取個人 IndexedDB 資料", cause);
+    if (!mounted.current) return;
+    const available = hasSnapshot.current;
+    setStatus(available ? "degraded" : "unavailable");
+    setError({ operation, message: storageMessage(operation, available) });
+  }, []);
+
+  const retry = useCallback(async () => {
+    if (retryingRef.current) return;
+    retryingRef.current = true;
+    setRetrying(true);
+    try {
+      await recoverPersonalDataStorage();
+      await readStores(LOCAL_DATA_STORES);
+      if (!mounted.current) return;
+      hasSnapshot.current = true;
+      setStatus("ready");
+      setError(undefined);
+    } catch (cause) {
+      fail(error?.operation ?? "read", cause);
+    } finally {
+      retryingRef.current = false;
+      if (mounted.current) setRetrying(false);
+    }
+  }, [error?.operation, fail, readStores]);
 
   useEffect(() => {
-    let subscribed = true;
-    const reload = async (stores: readonly LocalDataStore[]) => {
-      const results = await Promise.all(stores.map((store) => getAllRecords<unknown>(store)));
-      if (!subscribed) return;
-      setSnapshot((current) => {
-        const next = { ...current };
-        stores.forEach((store, index) => { next[store] = results[index]; });
-        return next;
-      });
-    };
-    void reload(LOCAL_DATA_STORES).catch(() => undefined).finally(() => {
-      if (subscribed) setReady(true);
-    });
+    mounted.current = true;
+    void readStores(LOCAL_DATA_STORES).then(() => {
+      if (!mounted.current) return;
+      hasSnapshot.current = true;
+      setStatus("ready");
+    }).catch((cause) => fail("read", cause));
     const listener = (event: Event) => {
       const detail = (event as CustomEvent<string>).detail;
-      if (detail === "all") void reload(LOCAL_DATA_STORES).catch(() => undefined);
-      else if ((LOCAL_DATA_STORES as readonly string[]).includes(detail)) void reload([detail as LocalDataStore]).catch(() => undefined);
+      const stores = detail === "all"
+        ? LOCAL_DATA_STORES
+        : (LOCAL_DATA_STORES as readonly string[]).includes(detail) ? [detail as LocalDataStore] : [];
+      if (stores.length) void readStores(stores).catch((cause) => fail("read", cause));
+    };
+    const storageErrorListener = (event: Event) => {
+      const detail = (event as CustomEvent<PersonalStorageErrorDetail>).detail;
+      fail(detail.operation, detail.error);
     };
     window.addEventListener("fju-local-data", listener);
+    window.addEventListener(PERSONAL_STORAGE_ERROR_EVENT, storageErrorListener);
     return () => {
-      subscribed = false;
+      mounted.current = false;
       window.removeEventListener("fju-local-data", listener);
+      window.removeEventListener(PERSONAL_STORAGE_ERROR_EVENT, storageErrorListener);
     };
-  }, []);
+  }, [fail, readStores]);
 
   const profile = useMemo(
     () => (snapshot.profile as Profile[]).find((item) => item.id === "current"),
     [snapshot.profile],
   );
 
+  const state = useMemo<LocalDataState>(() => ({
+    status,
+    writable: status === "ready",
+    retrying,
+    error,
+    retry,
+  }), [error, retry, retrying, status]);
+
   return (
     <LocalDataContext.Provider value={snapshot}>
-      <LocalDataReadyContext.Provider value={ready}>
+      <LocalDataStateContext.Provider value={state}>
         <ProfileContext.Provider value={profile}>{children}</ProfileContext.Provider>
-      </LocalDataReadyContext.Provider>
+      </LocalDataStateContext.Provider>
     </LocalDataContext.Provider>
   );
 }
@@ -91,5 +175,10 @@ export function useProfile(): Profile | undefined {
 
 /** Whether the first read of personal data has completed. */
 export function useLocalDataReady(): boolean {
-  return useContext(LocalDataReadyContext);
+  const { status } = useContext(LocalDataStateContext);
+  return status === "ready" || status === "degraded";
+}
+
+export function useLocalDataState(): LocalDataState {
+  return useContext(LocalDataStateContext);
 }

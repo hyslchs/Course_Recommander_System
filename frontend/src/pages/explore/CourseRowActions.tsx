@@ -5,7 +5,7 @@ import { useFetchCoursesByIds } from "@/data/queries";
 import { deleteRecord, putRecord } from "@/data/db";
 import { track } from "@/analytics/client";
 import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
-import { useLocalRecords } from "@/hooks/localData";
+import { useLocalDataState, useLocalRecords } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { ConfirmDialog, useFeedback } from "@/components/ui";
 import type { Course, SchedulePlan } from "@/domain/types";
@@ -34,6 +34,7 @@ import type { Course, SchedulePlan } from "@/domain/types";
  */
 export function CourseRowActions({ course }: { course: Course }) {
   const favorites = useLocalRecords<{ id: string }>("favorites");
+  const { writable } = useLocalDataState();
   const { activePlan, selectPlan } = useSchedulePlans();
   const fetchCoursesByIds = useFetchCoursesByIds();
   const { notify } = useFeedback();
@@ -44,7 +45,7 @@ export function CourseRowActions({ course }: { course: Course }) {
   const scheduled = Boolean(activePlan?.entries.some((item) => item.courseId === course.course_id));
 
   const toggleFavorite = async () => {
-    if (pending) return;
+    if (pending || !writable) return;
     setPending("favorite");
     track("feature_clicked", { feature: "toggle_favorite" });
     try {
@@ -55,6 +56,7 @@ export function CourseRowActions({ course }: { course: Course }) {
   };
 
   const commitSchedule = async (plan: SchedulePlan) => {
+    if (!writable) return;
     setPending("schedule");
     try {
       await putRecord("schedulePlans", {
@@ -75,7 +77,7 @@ export function CourseRowActions({ course }: { course: Course }) {
   };
 
   const addSchedule = async () => {
-    if (pending || scheduled) return;
+    if (pending || scheduled || !writable) return;
     let plan = activePlan;
     if (!plan) plan = { id: crypto.randomUUID(), name: "我的課表", entries: [], createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
     let scheduledCourses: Course[];
@@ -126,7 +128,7 @@ export function CourseRowActions({ course }: { course: Course }) {
         <Button
           aria-label={scheduleLabel}
           className="min-h-9 min-w-9"
-          isDisabled={scheduled}
+          isDisabled={scheduled || !writable}
           isIconOnly
           isPending={pending === "schedule"}
           size="sm"
@@ -141,6 +143,7 @@ export function CourseRowActions({ course }: { course: Course }) {
         <ToggleButton
           aria-label={favoriteLabel}
           className="min-h-9 min-w-9"
+          isDisabled={!writable}
           isIconOnly
           isSelected={favorite}
           size="sm"

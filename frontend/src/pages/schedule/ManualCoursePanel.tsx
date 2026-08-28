@@ -5,10 +5,12 @@ import { track } from "@/analytics/client";
 import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
 import { formatMeetings, parseManualSections, weekdayLabels } from "@/domain/schedule";
 import { coursesInPlan } from "@/domain/scheduleUtils";
+import { useLocalDataState } from "@/hooks/localData";
 import { ConfirmDialog, useFeedback } from "@/components/ui";
 import type { Course, ScheduleEntry, SchedulePlan } from "@/domain/types";
 
 export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: SchedulePlan }) {
+  const { writable } = useLocalDataState();
   const [query, setQuery] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [useCustomTime, setUseCustomTime] = useState(false);
@@ -39,6 +41,7 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
   const customTimeActive = useCustomTime || customTimeRequired;
 
   const saveEntry = async (entry: ScheduleEntry, courseName: string, warning?: string) => {
+    if (!writable) return;
     setAdding(true);
     try {
       await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, entry], updatedAt: new Date().toISOString() });
@@ -56,6 +59,7 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
     }
   };
   const addCourse = async () => {
+    if (!writable) return;
     if (!selectedCourse) return showMessage("請先搜尋並選擇要加入的課程。", "error");
     if (plan.entries.some((entry) => entry.courseId === selectedCourse.course_id)) return showMessage("這門課已經在目前課表中。", "error");
     let meetings = selectedCourse.meetings;
@@ -93,7 +97,7 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
       <label className="check"><input type="checkbox" checked={customTimeActive} disabled={customTimeRequired} onChange={(event) => setUseCustomTime(event.target.checked)} />使用指定時間加入{customTimeRequired ? "（此課程沒有完整時間）" : ""}</label>
       {customTimeActive && <div className="schedule-add-grid"><label>星期<select value={customWeekday} onChange={(event) => setCustomWeekday(Number(event.target.value))}>{weekdayLabels.map((day, index) => <option key={index + 1} value={index + 1}>星期{day}</option>)}</select></label><label>節次<input value={customSections} onChange={(event) => setCustomSections(event.target.value)} placeholder="例如 D5,D6 或 DN" /></label></div>}
     </>}
-    <button className="primary" type="button" onClick={() => void addCourse()} disabled={!selectedCourse || adding} aria-busy={adding}>{adding ? "加入中…" : "加入「" + plan.name + "」"}</button>
+    <button className="primary" type="button" onClick={() => void addCourse()} disabled={!writable || !selectedCourse || adding} aria-busy={adding}>{adding ? "加入中…" : "加入「" + plan.name + "」"}</button>
     <ConfirmDialog open={Boolean(pendingConflict)} title="確認加入衝堂課程" description={<p>{pendingConflict?.reason}仍要加入課表嗎？</p>} confirmLabel="仍要加入" busy={adding} onCancel={() => { track("schedule_conflict_action", { action: "cancel_add" }); setPendingConflict(undefined); }} onConfirm={() => { track("schedule_conflict_action", { action: "keep_conflict" }); if (pendingConflict) void saveEntry(pendingConflict.entry, pendingConflict.courseName, pendingConflict.reason); }} />
   </section>;
 }

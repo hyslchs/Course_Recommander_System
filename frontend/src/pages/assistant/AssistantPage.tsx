@@ -4,7 +4,7 @@ import { Info } from "@phosphor-icons/react";
 import { useAskCourseAssistant, useFeatures } from "@/data/queries";
 import { putRecord } from "@/data/db";
 import { inferProfileStudyLevel } from "@/domain/eligibility";
-import { useLocalRecords, useProfile } from "@/hooks/localData";
+import { useLocalDataState, useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { CourseCard } from "@/components/CourseCard";
 import { EmptyState, StateAlert } from "@/components/ui";
@@ -17,6 +17,7 @@ type AssistantTurn = { question: string; answer: AIAnswer };
 const asHeading2 = (props: React.JSX.IntrinsicElements["h2"]) => <h2 {...props} />;
 
 export function AssistantPage() {
+  const { writable } = useLocalDataState();
   const profile = useProfile();
   const completed = useLocalRecords<CompletedCourse & { id: string }>("completedCourses");
   const { activePlan } = useSchedulePlans();
@@ -123,7 +124,7 @@ export function AssistantPage() {
           <p>這個功能會把你的問題、學制／系級、偏好星期，以及已修與課表中的課程 ID 傳到伺服器和 OpenAI 產生回答；資料會離開本機，並受 OpenAI API 資料控制政策約束。</p>
           <p>不會傳送姓名、帳號、收藏或完整個人資料；資料只用於這次課程問答。</p>
         </Card.Content>
-        <Card.Footer><Button className="min-h-11" onPress={() => void agree()}>同意並開始使用</Button></Card.Footer>
+        <Card.Footer><Button className="min-h-11" isDisabled={!writable} onPress={() => void agree().catch(() => undefined)}>同意並開始使用</Button></Card.Footer>
       </Card> : <>
         {enabled === false && <StateAlert live="off" tone="warning">課程小幫手尚未設定；其他課程功能仍可正常使用。</StateAlert>}
         <Card className="assistant-composer">

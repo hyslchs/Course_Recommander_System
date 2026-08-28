@@ -76,8 +76,17 @@ describe("route heading contract", () => {
     ["/no-such-page", "找不到這個頁面"],
   ])("renders exactly one h1 on %s", async (path, expected) => {
     mountRoute(path);
-    await waitFor(() => expect(headings()).toHaveLength(1));
+    await waitFor(() => expect(headings()).toHaveLength(1), { timeout: 3_000 });
     expect(headings()[0]).toHaveTextContent(expected);
+  });
+
+  it("blocks profile routing when the initial local-data read fails", async () => {
+    dbMocks.getAllRecords.mockRejectedValue(new Error("IndexedDB blocked"));
+    mountRoute("/");
+
+    expect(await screen.findByRole("heading", { name: "無法讀取這台裝置上的資料" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "先設定你的基本資料" })).not.toBeInTheDocument();
+    expect(screen.getByText("尚未確認資料是否存在")).toBeInTheDocument();
   });
 
   it("keeps a single h1 on /schedule once a plan exists", async () => {

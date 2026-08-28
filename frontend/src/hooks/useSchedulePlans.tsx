@@ -1,5 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, type ReactNode } from "react";
-import { useLocalRecords } from "./localData";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useLocalDataState, useLocalRecords } from "./localData";
 import { putRecord } from "@/data/db";
 import {
   ACTIVE_SCHEDULE_PREFERENCE_ID,
@@ -25,20 +25,31 @@ export const SchedulePlanContext = createContext<SchedulePlanContextValue>({
  * workspace and every course card read them from here.
  */
 export function SchedulePlanProvider({ children }: { children: ReactNode }) {
+  const { writable } = useLocalDataState();
   const plans = useLocalRecords<SchedulePlan>("schedulePlans");
   const preferences = useLocalRecords<ActiveSchedulePreference>("recommendationPreferences");
   const activePreference = preferences.find((item) => item.id === ACTIVE_SCHEDULE_PREFERENCE_ID);
-  const activePlan = resolveActiveSchedulePlan(plans, activePreference?.planId);
+  const [volatilePlanId, setVolatilePlanId] = useState<string>();
+  const activePlan = resolveActiveSchedulePlan(plans, writable ? activePreference?.planId : volatilePlanId ?? activePreference?.planId);
   const selectPlan = useCallback(async (planId: string) => {
+    if (!writable) {
+      setVolatilePlanId(planId);
+      return;
+    }
     await putRecord("recommendationPreferences", {
       id: ACTIVE_SCHEDULE_PREFERENCE_ID,
       planId,
       updatedAt: new Date().toISOString(),
     } satisfies ActiveSchedulePreference);
-  }, []);
+  }, [writable]);
   useEffect(() => {
-    if (activePlan && activePreference?.planId !== activePlan.id) void selectPlan(activePlan.id);
-  }, [activePlan, activePreference?.planId, selectPlan]);
+    if (writable) setVolatilePlanId(undefined);
+  }, [writable]);
+  useEffect(() => {
+    if (writable && activePlan && activePreference?.planId !== activePlan.id) {
+      void selectPlan(activePlan.id).catch(() => undefined);
+    }
+  }, [activePlan, activePreference?.planId, selectPlan, writable]);
 
   const value = useMemo(() => ({ plans, activePlan, selectPlan }), [plans, activePlan, selectPlan]);
   return <SchedulePlanContext.Provider value={value}>{children}</SchedulePlanContext.Provider>;

@@ -20,10 +20,43 @@ export const STORE_NAMES = [
 export type StoreName = (typeof STORE_NAMES)[number];
 
 let databasePromise: Promise<IDBDatabase> | null = null;
+let databaseInstance: IDBDatabase | null = null;
+let personalWritesBlocked = false;
+
+export const PERSONAL_STORAGE_ERROR_EVENT = "fju-personal-storage-error";
+
+export interface PersonalStorageErrorDetail {
+  operation: "read" | "write";
+  error: Error;
+}
+
+const PERSONAL_STORES = new Set<StoreName>([
+  "profile", "completedCourses", "favorites", "dismissedCourses", "schedulePlans", "recommendationPreferences",
+]);
+
+function asError(error: unknown): Error {
+  return error instanceof Error ? error : new Error("瀏覽器儲存空間發生未知錯誤");
+}
+
+function reportPersonalStorageError(store: StoreName, operation: "read" | "write", error: unknown): void {
+  if (!PERSONAL_STORES.has(store)) return;
+  personalWritesBlocked = true;
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent<PersonalStorageErrorDetail>(PERSONAL_STORAGE_ERROR_EVENT, {
+      detail: { operation, error: asError(error) },
+    }));
+  }
+}
+
+function assertPersonalWriteAvailable(store: StoreName): void {
+  if (PERSONAL_STORES.has(store) && personalWritesBlocked) {
+    throw new Error("目前無法寫入這台裝置的個人資料，請先重新連線儲存空間。");
+  }
+}
 
 export function openDatabase(): Promise<IDBDatabase> {
   if (!databasePromise) {
-    databasePromise = new Promise((resolve, reject) => {
+    databasePromise = new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION);
       request.onupgradeneeded = () => {
         for (const name of STORE_NAMES) {
@@ -32,29 +65,75 @@ export function openDatabase(): Promise<IDBDatabase> {
           }
         }
       };
-      request.onsuccess = () => resolve(request.result);
+      request.onsuccess = () => {
+        databaseInstance = request.result;
+        databaseInstance.onversionchange = () => {
+          databaseInstance?.close();
+          databaseInstance = null;
+          databasePromise = null;
+        };
+        resolve(request.result);
+      };
       request.onerror = () => reject(request.error);
+    }).catch((error) => {
+      databasePromise = null;
+      databaseInstance = null;
+      throw error;
     });
   }
-  return databasePromise;
+  return databasePromise!;
+}
+
+/** Reopens IndexedDB and verifies a read-write transaction without leaving a probe row. */
+export async function recoverPersonalDataStorage(): Promise<void> {
+  databaseInstance?.close();
+  databaseInstance = null;
+  databasePromise = null;
+  try {
+    const db = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction("preferences", "readwrite");
+      const store = transaction.objectStore("preferences");
+      const probeId = "__storage_recovery_probe__";
+      store.put({ id: probeId, checkedAt: new Date().toISOString() });
+      store.delete(probeId);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error ?? new Error("無法驗證瀏覽器儲存空間"));
+      transaction.onabort = () => reject(transaction.error ?? new Error("瀏覽器儲存空間驗證已中止"));
+    });
+    personalWritesBlocked = false;
+  } catch (error) {
+    personalWritesBlocked = true;
+    throw error;
+  }
 }
 
 export async function getRecord<T>(store: StoreName, id: string): Promise<T | undefined> {
-  const db = await openDatabase();
-  return new Promise((resolve, reject) => {
-    const request = db.transaction(store).objectStore(store).get(id);
-    request.onsuccess = () => resolve(request.result as T | undefined);
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const db = await openDatabase();
+    return await new Promise((resolve, reject) => {
+      const request = db.transaction(store).objectStore(store).get(id);
+      request.onsuccess = () => resolve(request.result as T | undefined);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    reportPersonalStorageError(store, "read", error);
+    throw error;
+  }
 }
 
 export async function getAllRecords<T>(store: StoreName): Promise<T[]> {
-  const db = await openDatabase();
-  return new Promise((resolve, reject) => {
-    const request = db.transaction(store).objectStore(store).getAll();
-    request.onsuccess = () => resolve(request.result as T[]);
-    request.onerror = () => reject(request.error);
-  });
+  try {
+    const db = await openDatabase();
+    return await new Promise((resolve, reject) => {
+      const request = db.transaction(store).objectStore(store).getAll();
+      request.onsuccess = () => resolve(request.result as T[]);
+      request.onerror = () => reject(request.error);
+    });
+  } catch (error) {
+    reportPersonalStorageError(store, "read", error);
+    throw error;
+  }
 }
 
 /**
@@ -98,7 +177,13 @@ async function writeBatches(batches: readonly (readonly [StoreName, readonly obj
 
 /** Writes rows in a single transaction without announcing them. */
 async function writeRecords<T extends object>(store: StoreName, values: readonly T[]): Promise<void> {
-  await writeBatches([[store, values]]);
+  assertPersonalWriteAvailable(store);
+  try {
+    await writeBatches([[store, values]]);
+  } catch (error) {
+    reportPersonalStorageError(store, "write", error);
+    throw error;
+  }
 }
 
 export async function putRecord<T extends object>(store: StoreName, value: T): Promise<void> {
@@ -117,13 +202,20 @@ export async function putRecords<T extends object>(store: StoreName, values: rea
 }
 
 export async function deleteRecord(store: StoreName, id: string): Promise<void> {
-  const db = await openDatabase();
-  await new Promise<void>((resolve, reject) => {
-    const transaction = db.transaction(store, "readwrite");
-    transaction.objectStore(store).delete(id);
-    transaction.oncomplete = () => resolve();
-    transaction.onerror = () => reject(transaction.error);
-  });
+  assertPersonalWriteAvailable(store);
+  try {
+    const db = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(store, "readwrite");
+      transaction.objectStore(store).delete(id);
+      transaction.oncomplete = () => resolve();
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error);
+    });
+  } catch (error) {
+    reportPersonalStorageError(store, "write", error);
+    throw error;
+  }
   notifyLocalDataChanged(store);
 }
 
@@ -139,18 +231,23 @@ export async function deleteRecord(store: StoreName, id: string): Promise<void> 
 const NON_PERSONAL_STORES: readonly StoreName[] = ["catalogCache", "preferences"];
 
 export async function clearPersonalData(): Promise<void> {
-  const db = await openDatabase();
-  await Promise.all(
-    STORE_NAMES.filter((name) => !NON_PERSONAL_STORES.includes(name)).map(
-      (name) =>
-        new Promise<void>((resolve, reject) => {
+  assertPersonalWriteAvailable("profile");
+  try {
+    const db = await openDatabase();
+    await Promise.all(
+      STORE_NAMES.filter((name) => !NON_PERSONAL_STORES.includes(name)).map(
+        (name) => new Promise<void>((resolve, reject) => {
           const transaction = db.transaction(name, "readwrite");
           transaction.objectStore(name).clear();
           transaction.oncomplete = () => resolve();
           transaction.onerror = () => reject(transaction.error);
-        }),
-    ),
-  );
+          transaction.onabort = () => reject(transaction.error);
+        })),
+    );
+  } catch (error) {
+    reportPersonalStorageError("profile", "write", error);
+    throw error;
+  }
   notifyLocalDataChanged("all");
 }
 
@@ -213,6 +310,7 @@ export function validateBackup(value: unknown): BackupV1 {
  *   through rolls the whole import back instead of committing a prefix of it.
  */
 export async function importBackup(backup: BackupV1, overwriteProfile: boolean): Promise<void> {
+  assertPersonalWriteAvailable("profile");
   const claimedPlanIds = new Set((await getAllRecords<{ id: string }>("schedulePlans")).map((plan) => plan.id));
   const batches: [StoreName, { id: string }[]][] = [];
   for (const [store, rows] of Object.entries(backup.data) as [StoreName, { id: string }[]][]) {
@@ -245,6 +343,7 @@ export async function importBackup(backup: BackupV1, overwriteProfile: boolean):
     // the database is guaranteed to be showing what is actually stored, which
     // is exactly what the old per-store loop could not promise.
     notifyLocalDataChanged("all");
+    reportPersonalStorageError("profile", "write", error);
     throw error;
   }
   notifyLocalDataChanged("all");

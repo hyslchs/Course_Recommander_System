@@ -154,6 +154,23 @@ describe("OnboardingPage — class group load failure", () => {
 });
 
 describe("OnboardingPage — department ComboBox", () => {
+  it("retries a failed department catalog request without reloading the page", async () => {
+    const user = userEvent.setup();
+    apiMocks.getDepartmentCatalog
+      .mockRejectedValueOnce(new Error("系所服務暫時無法使用"))
+      .mockResolvedValueOnce(catalog);
+
+    renderPage();
+    expect(await screen.findByText("無法載入系所選項")).toBeInTheDocument();
+    expect(departmentField()).toBeDisabled();
+
+    await user.click(screen.getByRole("button", { name: "重新載入系所選項" }));
+
+    await waitFor(() => expect(departmentField()).toBeEnabled());
+    expect(apiMocks.getDepartmentCatalog).toHaveBeenCalledTimes(2);
+    expect(screen.queryByText("無法載入系所選項")).not.toBeInTheDocument();
+  });
+
   it("groups options by unit type and scopes them to the chosen division", async () => {
     const user = userEvent.setup();
     renderPage();

@@ -33,7 +33,7 @@ import { getFixedScheduleEntries, MENTOR_TIME_ENTRY_ID } from "@/domain/fixedSch
 import { defaultPreferredWeekdays } from "@/domain/profileDefaults";
 import { selectRequiredCourses } from "@/domain/requiredCourses";
 import { coursesInPlan } from "@/domain/scheduleUtils";
-import { useLocalDataReady, useProfile } from "@/hooks/localData";
+import { useLocalDataReady, useLocalDataState, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { StateAlert, useFeedback } from "@/components/ui";
 import type { CompletedCourse, Course, Profile } from "@/domain/types";
@@ -122,6 +122,7 @@ function toProfile(stored: Profile | undefined, draft: Draft, department: Depart
 export function OnboardingPage() {
   const profile = useProfile();
   const localDataReady = useLocalDataReady();
+  const { writable: localDataWritable } = useLocalDataState();
   const navigate = useNavigate();
   const { notify } = useFeedback();
   const { plans, activePlan, selectPlan } = useSchedulePlans();
@@ -129,6 +130,7 @@ export function OnboardingPage() {
   const departmentCatalogQuery = useDepartmentCatalog();
   const departmentCatalog = departmentCatalogQuery.data;
   const departmentCatalogError = departmentCatalogQuery.error ? (departmentCatalogQuery.error as Error).message : "";
+  const departmentCatalogRetrying = Boolean(departmentCatalogError) && departmentCatalogQuery.isFetching;
   const divisions = useMemo(() => buildDivisionOptions([], departmentCatalog), [departmentCatalog]);
   const departmentOptions = useMemo(() => buildDepartmentOptions([], departmentCatalog), [departmentCatalog]);
 
@@ -304,7 +306,15 @@ export function OnboardingPage() {
       <p className="lead">一般推薦所需的系級與修課紀錄只保存在這個瀏覽器，不會建立帳號。</p>
 
       {departmentCatalogError
-        ? <StateAlert title="無法載入系所選項" tone="danger">{departmentCatalogError}</StateAlert>
+        ? (
+          <StateAlert
+            action={<Button className="mt-2 min-h-11" isDisabled={departmentCatalogRetrying} isPending={departmentCatalogRetrying} variant="secondary" onPress={() => void departmentCatalogQuery.refetch()}>{departmentCatalogRetrying ? "重新載入中…" : "重新載入系所選項"}</Button>}
+            title="無法載入系所選項"
+            tone="danger"
+          >
+            系所資料暫時無法取得，請檢查網路後重試。{departmentCatalogError ? ` ${departmentCatalogError}` : ""}
+          </StateAlert>
+        )
         : null}
       {!departmentCatalog && !departmentCatalogError
         ? <StateAlert tone="info">正在載入系所選項…</StateAlert>
@@ -338,6 +348,7 @@ export function OnboardingPage() {
 
             <Select
               fullWidth
+              isDisabled={!departmentCatalog}
               isRequired
               name="division"
               placeholder="請選擇部別"
@@ -378,6 +389,7 @@ export function OnboardingPage() {
               defaultFilter={departmentFilter}
               formValue="key"
               fullWidth
+              isDisabled={!departmentCatalog}
               isRequired
               menuTrigger="focus"
               name="department"
@@ -553,7 +565,7 @@ export function OnboardingPage() {
           </Fieldset.Group>
 
           <Fieldset.Actions>
-            <Button className="w-full min-h-11 sm:w-auto" isPending={saving} type="submit">
+            <Button className="w-full min-h-11 sm:w-auto" isDisabled={!departmentCatalog || !localDataWritable} isPending={saving} type="submit">
               {saving ? "儲存中…" : "儲存並前往推薦"}
             </Button>
           </Fieldset.Actions>

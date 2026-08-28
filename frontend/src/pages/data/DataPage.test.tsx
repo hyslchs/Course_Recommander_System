@@ -20,6 +20,7 @@ const localDataMocks = vi.hoisted(() => ({ completedCourses: [] as unknown[], fa
 const queryMocks = vi.hoisted(() => ({ courses: [] as unknown[] }));
 vi.mock("@/data/db", () => dbMocks);
 vi.mock("@/hooks/localData", () => ({
+  useLocalDataState: () => ({ writable: true }),
   useLocalRecords: (store: "completedCourses" | "favorites" | "dismissedCourses") => localDataMocks[store],
 }));
 vi.mock("@/data/queries", () => ({

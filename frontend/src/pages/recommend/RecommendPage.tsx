@@ -18,7 +18,7 @@ import { rankCoursesWithDiagnostics } from "@/domain/recommendation";
 import { coursesInPlan, meetingsInPlan } from "@/domain/scheduleUtils";
 import { buildSearchIndex } from "@/domain/search";
 import { sanitizeSubjectQuery, type DetectedFilterPhrase } from "@/domain/subjectQuery";
-import { useLocalRecords, useProfile } from "@/hooks/localData";
+import { useLocalDataState, useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { CourseCard } from "@/components/CourseCard";
 import { BlurFade } from "@/components/motion/BlurFade";
@@ -94,6 +94,7 @@ function RecommendationResult({ item, index }: { item: Recommendation; index: nu
 }
 
 export function RecommendPage() {
+  const { writable } = useLocalDataState();
   const profile = useProfile();
   const [catalog, setCatalog] = useState<Course[]>([]);
   const searchIndex = useMemo(() => buildSearchIndex(catalog), [catalog]);
@@ -280,13 +281,18 @@ export function RecommendPage() {
     }
     setValidationError("");
     if (profile) {
-      await putRecord("profile", {
-        ...profile,
-        interests: interest.trim(),
-        preferredWeekdays: filters.preferredWeekdays,
-        studyLevel: inferProfileStudyLevel(profile),
-        updatedAt: new Date().toISOString(),
-      });
+      try {
+        await putRecord("profile", {
+          ...profile,
+          interests: interest.trim(),
+          preferredWeekdays: filters.preferredWeekdays,
+          studyLevel: inferProfileStudyLevel(profile),
+          updatedAt: new Date().toISOString(),
+        });
+      } catch {
+        setValidationError("無法儲存推薦條件，請重新連線瀏覽器儲存空間後再試。");
+        return;
+      }
     }
     // The clock starts now (that is the latency the student feels), but the run
     // itself is only opened once results exist — see `onSuccess`.
@@ -388,7 +394,7 @@ export function RecommendPage() {
           {subjectInvalid && <small className="field-error" id="recommend-subject-error">{validationError}</small>}
         </Card.Content>
         <Card.Footer className="recommend-query-actions">
-          <Button className="min-h-11 w-full sm:w-auto" isPending={loading} onPress={() => void recommend()}>
+          <Button className="min-h-11 w-full sm:w-auto" isDisabled={!writable} isPending={loading} onPress={() => void recommend()}>
             {loading ? "正在分析…" : "產生推薦"}
           </Button>
         </Card.Footer>

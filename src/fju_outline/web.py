@@ -11,6 +11,7 @@ import time
 import unicodedata
 from collections import defaultdict, deque
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from ipaddress import ip_address, ip_network
 from pathlib import Path
 from typing import Any, AsyncIterator
@@ -278,6 +279,15 @@ class ArtifactStore:
         }
 
 
+@dataclass
+class _InFlightQuery:
+    """State shared by callers encoding the same normalized query."""
+
+    event: threading.Event
+    vector: np.ndarray | None = None
+    error: BaseException | None = None
+
+
 class QueryEncoder:
     def __init__(self, model_name: str | None = None, *, manifest: dict[str, Any] | None = None) -> None:
         self.manifest = dict(manifest or {})
@@ -286,8 +296,13 @@ class QueryEncoder:
             if self.manifest
             else encoder_from_manifest({"model_name": model_name or DEFAULT_MODEL})
         )
-        self._lock = threading.Lock()
+        # Cache access must stay independent from model inference. A slow CPU
+        # encode must not prevent a cache hit (or a different query) from
+        # entering the fast path.
+        self._cache_lock = threading.Lock()
+        self._inference_lock = threading.Lock()
         self._cache: dict[tuple[str, str, int, str, str], np.ndarray] = {}
+        self._inflight: dict[tuple[str, str, int, str, str], _InFlightQuery] = {}
         self._cache_limit = max(1, _env_int("FJU_QUERY_CACHE_MAX_ENTRIES", 256, minimum=1, maximum=10000))
         self._cache_hits = 0
         self._cache_misses = 0
@@ -331,22 +346,89 @@ class QueryEncoder:
         self._cache[key] = np.asarray(vector, dtype=np.float32).copy()
 
     def encode(self, text: str) -> np.ndarray:
-        with self._lock:
-            key = self._cache_key(text)
+        vector, _ = self.encode_with_metrics(text)
+        return vector
+
+    def encode_with_metrics(self, text: str) -> tuple[np.ndarray, dict[str, Any]]:
+        """Encode one query with privacy-safe timing and single-flight metrics.
+
+        The normalized cache key is computed before any lock. Cache lookup uses
+        only ``_cache_lock``; model inference is serialized by the separate
+        ``_inference_lock``. Callers asking for the same missing key wait on
+        one event and never run a duplicate model inference.
+        """
+        started = time.perf_counter()
+        key = self._cache_key(text)
+        with self._cache_lock:
             cached = self._cache.get(key)
             if cached is not None:
                 self._cache_hits += 1
-                return cached.copy()
-            self._cache_misses += 1
-            vector = np.asarray(self.encoder.encode_query(text), dtype=np.float32)
-            self._cache_put(key, vector)
-            return vector.copy()
+                total_ms = (time.perf_counter() - started) * 1000
+                return cached.copy(), {
+                    "cache_state": "hit",
+                    "singleflight": "none",
+                    "lock_wait_ms": 0.0,
+                    "inference_ms": 0.0,
+                    "total_ms": total_ms,
+                }
+            pending = self._inflight.get(key)
+            owner = pending is None
+            if owner:
+                pending = _InFlightQuery(event=threading.Event())
+                self._inflight[key] = pending
+                self._cache_misses += 1
+
+        assert pending is not None
+        if not owner:
+            wait_started = time.perf_counter()
+            pending.event.wait()
+            wait_ms = (time.perf_counter() - wait_started) * 1000
+            if pending.error is not None:
+                raise pending.error
+            if pending.vector is None:  # pragma: no cover - defensive invariant
+                raise RuntimeError("query embedding single-flight completed without a vector")
+            return pending.vector.copy(), {
+                "cache_state": "miss",
+                "singleflight": "waiter",
+                "lock_wait_ms": wait_ms,
+                "inference_ms": 0.0,
+                "total_ms": (time.perf_counter() - started) * 1000,
+            }
+
+        inference_ms = 0.0
+        gate_started = time.perf_counter()
+        try:
+            # A separate gate keeps CPU inference bounded without blocking
+            # unrelated cache lookups.
+            with self._inference_lock:
+                lock_wait_ms = (time.perf_counter() - gate_started) * 1000
+                inference_started = time.perf_counter()
+                vector = np.asarray(self.encoder.encode_query(text), dtype=np.float32)
+                inference_ms = (time.perf_counter() - inference_started) * 1000
+            with self._cache_lock:
+                self._cache_put(key, vector)
+                pending.vector = vector.copy()
+            return vector.copy(), {
+                "cache_state": "miss",
+                "singleflight": "owner",
+                "lock_wait_ms": lock_wait_ms,
+                "inference_ms": inference_ms,
+                "total_ms": (time.perf_counter() - started) * 1000,
+            }
+        except BaseException as exc:
+            pending.error = exc
+            raise
+        finally:
+            with self._cache_lock:
+                if self._inflight.get(key) is pending:
+                    self._inflight.pop(key, None)
+            pending.event.set()
 
     def encode_many(self, texts: list[str]) -> np.ndarray:
-        with self._lock:
-            keys = [self._cache_key(text) for text in texts]
-            results: list[np.ndarray | None] = [None] * len(texts)
-            missing: list[tuple[int, str, tuple[str, str, int, str, str]]] = []
+        keys = [self._cache_key(text) for text in texts]
+        results: list[np.ndarray | None] = [None] * len(texts)
+        missing: list[tuple[int, str, tuple[str, str, int, str, str]]] = []
+        with self._cache_lock:
             for index, (text, key) in enumerate(zip(texts, keys)):
                 cached = self._cache.get(key)
                 if cached is None:
@@ -354,31 +436,35 @@ class QueryEncoder:
                 else:
                     self._cache_hits += 1
                     results[index] = cached.copy()
-            if missing:
-                unique: list[tuple[str, tuple[str, str, int, str, str]]] = []
-                seen: set[tuple[str, str, int, str, str]] = set()
-                for _, text, key in missing:
-                    if key not in seen:
-                        seen.add(key)
-                        unique.append((text, key))
-                unique_texts = [text for text, _ in unique]
+        if missing:
+            unique: list[tuple[str, tuple[str, str, int, str, str]]] = []
+            seen: set[tuple[str, str, int, str, str]] = set()
+            for _, text, key in missing:
+                if key not in seen:
+                    seen.add(key)
+                    unique.append((text, key))
+            unique_texts = [text for text, _ in unique]
+            # Batch inference remains behind the same single CPU gate, while
+            # cache lookups above remain independent of it.
+            with self._inference_lock:
                 if hasattr(self.encoder, "encode_many"):
                     encoded = np.asarray(self.encoder.encode_many(unique_texts), dtype=np.float32)
                 else:
                     encoded = np.stack([self.encoder.encode_query(text) for text in unique_texts]).astype(np.float32)
-                if encoded.ndim != 2 or encoded.shape[0] != len(unique):
-                    raise ValueError("Query encoder returned an invalid batch shape")
-                by_key: dict[tuple[str, str, int, str, str], np.ndarray] = {}
+            if encoded.ndim != 2 or encoded.shape[0] != len(unique):
+                raise ValueError("Query encoder returned an invalid batch shape")
+            by_key: dict[tuple[str, str, int, str, str], np.ndarray] = {}
+            with self._cache_lock:
                 for row, (_, key) in zip(encoded, unique):
                     self._cache_misses += 1
                     self._cache_put(key, row)
                     by_key[key] = np.asarray(row, dtype=np.float32)
-                for index, _, key in missing:
-                    results[index] = by_key[key].copy()
-            return np.stack([result for result in results if result is not None]).astype(np.float32)
+            for index, _, key in missing:
+                results[index] = by_key[key].copy()
+        return np.stack([result for result in results if result is not None]).astype(np.float32)
 
     def cache_stats(self) -> dict[str, int]:
-        with self._lock:
+        with self._cache_lock:
             return {
                 "entries": len(self._cache),
                 "hits": self._cache_hits,
@@ -488,6 +574,42 @@ def _api_docs_enabled() -> bool:
         return False
     environment = os.environ.get("FJU_ENV", "production").strip().lower()
     return environment in {"development", "dev", "test"}
+
+
+def _encode_query_with_metrics(encoder: Any, text: str) -> tuple[np.ndarray, dict[str, Any]]:
+    """Call the instrumented encoder while keeping injected legacy encoders working."""
+    started = time.perf_counter()
+    method = getattr(encoder, "encode_with_metrics", None)
+    if callable(method):
+        vector, metrics = method(text)
+        result = dict(metrics or {})
+    else:
+        vector = encoder.encode(text)
+        result = {}
+    result.setdefault("cache_state", "unknown")
+    result.setdefault("singleflight", "unknown")
+    result.setdefault("lock_wait_ms", 0.0)
+    result.setdefault("inference_ms", 0.0)
+    result.setdefault("total_ms", (time.perf_counter() - started) * 1000)
+    return np.asarray(vector, dtype=np.float32), result
+
+
+def _server_timing_header(metrics: dict[str, Any]) -> str:
+    """Expose only bounded phase names and durations; never the query text."""
+    cache_state = str(metrics.get("cache_state", "unknown"))
+    singleflight = str(metrics.get("singleflight", "unknown"))
+    lock_wait_ms = max(0.0, float(metrics.get("lock_wait_ms", 0.0)))
+    inference_ms = max(0.0, float(metrics.get("inference_ms", 0.0)))
+    total_ms = max(0.0, float(metrics.get("total_ms", 0.0)))
+    return ", ".join(
+        (
+            f'query-cache;desc="{cache_state}"',
+            f'query-singleflight;desc="{singleflight}"',
+            f"query-lock;dur={lock_wait_ms:.3f}",
+            f"query-inference;dur={inference_ms:.3f}",
+            f"query-total;dur={total_ms:.3f}",
+        )
+    )
 
 
 def create_app(
@@ -942,21 +1064,34 @@ def register_routes(application: FastAPI) -> None:
         )
 
     @application.post("/api/v1/query-embedding")
-    def query_embedding(payload: QueryEmbeddingRequest, request: Request) -> dict[str, Any]:
+    def query_embedding(payload: QueryEmbeddingRequest, request: Request) -> Response:
         store = require_store(request)
         if not _allow_rate_limit(request, request.app.state.rate_limiter, "query_embedding"):
             raise HTTPException(status_code=429, detail="Too many embedding requests")
         encoder = request.app.state.query_encoder
         if encoder is None:
             raise HTTPException(status_code=503, detail="Embedding model unavailable")
-        vector = np.asarray(encoder.encode(payload.text), dtype=np.float32)
+        vector, metrics = _encode_query_with_metrics(encoder, payload.text)
         if vector.ndim != 1 or len(vector) != store.manifest["dimension"]:
             raise HTTPException(status_code=503, detail="Embedding model version mismatch")
-        return {
-            "vector": vector.tolist(),
-            "model_version": store.manifest["model_revision"],
-            "dimension": len(vector),
-        }
+        logger.info(
+            "query_embedding_metrics query_length=%d cache_state=%s singleflight=%s "
+            "lock_wait_ms=%.3f inference_ms=%.3f total_ms=%.3f",
+            len(payload.text),
+            metrics.get("cache_state", "unknown"),
+            metrics.get("singleflight", "unknown"),
+            float(metrics.get("lock_wait_ms", 0.0)),
+            float(metrics.get("inference_ms", 0.0)),
+            float(metrics.get("total_ms", 0.0)),
+        )
+        return JSONResponse(
+            {
+                "vector": vector.tolist(),
+                "model_version": store.manifest["model_revision"],
+                "dimension": len(vector),
+            },
+            headers={"Server-Timing": _server_timing_header(metrics)},
+        )
 
     @application.post("/api/v1/query-embeddings")
     def query_embeddings(payload: QueryEmbeddingsRequest, request: Request) -> dict[str, Any]:

@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import builtins
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
+import pytest
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
 from fju_outline.artifacts import build_artifacts, deserialize_catalog_summary
-from fju_outline.web import ArtifactStore, RateLimiter, create_app, get_rate_limit_client_key
+from fju_outline.web import ArtifactStore, QueryEncoder, RateLimiter, create_app, get_rate_limit_client_key
 
 from test_artifacts import FakeEncoder, _record
 
@@ -117,6 +121,98 @@ def test_health_catalog_and_embedding_api(tmp_path):
         response = client.post("/api/v1/query-embedding", json={"text": "我想學資料分析"})
         assert response.status_code == 200
         assert response.json()["dimension"] == 3
+
+
+def test_query_encoder_singleflight_and_cache_metrics(monkeypatch):
+    class SlowEncoder:
+        model_name = "fake/test-model"
+        model_revision = "test-revision"
+        dimension = 3
+
+        def __init__(self):
+            self.calls = 0
+            self.lock = threading.Lock()
+
+        def encode_query(self, text: str) -> np.ndarray:
+            with self.lock:
+                self.calls += 1
+            time.sleep(0.03)
+            return np.array([1.0, 2.0, 3.0], dtype=np.float32)
+
+    fake = SlowEncoder()
+    monkeypatch.setattr("fju_outline.web.encoder_from_manifest", lambda manifest: fake)
+    encoder = QueryEncoder(manifest={
+        "model_name": fake.model_name,
+        "model_revision": fake.model_revision,
+        "dimension": fake.dimension,
+        "query_prompt_version": "test-query-v1",
+    })
+
+    with ThreadPoolExecutor(max_workers=10) as pool:
+        results = list(pool.map(lambda _: encoder.encode_with_metrics("  資料　分析 "), range(10)))
+
+    assert fake.calls == 1
+    assert all(np.array_equal(vector, results[0][0]) for vector, _ in results)
+    assert {metrics["cache_state"] for _, metrics in results} == {"miss"}
+    assert {metrics["singleflight"] for _, metrics in results} <= {"owner", "waiter"}
+    assert encoder.encode_with_metrics("資料 分析")[1]["cache_state"] == "hit"
+    assert encoder.cache_stats() == {"entries": 1, "hits": 1, "misses": 1}
+
+
+def test_query_encoder_failed_singleflight_can_retry(monkeypatch):
+    class FlakyEncoder:
+        model_name = "fake/test-model"
+        model_revision = "test-revision"
+        dimension = 3
+
+        def __init__(self):
+            self.calls = 0
+
+        def encode_query(self, text: str) -> np.ndarray:
+            self.calls += 1
+            if self.calls == 1:
+                raise RuntimeError("temporary model failure")
+            return np.array([1.0, 0.0, 0.0], dtype=np.float32)
+
+    fake = FlakyEncoder()
+    monkeypatch.setattr("fju_outline.web.encoder_from_manifest", lambda manifest: fake)
+    encoder = QueryEncoder(manifest={
+        "model_name": fake.model_name,
+        "model_revision": fake.model_revision,
+        "dimension": fake.dimension,
+    })
+    with pytest.raises(RuntimeError, match="temporary model failure"):
+        encoder.encode("資料分析")
+    vector, metrics = encoder.encode_with_metrics("資料分析")
+    assert vector.tolist() == [1.0, 0.0, 0.0]
+    assert metrics["cache_state"] == "miss"
+    assert fake.calls == 2
+
+
+def test_query_embedding_exposes_timing_header_without_changing_json_shape(tmp_path):
+    output = tmp_path / "artifacts"
+    build_artifacts([_record("1", "資料科學")], output, encoder=FakeEncoder(), year=115, semester=1)
+
+    class InstrumentedQueryEncoder:
+        model_name = "fake/test-model"
+        model_revision = "test-revision"
+
+        def encode_with_metrics(self, text: str):
+            return np.array([1.0, 0.0, 0.0], dtype=np.float32), {
+                "cache_state": "hit",
+                "singleflight": "none",
+                "lock_wait_ms": 0.25,
+                "inference_ms": 0.0,
+                "total_ms": 0.5,
+            }
+
+    app = create_app(store=ArtifactStore(output), query_encoder=InstrumentedQueryEncoder(), load_runtime=False)
+    with TestClient(app) as client:
+        response = client.post("/api/v1/query-embedding", json={"text": "資料分析"})
+    assert response.status_code == 200
+    assert set(response.json()) == {"vector", "model_version", "dimension"}
+    assert 'query-cache;desc="hit"' in response.headers["server-timing"]
+    assert "query-inference;dur=0.000" in response.headers["server-timing"]
 
 
 def test_production_hardening_headers_are_present_and_api_docs_are_hidden(tmp_path, monkeypatch):

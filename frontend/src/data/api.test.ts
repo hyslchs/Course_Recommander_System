@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { artifactCacheKey } from "./api";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { artifactCacheKey, embedQuery, embedQueryDetailed } from "./api";
 import type { ArtifactManifest } from "@/domain/types";
 
 const manifest: ArtifactManifest = {
@@ -41,5 +41,25 @@ describe("artifact cache keys", () => {
     const key = artifactCacheKey(manifest, "vectors", ["embedding-index.json", "course-embeddings.f32"]);
     expect(key).toContain("embedding-index.json=index-a");
     expect(key).toContain("course-embeddings.f32=vectors-a");
+  });
+});
+
+describe("query embedding telemetry", () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it("reads cache state from Server-Timing without changing the response contract", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockImplementation(() => Promise.resolve(new Response(JSON.stringify({
+      vector: [1, 0, 0], model_version: "revision-1", dimension: 3,
+    }), {
+      status: 200,
+      headers: { "Server-Timing": 'query-cache;desc="hit", query-inference;dur=0' },
+    }))));
+    const result = await embedQueryDetailed("資料分析");
+    expect(Array.from(result.vector)).toEqual([1, 0, 0]);
+    expect(result.modelVersion).toBe("revision-1");
+    expect(result.dimension).toBe(3);
+    expect(result.queryCacheState).toBe("hit");
+    expect(result.requestMs).toBeGreaterThanOrEqual(0);
+    await expect(embedQuery("資料分析")).resolves.toEqual(new Float32Array([1, 0, 0]));
   });
 });

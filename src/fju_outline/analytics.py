@@ -42,7 +42,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Iterable, Sequence
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 logger = logging.getLogger(__name__)
 
@@ -151,6 +151,8 @@ FILTERS: frozenset[str] = frozenset({
 })
 
 SEARCH_MODES: frozenset[str] = frozenset({"keyword", "semantic"})
+SEARCH_ASSET_STATES: frozenset[str] = frozenset({"prefetched", "in_flight", "indexed_db", "network"})
+SEARCH_QUERY_CACHE_STATES: frozenset[str] = frozenset({"hit", "miss", "unknown"})
 RECOMMENDATION_METHODS: frozenset[str] = frozenset({"schedule_slot", "semantic"})
 ADD_SOURCES: frozenset[str] = frozenset({"manual", "recommendation", "schedule_slot", "search"})
 CONFLICT_TRIGGERS: frozenset[str] = frozenset({"course_added"})
@@ -169,6 +171,7 @@ CONFLICT_ACTIONS: frozenset[str] = frozenset({
 API_ENDPOINTS: frozenset[str] = frozenset({
     "ai_ask",
     "catalog_data",
+    "catalog_summary",
     "catalog_manifest",
     "class_groups",
     "course_detail",
@@ -271,6 +274,14 @@ EVENT_SCHEMAS: dict[str, dict[str, Field]] = {
         "query_length": _int("query_length", minimum=0, maximum=500),
         "result_count": _int("result_count", minimum=0, maximum=100_000),
         "latency_ms": _int("latency_ms", minimum=0, maximum=120_000),
+        # Optional so old clients and old queued events remain valid. New
+        # recommendation events fill all four fields; keyword search does not.
+        "asset_wait_ms": _int("asset_wait_ms", minimum=0, maximum=120_000, required=False),
+        "embedding_ms": _int("embedding_ms", minimum=0, maximum=120_000, required=False),
+        "ranking_ms": _int("ranking_ms", minimum=0, maximum=120_000, required=False),
+        "total_ms": _int("total_ms", minimum=0, maximum=120_000, required=False),
+        "asset_state": _enum("asset_state", SEARCH_ASSET_STATES, required=False),
+        "query_cache_state": _enum("query_cache_state", SEARCH_QUERY_CACHE_STATES, required=False),
     },
     "zero_result": {
         "search_mode": _enum("search_mode", SEARCH_MODES),
@@ -336,6 +347,12 @@ EVENT_COLUMNS: tuple[str, ...] = (
     "query_length",
     "result_count",
     "latency_ms",
+    "asset_wait_ms",
+    "embedding_ms",
+    "ranking_ms",
+    "total_ms",
+    "asset_state",
+    "query_cache_state",
     "refinement_index",
     "conflict_count",
     "action",
@@ -663,6 +680,12 @@ class AnalyticsStore:
                 query_length INTEGER,
                 result_count INTEGER,
                 latency_ms INTEGER,
+                asset_wait_ms INTEGER,
+                embedding_ms INTEGER,
+                ranking_ms INTEGER,
+                total_ms INTEGER,
+                asset_state TEXT,
+                query_cache_state TEXT,
                 refinement_index INTEGER,
                 conflict_count INTEGER,
                 action TEXT,
@@ -676,9 +699,20 @@ class AnalyticsStore:
         columns = {
             str(row[1]) for row in connection.execute("PRAGMA table_info(analytics_events)").fetchall()
         }
-        if "event_id" not in columns:
-            # Backward-compatible migration for the already deployed v1 table.
-            connection.execute("ALTER TABLE analytics_events ADD COLUMN event_id TEXT")
+        migrations = {
+            "event_id": "TEXT",
+            "asset_wait_ms": "INTEGER",
+            "embedding_ms": "INTEGER",
+            "ranking_ms": "INTEGER",
+            "total_ms": "INTEGER",
+            "asset_state": "TEXT",
+            "query_cache_state": "TEXT",
+        }
+        for name, definition in migrations.items():
+            if name not in columns:
+                # Additive migrations keep existing deployments and queued
+                # legacy events readable while new rows gain timing fields.
+                connection.execute(f"ALTER TABLE analytics_events ADD COLUMN {name} {definition}")
         connection.execute(
             "CREATE UNIQUE INDEX IF NOT EXISTS analytics_events_event_id "
             "ON analytics_events(event_id) WHERE event_id IS NOT NULL"
@@ -951,6 +985,43 @@ class AnalyticsStore:
         ):
             put("result_count_bucket", str(bucket), count)
 
+        # Search latency is kept separate from the general API timings. The
+        # recommendation surface ranks locally, so these phase percentiles are
+        # the actionable view of the student's end-to-end wait. Missing values
+        # are intentionally ignored for legacy/keyword events.
+        for expression, metric in (
+            ("COALESCE(total_ms, latency_ms)", "search_total_"),
+            ("asset_wait_ms", "search_asset_wait_"),
+            ("embedding_ms", "search_embedding_"),
+            ("ranking_ms", "search_ranking_"),
+        ):
+            values = [
+                int(value)
+                for (value,) in connection.execute(
+                    f"SELECT {expression} FROM analytics_events "
+                    "WHERE day = ? AND event = 'search' AND search_mode = 'semantic' "
+                    f"AND {expression} IS NOT NULL",
+                    (day,),
+                )
+                if value is not None
+            ]
+            if not values:
+                continue
+            for suffix, fraction in (("p50", 0.50), ("p95", 0.95), ("p99", 0.99)):
+                put(metric + suffix, "semantic", self._percentile(values, fraction))
+
+        for column, metric in (
+            ("asset_state", "search_asset_state"),
+            ("query_cache_state", "search_query_cache_state"),
+        ):
+            for value, count in connection.execute(
+                f"SELECT {column}, COUNT(*) FROM analytics_events "
+                "WHERE day = ? AND event = 'search' AND search_mode = 'semantic' "
+                f"AND {column} IS NOT NULL GROUP BY {column}",
+                (day,),
+            ):
+                put(metric, str(value), count)
+
         refinements = connection.execute(
             "SELECT COUNT(*), COALESCE(MAX(refinement_index), 0) FROM analytics_events "
             "WHERE day = ? AND event = 'search_refined'",
@@ -1073,7 +1144,13 @@ class AnalyticsStore:
                 metrics.setdefault(str(metric), {})[str(dimension)] = float(value)
             # Percentiles are not additive; take the worst day in the window
             # rather than summing, which would be meaningless.
-            for metric in ("api_latency_p50", "api_latency_p95", "api_latency_p99"):
+            for metric in (
+                "api_latency_p50", "api_latency_p95", "api_latency_p99",
+                "search_total_p50", "search_total_p95", "search_total_p99",
+                "search_asset_wait_p50", "search_asset_wait_p95", "search_asset_wait_p99",
+                "search_embedding_p50", "search_embedding_p95", "search_embedding_p99",
+                "search_ranking_p50", "search_ranking_p95", "search_ranking_p99",
+            ):
                 metrics[metric] = {}
                 for dimension, value in connection.execute(
                     "SELECT dimension, MAX(value) FROM analytics_daily_metrics "
@@ -1164,6 +1241,30 @@ class AnalyticsStore:
                 "by_mode": metrics.get("search", {}),
                 "zero_result_by_mode": metrics.get("zero_result", {}),
                 "result_count_buckets": metrics.get("result_count_bucket", {}),
+                "asset_state": metrics.get("search_asset_state", {}),
+                "query_cache_state": metrics.get("search_query_cache_state", {}),
+                "timing": {
+                    "total_ms": {
+                        "p50": metrics.get("search_total_p50", {}).get("semantic", 0.0),
+                        "p95": metrics.get("search_total_p95", {}).get("semantic", 0.0),
+                        "p99": metrics.get("search_total_p99", {}).get("semantic", 0.0),
+                    },
+                    "asset_wait_ms": {
+                        "p50": metrics.get("search_asset_wait_p50", {}).get("semantic", 0.0),
+                        "p95": metrics.get("search_asset_wait_p95", {}).get("semantic", 0.0),
+                        "p99": metrics.get("search_asset_wait_p99", {}).get("semantic", 0.0),
+                    },
+                    "embedding_ms": {
+                        "p50": metrics.get("search_embedding_p50", {}).get("semantic", 0.0),
+                        "p95": metrics.get("search_embedding_p95", {}).get("semantic", 0.0),
+                        "p99": metrics.get("search_embedding_p99", {}).get("semantic", 0.0),
+                    },
+                    "ranking_ms": {
+                        "p50": metrics.get("search_ranking_p50", {}).get("semantic", 0.0),
+                        "p95": metrics.get("search_ranking_p95", {}).get("semantic", 0.0),
+                        "p99": metrics.get("search_ranking_p99", {}).get("semantic", 0.0),
+                    },
+                },
                 "refinement_events": refinement_events,
                 "refinement_flows": refinement_flows,
             },

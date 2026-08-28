@@ -23,6 +23,7 @@ REQUIRED_FILES = (
     "query-route-embeddings.f32",
     "query-route-index.json",
 )
+OPTIONAL_FILES = ("catalog-summary.json",)
 
 
 def sha256(path: Path) -> str:
@@ -117,7 +118,12 @@ def verify_bundle(
         raise ValueError("artifact manifest checksum mismatch")
     manifest_files = _metadata(manifest.get("files"))
     lock_files = lock_data.get("artifact", {}).get("files") or {}
-    for name in REQUIRED_FILES:
+    # New bundles include the compact recommendation payload. Keep this
+    # optional for older immutable bundles so the application-level legacy
+    # fallback remains deployable, but verify it as strictly as every required
+    # artifact whenever it is present.
+    files_to_verify = (*REQUIRED_FILES, *(name for name in OPTIONAL_FILES if (artifact_dir / name).exists()))
+    for name in files_to_verify:
         path = artifact_dir / name
         if not path.is_file():
             raise FileNotFoundError(path)

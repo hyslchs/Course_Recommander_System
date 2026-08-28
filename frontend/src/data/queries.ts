@@ -3,6 +3,7 @@ import { useCallback } from "react";
 import {
   askCourseAssistant,
   embedQuery,
+  embedQueryDetailed,
   getCatalog,
   getClassGroups,
   getCourses,
@@ -10,12 +11,14 @@ import {
   getDepartmentCatalog,
   getFacets,
   getFeatures,
+  getRecommendationAssetState,
   lookupCourses,
   preloadRecommendationAssets,
 } from "./api";
 import { analyzeQuery } from "@/domain/queryAnalysis";
 import type { AIAnswer, AIAskContext, AIHistoryTurn, Course, CourseSummary, HardConstraints } from "@/domain/types";
 import type { SearchIndex } from "@/domain/search";
+import type { QueryCacheState, RecommendationAssetState } from "./api";
 
 /**
  * Every server read the UI performs, in one place (plan §6.4).
@@ -144,6 +147,10 @@ export interface RecommendationSources {
   dimension: number;
   query: Float32Array;
   searchIndex: SearchIndex;
+  assetWaitMs: number;
+  embeddingMs: number;
+  assetState: RecommendationAssetState;
+  queryCacheState: QueryCacheState;
 }
 
 /**
@@ -154,17 +161,36 @@ export interface RecommendationSources {
 export function useRecommendationSources() {
   return useMutation({
     mutationFn: async (subjectQuery: string): Promise<RecommendationSources> => {
-      const [assets, query] = await Promise.all([
-        preloadRecommendationAssets(),
-        embedQuery(subjectQuery),
-      ]);
+      const assetStarted = performance.now();
+      const initialAssetState = typeof getRecommendationAssetState === "function"
+        ? getRecommendationAssetState()
+        : "network";
+      const embeddingStarted = performance.now();
+      const assetPromise = preloadRecommendationAssets("search");
+      const queryPromise = typeof embedQueryDetailed === "function"
+        ? embedQueryDetailed(subjectQuery)
+        : embedQuery(subjectQuery).then((vector) => ({
+          vector,
+          modelVersion: "unknown",
+          dimension: vector.length,
+          queryCacheState: "unknown" as QueryCacheState,
+          requestMs: performance.now() - embeddingStarted,
+        }));
+      const [assets, query] = await Promise.all([assetPromise, queryPromise]);
+      const assetState = initialAssetState === "network" && assets.assetSource === "indexed_db"
+        ? "indexed_db"
+        : initialAssetState;
       return {
         catalog: assets.catalog,
         courseIds: assets.courseIds,
         vectors: assets.vectors,
         dimension: assets.dimension,
-        query,
+        query: query.vector,
         searchIndex: assets.searchIndex,
+        assetWaitMs: performance.now() - assetStarted,
+        embeddingMs: query.requestMs ?? performance.now() - embeddingStarted,
+        assetState,
+        queryCacheState: query.queryCacheState,
       };
     },
   });

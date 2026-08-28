@@ -73,6 +73,8 @@ export type AnalyticsFilter =
   | "weekday";
 
 export type SearchMode = "keyword" | "semantic";
+export type RecommendationAssetState = "prefetched" | "in_flight" | "indexed_db" | "network";
+export type QueryCacheState = "hit" | "miss" | "unknown";
 export type RecommendationMethod = "schedule_slot" | "semantic";
 export type CourseAddSource = "manual" | "recommendation" | "schedule_slot" | "search";
 export type ConflictAction =
@@ -150,7 +152,19 @@ export type AnalyticsEventMap = {
   page_view: { page: AnalyticsPage };
   feature_clicked: { feature: AnalyticsFeature };
   filter_used: { filter: AnalyticsFilter; value?: string };
-  search: { search_mode: SearchMode; query_length: number; result_count: number; latency_ms: number };
+  search: {
+    search_mode: SearchMode;
+    query_length: number;
+    result_count: number;
+    /** Backward-compatible end-to-end total, measured at recommendation completion. */
+    latency_ms: number;
+    total_ms?: number;
+    asset_wait_ms?: number;
+    embedding_ms?: number;
+    ranking_ms?: number;
+    asset_state?: RecommendationAssetState;
+    query_cache_state?: QueryCacheState;
+  };
   zero_result: { search_mode: SearchMode };
   search_refined: { refinement_index: number };
   recommendation_impression: { course_id: string; position: number; method: RecommendationMethod };

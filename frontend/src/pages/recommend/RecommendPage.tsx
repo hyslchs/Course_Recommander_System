@@ -55,6 +55,10 @@ type RecommendationEmbedding = {
   vectors: Float32Array;
   dimension: number;
   searchIndex: SearchIndex;
+  assetWaitMs: number;
+  embeddingMs: number;
+  assetState: "prefetched" | "in_flight" | "indexed_db" | "network";
+  queryCacheState: "hit" | "miss" | "unknown";
 };
 
 /**
@@ -148,7 +152,7 @@ export function RecommendPage() {
     // Profile completion is the intent signal for this route. The promise is
     // shared with the button-triggered request, so a click never downloads a
     // second copy of the catalog or vectors.
-    void preloadRecommendationAssets().catch(() => undefined);
+    void preloadRecommendationAssets("prefetch").catch(() => undefined);
   }, [profile]);
 
   const creditOptions = useMemo(() => (facets.credits ?? [])
@@ -200,7 +204,9 @@ export function RecommendPage() {
     };
   }, [activePlan, catalog, completed, dismissed, labelMaps, profile]);
   const rerank = useCallback((embedding: RecommendationEmbedding, applied: RecommendFilters) => {
+    const rankingStarted = performance.now();
     const diagnostic = rankCoursesWithDiagnostics(buildRankingInput(embedding, applied));
+    const rankingMs = Math.round(performance.now() - rankingStarted);
     setResults(diagnostic.recommendations);
     setCandidateCount(diagnostic.candidateCount);
     recommendationRun.settle(diagnostic.recommendations.length);
@@ -214,11 +220,21 @@ export function RecommendPage() {
     if (!pending) return;
     pendingSearch.current = undefined;
     const resultCount = diagnostic.recommendations.length;
+    const totalMs = Math.round(performance.now() - pending.startedAt);
+    const timing = {
+      asset_wait_ms: Math.max(0, Math.round(embedding.assetWaitMs)),
+      embedding_ms: Math.max(0, Math.round(embedding.embeddingMs)),
+      ranking_ms: rankingMs,
+      total_ms: totalMs,
+      asset_state: embedding.assetState,
+      ...(embedding.queryCacheState === "unknown" ? {} : { query_cache_state: embedding.queryCacheState }),
+    };
     track("search", {
       search_mode: "semantic",
       query_length: pending.queryLength,
       result_count: resultCount,
-      latency_ms: Math.round(performance.now() - pending.startedAt),
+      latency_ms: totalMs,
+      ...timing,
     }, { interactionId: pending.interactionId });
     if (resultCount === 0) {
       // Derivable from `result_count = 0`, kept as its own event so the
@@ -334,6 +350,10 @@ export function RecommendPage() {
           vectors: loaded.vectors,
           dimension: loaded.dimension,
           searchIndex: loaded.searchIndex,
+          assetWaitMs: loaded.assetWaitMs ?? 0,
+          embeddingMs: loaded.embeddingMs ?? 0,
+          assetState: loaded.assetState ?? "network",
+          queryCacheState: loaded.queryCacheState ?? "unknown",
         });
       },
     });

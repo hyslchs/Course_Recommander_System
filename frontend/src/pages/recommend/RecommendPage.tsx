@@ -14,6 +14,7 @@ import {
 import { nextSearchStep, type SearchFlowState } from "@/analytics/searchFlow";
 import { getHighCreditOptions } from "@/domain/creditFilter";
 import { inferProfileStudyLevel } from "@/domain/eligibility";
+import { departmentRelation } from "@/domain/department";
 import { defaultPreferredWeekdays } from "@/domain/profileDefaults";
 import { rankCoursesWithDiagnostics } from "@/domain/recommendation";
 import { coursesInPlan, meetingsInPlan } from "@/domain/scheduleUtils";
@@ -85,7 +86,8 @@ interface PendingSearch {
  * the box the student sees.
  */
 function RecommendationResult({ item, index }: { item: Recommendation; index: number }) {
-  const impressionRef = useRecommendationImpression(item.course.course_id, index + 1);
+  const profile = useProfile();
+  const impressionRef = useRecommendationImpression(item.course.course_id, index + 1, departmentRelation(item.course, profile));
   return (
     <BlurFade className="result-reveal" index={index} ref={impressionRef}>
       <CourseCard
@@ -139,7 +141,7 @@ export function RecommendPage() {
   const recommendationRun = useRecommendationRun("semantic");
   const searchFlow = useRef<SearchFlowState>(undefined);
   /** In flight: the clock and the flow position, before there is a run to stamp. */
-  const activeRequest = useRef<Omit<PendingSearch, "interactionId">>(undefined);
+  const activeRequest = useRef<PendingSearch>(undefined);
   /** Results are back; the next re-rank emits the `search` event and clears this. */
   const pendingSearch = useRef<PendingSearch>(undefined);
   useEffect(() => setInterest(profile?.interests ?? ""), [profile?.interests]);
@@ -318,28 +320,29 @@ export function RecommendPage() {
         return;
       }
     }
-    // The clock starts now (that is the latency the student feels), but the run
-    // itself is only opened once results exist — see `onSuccess`.
+    // Open the run at request start so zero-result, error, and abandoned runs
+    // all have a denominator. `settle` later records the result count.
     const flow = nextSearchStep(searchFlow.current, Date.now());
     searchFlow.current = flow;
-    activeRequest.current = { flow, queryLength: sanitizedPreview.subjectQuery.length, startedAt: performance.now() };
+    const interactionId = recommendationRun.start();
+    activeRequest.current = { interactionId, flow, queryLength: sanitizedPreview.subjectQuery.length, startedAt: performance.now() };
 
     sources.mutate(sanitizedPreview.subjectQuery, {
       onError: () => {
+        if (activeRequest.current?.interactionId !== interactionId) return;
         activeRequest.current = undefined;
+        pendingSearch.current = undefined;
+        recommendationRun.complete("error");
         track("error", { component: "recommendation", error_code: "EMBEDDING_REQUEST_FAILED" });
       },
       onSuccess: (loaded) => {
-        // `start()` and `setLastEmbedding` in the same handler, in this order,
-        // and load-bearing. Opening the run re-renders, and the re-rank effect
-        // depends on it — so opening it at *request* time would run the effect
-        // against the results still on screen and log a `search` carrying the
-        // previous run's result count and a near-zero latency. Both state
-        // updates are batched here, so the effect next runs with the new
-        // embedding and the pending search together.
+        // Ignore a late response from an older request. The active request owns
+        // the run id, so a superseded response cannot settle or relabel a newer
+        // run.
         const request = activeRequest.current;
+        if (!request || request.interactionId !== interactionId) return;
         activeRequest.current = undefined;
-        if (request) pendingSearch.current = { interactionId: recommendationRun.start(), ...request };
+        pendingSearch.current = request;
         setCatalog(loaded.catalog);
         setLastEmbedding({
           query: loaded.query,

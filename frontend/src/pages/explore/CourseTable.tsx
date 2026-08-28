@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Skeleton, Table, type SortDescriptor } from "@heroui/react";
 import { EligibilityChip } from "@/components/CourseCard";
+import { useSearchResultClick, useSearchResultImpression } from "@/analytics/search";
 import { CourseRowActions } from "./CourseRowActions";
 import { inferAudienceDepartment } from "@/domain/eligibility";
 import { formatMeetings, SCHEDULE_SECTIONS } from "@/domain/schedule";
@@ -192,9 +193,39 @@ export interface CourseTableProps {
    */
   sortDescriptor: SortDescriptor | undefined;
   onSortChange: (descriptor: SortDescriptor) => void;
+  /** Zero-based offset of this page in the global result set. */
+  positionOffset?: number;
 }
 
-export function CourseTable({ rows, sortDescriptor, onSortChange }: CourseTableProps) {
+function CourseTableRow({ course, status, position }: CourseRow & { position: number }) {
+  const impressionRef = useSearchResultImpression(course.course_id, position);
+  const recordClick = useSearchResultClick(course.course_id, position);
+  return (
+    <Table.Row id={course.course_id} key={course.course_id} ref={impressionRef}>
+      <Table.Cell className={CELL_CLASS}>{course.ava_no}</Table.Cell>
+      <Table.Cell className={CELL_CLASS}>
+        <a
+          className="inline-block font-medium leading-6 text-link underline underline-offset-2"
+          href={course.source_url}
+          rel="noreferrer"
+          target="_blank"
+          onClick={recordClick}
+        >
+          {course.name_zh}
+        </a>
+        {course.name_en ? <span className="block text-[0.8125rem] text-muted">{course.name_en}</span> : null}
+      </Table.Cell>
+      <Table.Cell className={CELL_CLASS}>{course.teacher || "教師未定"}</Table.Cell>
+      <Table.Cell className={CELL_CLASS}>{formatMeetings(course)}</Table.Cell>
+      <Table.Cell className={`${CELL_CLASS} text-end tabular-nums`}>{course.credits ?? "—"}</Table.Cell>
+      <Table.Cell className={CELL_CLASS}>{courseDepartmentLabel(course)}</Table.Cell>
+      <Table.Cell className={CELL_CLASS}><EligibilityChip labels="short" status={status} /></Table.Cell>
+      <Table.Cell className={CELL_CLASS}><CourseRowActions course={course} position={position} /></Table.Cell>
+    </Table.Row>
+  );
+}
+
+export function CourseTable({ rows, sortDescriptor, onSortChange, positionOffset = 0 }: CourseTableProps) {
   const sorted = useMemo(() => sortCourseRows(rows, sortDescriptor), [rows, sortDescriptor]);
   return (
     <Table>
@@ -225,43 +256,7 @@ export function CourseTable({ rows, sortDescriptor, onSortChange }: CourseTableP
             ))}
           </Table.Header>
           <Table.Body>
-            {sorted.map(({ course, status }) => (
-              <Table.Row id={course.course_id} key={course.course_id}>
-                <Table.Cell className={CELL_CLASS}>{course.ava_no}</Table.Cell>
-                <Table.Cell className={CELL_CLASS}>
-                  {/*
-                    There is no course-detail route, so the syllabus is the only
-                    place left to go from a table row. `text-link` rather than the
-                    legacy `a{color:inherit}`, which would have made it invisible
-                    as a link; the underline keeps it from being colour-only.
-                  */}
-                  {/* `leading-6` is not decoration: `.table__cell` inherits a
-                      1.4 line-height, which made this link a 21px-high target,
-                      3px under WCAG 2.5.8's 24px floor. It only ever renders at
-                      `lg`+ (a pointer context), so 24 rather than 44 is the bar
-                      that applies — but it has to clear it. */}
-                  <a
-                    className="inline-block font-medium leading-6 text-link underline underline-offset-2"
-                    href={course.source_url}
-                    rel="noreferrer"
-                    target="_blank"
-                  >
-                    {course.name_zh}
-                  </a>
-                  {course.name_en ? <span className="block text-[0.8125rem] text-muted">{course.name_en}</span> : null}
-                </Table.Cell>
-                <Table.Cell className={CELL_CLASS}>{course.teacher || "教師未定"}</Table.Cell>
-                <Table.Cell className={CELL_CLASS}>{formatMeetings(course)}</Table.Cell>
-                <Table.Cell className={`${CELL_CLASS} text-end tabular-nums`}>{course.credits ?? "—"}</Table.Cell>
-                <Table.Cell className={CELL_CLASS}>{courseDepartmentLabel(course)}</Table.Cell>
-                <Table.Cell className={CELL_CLASS}>
-                  <EligibilityChip labels="short" status={status} />
-                </Table.Cell>
-                <Table.Cell className={CELL_CLASS}>
-                  <CourseRowActions course={course} />
-                </Table.Cell>
-              </Table.Row>
-            ))}
+            {sorted.map((row, index) => <CourseTableRow {...row} key={row.course.course_id} position={positionOffset + index + 1} />)}
           </Table.Body>
         </Table.Content>
       </Table.ScrollContainer>

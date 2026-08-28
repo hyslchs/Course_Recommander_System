@@ -25,6 +25,7 @@ import {
   type AnalyticsEventMap,
   type AnalyticsEventName,
   type AnalyticsPage,
+  type AnalyticsProvenance,
 } from "./events";
 
 /** A session ends after two hours however active the tab is. */
@@ -57,6 +58,13 @@ let listenersAttached = false;
 let memorySession: SessionRecord | undefined;
 /** The route the app is currently on, so events raised deep in a tree carry it. */
 let currentPage: AnalyticsPage | undefined;
+let instrumentationV3Enabled = false;
+const configuredClientBuildSha = (globalThis as typeof globalThis & { __FJU_CLIENT_BUILD_SHA__?: unknown }).__FJU_CLIENT_BUILD_SHA__;
+let analyticsProvenance: AnalyticsProvenance = {
+  client_build_sha: typeof configuredClientBuildSha === "string" && configuredClientBuildSha ? configuredClientBuildSha : "frontend-1.0.0",
+  client_ranking_version: "rank-courses-v1",
+  client_query_analysis_version: "deterministic-v1",
+};
 
 function randomToken(bytes = 6): string {
   const buffer = new Uint8Array(bytes);
@@ -76,6 +84,20 @@ function randomToken(bytes = 6): string {
  */
 export function newInteractionId(prefix: "search" | "rec" | "flow"): string {
   return `${prefix}_${randomToken(5)}`;
+}
+
+/** Runtime kill switch supplied by `/api/v1/features`; false is the safe default. */
+export function setAnalyticsInstrumentationV3(enabled: boolean): void {
+  instrumentationV3Enabled = enabled;
+}
+
+export function isAnalyticsInstrumentationV3Enabled(): boolean {
+  return instrumentationV3Enabled;
+}
+
+/** Updates only bounded client provenance; no user or query data enters this object. */
+export function setAnalyticsProvenance(provenance: AnalyticsProvenance): void {
+  analyticsProvenance = { ...analyticsProvenance, ...provenance };
 }
 
 // -- opt-out ---------------------------------------------------------------- //
@@ -280,9 +302,11 @@ export function track<K extends AnalyticsEventName>(
       session_id: currentSessionId(),
       data,
     };
+    if (instrumentationV3Enabled) envelope.schema_version = 3;
     const page = context.page ?? currentPage;
     if (page) envelope.page = page;
     if (context.interactionId) envelope.interaction_id = context.interactionId;
+    if (instrumentationV3Enabled) envelope.provenance = analyticsProvenance;
 
     queue.push(envelope as AnalyticsEnvelope);
     // Drop the oldest, not the newest: a tab that has been offline for an hour
@@ -294,11 +318,37 @@ export function track<K extends AnalyticsEventName>(
   }
 }
 
+/** Sends a Phase 1-only event; old backends and disabled gates receive nothing. */
+export function trackV3<K extends AnalyticsEventName>(
+  event: K,
+  data: AnalyticsEventMap[K],
+  context: AnalyticsContext = {},
+): void {
+  if (!instrumentationV3Enabled) return;
+  track(event, data, context);
+}
+
+/** Sends enhanced data when Phase 1 is enabled and the legacy shape otherwise. */
+export function trackWithLegacy<K extends AnalyticsEventName>(
+  event: K,
+  v3Data: AnalyticsEventMap[K],
+  legacyData: AnalyticsEventMap[K],
+  context: AnalyticsContext = {},
+): void {
+  track(event, instrumentationV3Enabled ? v3Data : legacyData, context);
+}
+
 /** Test seam. Not used by the app. */
 export function __resetAnalyticsForTests(): void {
   queue = [];
   failureCount = 0;
   sessionDisabled = false;
+  instrumentationV3Enabled = false;
+  analyticsProvenance = {
+    client_build_sha: typeof configuredClientBuildSha === "string" && configuredClientBuildSha ? configuredClientBuildSha : "frontend-1.0.0",
+    client_ranking_version: "rank-courses-v1",
+    client_query_analysis_version: "deterministic-v1",
+  };
   memorySession = undefined;
   currentPage = undefined;
   if (flushTimer !== undefined) clearTimeout(flushTimer);

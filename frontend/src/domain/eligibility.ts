@@ -219,6 +219,36 @@ export function meetingsConflict(left: Meeting[], right: Meeting[]): { conflict:
   return { conflict: false, uncertain };
 }
 
+/** Counts conflicting meeting pairs for analytics without returning course IDs. */
+export function meetingConflictCounts(left: Meeting[], right: Meeting[]): { actual: number; uncertain: number } {
+  let actual = 0;
+  let uncertain = 0;
+  for (const a of left) {
+    for (const b of right) {
+      if (!a.weekday || a.weekday !== b.weekday) continue;
+      if (!a.sections.some((section) => b.sections.includes(section))) continue;
+      const patternA = a.week_pattern?.toUpperCase();
+      const patternB = b.week_pattern?.toUpperCase();
+      if (!patternA || !patternB) {
+        uncertain += 1;
+      } else if (patternA === "A" || patternB === "A" || patternA === patternB) {
+        actual += 1;
+      }
+    }
+  }
+  return { actual, uncertain };
+}
+
+export function courseConflictCounts(course: CourseSummary, scheduled: CourseSummary[]): { actual: number; uncertain: number } {
+  return scheduled.reduce(
+    (result, other) => {
+      const current = meetingConflictCounts(course.meetings, other.meetings);
+      return { actual: result.actual + current.actual, uncertain: result.uncertain + current.uncertain };
+    },
+    { actual: 0, uncertain: 0 },
+  );
+}
+
 export function courseConflicts(course: CourseSummary, scheduled: CourseSummary[]) {
   return scheduled.reduce(
     (result, other) => {

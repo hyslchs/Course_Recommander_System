@@ -4,17 +4,21 @@ import { Alert, Button, Card, Chip, Disclosure, Radio, RadioGroup, ToggleButton,
 import { getCourse } from "@/data/api";
 import { useFetchCoursesByIds } from "@/data/queries";
 import { deleteRecord, putRecord } from "@/data/db";
-import { track } from "@/analytics/client";
+import { track, trackWithLegacy } from "@/analytics/client";
 import { useRecommendationClick, useRecommendationSurface } from "@/analytics/recommendation";
+import { useSearchResultClick, useSearchSurface } from "@/analytics/search";
 import {
   courseConflicts,
+  courseConflictCounts,
   evaluateEligibility,
   formatCourseStudyLevelLabel,
   getEligibilityRules,
   inferAudienceDepartment,
   meetingsConflict,
+  meetingConflictCounts,
 } from "@/domain/eligibility";
 import { classifyRecommendationCategory } from "@/domain/recommendation";
+import { departmentRelation } from "@/domain/department";
 import { formatMeetings } from "@/domain/schedule";
 import { useLocalDataState, useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
@@ -63,7 +67,7 @@ function ExpandableText({ value }: { value: string }) {
 
 type CardCourse = CourseSummary | Course;
 
-export function CourseCard({ course, alternatives, rank, reasons, cautions, matchedFields, recommendationCategory }: { course: CardCourse; alternatives?: CardCourse[]; rank?: number; reasons?: string[]; cautions?: string[]; matchedFields?: string[]; recommendationCategory?: Recommendation["category"] }) {
+export function CourseCard({ course, alternatives, rank, searchPosition, reasons, cautions, matchedFields, recommendationCategory }: { course: CardCourse; alternatives?: CardCourse[]; rank?: number; searchPosition?: number; reasons?: string[]; cautions?: string[]; matchedFields?: string[]; recommendationCategory?: Recommendation["category"] }) {
   // Context, not props: 25 cards used to mean 25 IndexedDB reads of each store
   // and a three-level `profile` prop drill (plan §6.3-1 and §6.3-2).
   const completed = useLocalRecords<CompletedCourse & { id: string }>("completedCourses");
@@ -79,12 +83,15 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
   // recommendation: the funnel events below then no-op instead of inventing a
   // run to attribute them to.
   const recommendationSurface = useRecommendationSurface();
-  const recordRecommendationClick = useRecommendationClick(course.course_id, rank);
-  const addSource = recommendationSurface ? "recommendation" : "search";
+  const searchSurface = useSearchSurface();
   const variants = [course, ...(alternatives ?? [])].filter((item, index, values) => values.findIndex((candidate) => candidate.course_id === item.course_id) === index);
   const [selectedCourseId, setSelectedCourseId] = useState(course.course_id);
   useEffect(() => setSelectedCourseId(course.course_id), [course.course_id]);
   const selectedCourse = variants.find((item) => item.course_id === selectedCourseId) ?? course;
+  const relation = departmentRelation(selectedCourse, profile);
+  const recordRecommendationClick = useRecommendationClick(selectedCourse.course_id, rank, relation);
+  const recordSearchResultClick = useSearchResultClick(selectedCourse.course_id, searchPosition);
+  const addSource = recommendationSurface ? "recommendation" : searchSurface ? "search" : "manual";
   const [courseDetails, setCourseDetails] = useState<Record<string, Course>>({});
   const [detailLoadingFor, setDetailLoadingFor] = useState<string>();
   const [detailError, setDetailError] = useState("");
@@ -161,17 +168,26 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
     if (!writable) return;
     setPending("schedule");
     try {
-      await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, { courseId: selectedCourse.course_id, locked: false }], updatedAt: new Date().toISOString() });
+      await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, { courseId: selectedCourse.course_id, locked: false, originalSource: addSource, addedAt: new Date().toISOString() }], updatedAt: new Date().toISOString() });
       if (!activePlan) await selectPlan(plan.id);
-      // Carries the recommendation run's id when there is one, which is what
-      // makes 曝光 → 點擊 → 加入 computable. Outside a run it is a bare
-      // course-level add with `source: "search"`.
+      // Carries the result-set/run id when there is one, so impression → click
+      // → add remains computable without turning it into a persistent user id.
       recommendationSurface?.markEngaged();
-      track(
+      const elapsedMs = recommendationSurface?.elapsedSinceReady() ?? searchSurface?.elapsedSinceReady();
+      const position = rank ?? searchPosition;
+      trackWithLegacy(
         "course_added",
-        { course_id: selectedCourse.course_id, source: addSource, ...(rank ? { position: rank } : {}) },
-        { interactionId: recommendationSurface?.interactionId },
+        {
+          course_id: selectedCourse.course_id,
+          source: addSource,
+          ...(position ? { position } : {}),
+          department_relation: relation,
+          ...(elapsedMs === undefined ? {} : { elapsed_ms: elapsedMs, elapsed_origin: recommendationSurface ? "recommendation_result" as const : "search_result" as const }),
+        },
+        { course_id: selectedCourse.course_id, source: addSource, ...(position ? { position } : {}) },
+        { interactionId: recommendationSurface?.interactionId ?? searchSurface?.interactionId },
       );
+      recommendationSurface?.recordAdd();
       notify("已加入「" + plan.name + "」");
     } catch (error) {
       track("error", { component: "schedule", error_code: "SCHEDULE_WRITE_FAILED" });
@@ -192,15 +208,17 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
     }
     const courseConflict = courseConflicts(selectedCourse, scheduledCourses);
     const fixedConflict = meetingsConflict(selectedCourse.meetings, (plan.fixedEntries ?? []).flatMap((entry) => entry.meetings));
+    const courseCounts = courseConflictCounts(selectedCourse, scheduledCourses);
+    const fixedCounts = meetingConflictCounts(selectedCourse.meetings, (plan.fixedEntries ?? []).flatMap((entry) => entry.meetings));
     if (courseConflict.conflict || fixedConflict.conflict) {
       // A count, not the two courses. How often students hit a clash is the
       // product question; *which* two courses clash would be a fragment of
       // their timetable.
-      track("schedule_conflict", { conflict_count: 1, action: "course_added" });
+      trackWithLegacy("schedule_conflict", { actual_conflict_count: courseCounts.actual + fixedCounts.actual, uncertain_conflict_count: courseCounts.uncertain + fixedCounts.uncertain, action: "course_added" }, { conflict_count: 1, action: "course_added" });
       setConflictRequest({ plan, message: "這門課與目前課表衝堂。仍要加入嗎？" }); return;
     }
     if (courseConflict.uncertain || fixedConflict.uncertain) {
-      track("schedule_conflict", { conflict_count: 1, action: "course_added" });
+      trackWithLegacy("schedule_conflict", { actual_conflict_count: courseCounts.actual, uncertain_conflict_count: Math.max(1, courseCounts.uncertain + fixedCounts.uncertain), action: "course_added" }, { conflict_count: 1, action: "course_added" });
       setConflictRequest({ plan, message: "週次資料不完整，可能衝堂。仍要加入嗎？" }); return;
     }
     await commitSchedule(plan);
@@ -307,6 +325,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
             if (!expanded) return;
             track("feature_clicked", { feature: "open_course_detail" });
             recordRecommendationClick();
+            recordSearchResultClick();
             void loadCourseDetail(selectedCourse.course_id);
           }}
         >
@@ -330,7 +349,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
               <ExpandableText value={selectedDetail.sections.objective || "未提供"} />
               {selectedCourse.prerequisite && <><h4>先備知識</h4><ExpandableText value={selectedCourse.prerequisite} /></>}
               {getEligibilityRules(selectedDetail).map((rule, index) => <div className="evidence" key={rule.kind + "-" + index}><strong>{rule.message}</strong><ExpandableText value={rule.evidence} /></div>)}
-              <a className="outline-link button-link" href={selectedCourse.source_url} rel="noreferrer" target="_blank" onClick={() => { track("feature_clicked", { feature: "open_official_syllabus" }); recordRecommendationClick(); }}><span>開啟官方課綱</span><ArrowSquareOut aria-hidden="true" /></a>
+              <a className="outline-link button-link" href={selectedCourse.source_url} rel="noreferrer" target="_blank" onClick={() => { track("feature_clicked", { feature: "open_official_syllabus" }); recordRecommendationClick(); recordSearchResultClick(); }}><span>開啟官方課綱</span><ArrowSquareOut aria-hidden="true" /></a>
             </div>
             : <p role="status">展開後載入課綱詳細資料。</p>
             }
@@ -351,7 +370,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
         <Button className="quiet min-h-11" isDisabled={!writable} isPending={pending === "dismiss"} onPress={() => void dismiss()} variant="ghost">
           {pending === "dismiss" ? "處理中…" : "不感興趣"}
         </Button>
-        <a className="dcard-review-link button-link" href={dcardCourseSearchUrl(selectedCourse.name_zh, selectedCourse.teacher)} rel="noreferrer" target="_blank" onClick={() => { track("feature_clicked", { feature: "open_dcard_reviews" }); recordRecommendationClick(); }}><span>到 Dcard 查詢課程評價</span><ArrowSquareOut aria-hidden="true" /></a>
+        <a className="dcard-review-link button-link" href={dcardCourseSearchUrl(selectedCourse.name_zh, selectedCourse.teacher)} rel="noreferrer" target="_blank" onClick={() => { track("feature_clicked", { feature: "open_dcard_reviews" }); recordRecommendationClick(); recordSearchResultClick(); }}><span>到 Dcard 查詢課程評價</span><ArrowSquareOut aria-hidden="true" /></a>
       </Card.Footer>
       <ConfirmDialog busy={pending === "schedule"} confirmLabel="仍要加入" description={<p>{conflictRequest?.message}</p>} onCancel={cancelConflict} onConfirm={keepConflict} open={Boolean(conflictRequest)} title="確認加入課表" />
     </Card>

@@ -1,6 +1,7 @@
 import type { CourseSummary, Profile } from "./types";
 
 export type DepartmentType = "department" | "program" | "degree_program" | "credit_program" | "micro_program" | "college" | "graduate_institute";
+export type DepartmentRelation = "same_department" | "other_department" | "unknown";
 
 const GRADE_SUFFIX = /[一二三四五六七1-7](?:年級|[甲乙丙丁戊己庚辛壬癸愛智仁勇忠孝信義和平]+)?$/;
 const DEPARTMENT_SUFFIXES = [
@@ -95,4 +96,21 @@ export function sameDepartment(course: CourseSummary, profile?: Profile): boolea
   ];
   const profileLabels = [profile.department, profile.official_department_name_zh];
   return courseLabels.some((courseLabel) => profileLabels.some((profileLabel) => departmentNamesMatch(courseLabel, profileLabel)));
+}
+
+/** Privacy-safe relation category; never returns either department label. */
+export function departmentRelation(course: CourseSummary, profile?: Profile): DepartmentRelation {
+  if (!profile?.department || course.department_match?.status === "ambiguous") return "unknown";
+  const courseHasMetadata = Boolean(
+    course.department_identity
+      || course.department_code
+      || course.division_code
+      || course.official_department_type
+      || course.department
+      || course.audience_department
+      || course.official_department_name_zh
+      || course.raw_department,
+  );
+  if (!courseHasMetadata || !profile.department) return "unknown";
+  return sameDepartment(course, profile) ? "same_department" : "other_department";
 }

@@ -8,6 +8,7 @@ import { AnalyticsRouteTracker } from "@/analytics/RouteTracker";
 import { LoadingSkeleton, StateAlert } from "@/components/ui";
 import { LocalDataProvider, useLocalDataState } from "@/hooks/localData";
 import { SchedulePlanProvider } from "@/hooks/useSchedulePlans";
+import { useFeatures } from "@/data/queries";
 
 /**
  * Provider assembly. Server reads go through TanStack Query; local IndexedDB
@@ -18,6 +19,7 @@ function App() {
   const [queryClient] = useState(createQueryClient);
   return (
     <QueryClientProvider client={queryClient}>
+      <AnalyticsFeatureBootstrap />
       <LocalDataProvider>
         <LocalDataGate>
           <SchedulePlanProvider>
@@ -31,6 +33,12 @@ function App() {
       </LocalDataProvider>
     </QueryClientProvider>
   );
+}
+
+/** Loads the runtime kill switch before any Phase 1-only event is emitted. */
+function AnalyticsFeatureBootstrap() {
+  useFeatures();
+  return null;
 }
 
 function LocalDataGate({ children }: { children: ReactNode }) {

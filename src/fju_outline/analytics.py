@@ -40,9 +40,12 @@ import threading
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Any, Callable, Iterable, Sequence
+from typing import Any, Callable, Iterable, Mapping, Sequence
 
-SCHEMA_VERSION = 3
+# Version 3 already exists in this repository for the semantic-search timing
+# fields.  Phase 1 is therefore the next additive storage migration.
+SCHEMA_VERSION = 4
+EVENT_SCHEMA_VERSIONS: frozenset[int] = frozenset({2, 3})
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +158,12 @@ SEARCH_ASSET_STATES: frozenset[str] = frozenset({"prefetched", "in_flight", "ind
 SEARCH_QUERY_CACHE_STATES: frozenset[str] = frozenset({"hit", "miss", "unknown"})
 RECOMMENDATION_METHODS: frozenset[str] = frozenset({"schedule_slot", "semantic"})
 ADD_SOURCES: frozenset[str] = frozenset({"manual", "recommendation", "schedule_slot", "search"})
+DEPARTMENT_RELATIONS: frozenset[str] = frozenset({"same_department", "other_department", "unknown"})
+AGE_BUCKETS: frozenset[str] = frozenset({"under_10m", "10m_to_1h", "1h_to_24h", "1d_to_7d", "over_7d", "unknown"})
+ELAPSED_ORIGINS: frozenset[str] = frozenset({"recommendation_result", "search_result", "schedule_slot_result"})
+RUN_OUTCOMES: frozenset[str] = frozenset({"results", "zero_result", "error", "abandoned"})
+PROVENANCE_TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")
+ELAPSED_MAX_MS = 7_200_000
 CONFLICT_TRIGGERS: frozenset[str] = frozenset({"course_added"})
 CONFLICT_ACTIONS: frozenset[str] = frozenset({
     "cancel_add",
@@ -225,6 +234,15 @@ SESSION_ID_PATTERN = re.compile(r"^tmp_[a-z0-9]{6,24}$")
 INTERACTION_ID_PATTERN = re.compile(r"^(?:search|rec|flow)_[a-z0-9]{4,24}$")
 EVENT_ID_PATTERN = re.compile(r"^evt_[a-f0-9]{32}$")
 
+PROVENANCE_FIELDS: frozenset[str] = frozenset({
+    "client_build_sha",
+    "client_artifact_version",
+    "client_artifact_bundle_id",
+    "client_model_revision",
+    "client_ranking_version",
+    "client_query_analysis_version",
+})
+
 
 class AnalyticsRejection(ValueError):
     """A payload that violates the contract badly enough to answer 4xx with."""
@@ -291,28 +309,65 @@ EVENT_SCHEMAS: dict[str, dict[str, Field]] = {
     },
     "recommendation_impression": {
         "course_id": Field(column="course_id", kind="course_id"),
-        "position": _int("position", minimum=1, maximum=500),
+        "position": _int("position", minimum=1, maximum=100_000),
         "method": _enum("method", RECOMMENDATION_METHODS),
+        "department_relation": _enum("department_relation", DEPARTMENT_RELATIONS, required=False),
     },
     "recommendation_clicked": {
         "course_id": Field(column="course_id", kind="course_id"),
-        "position": _int("position", minimum=1, maximum=500),
+        "position": _int("position", minimum=1, maximum=100_000),
         "method": _enum("method", RECOMMENDATION_METHODS, required=False),
+        "elapsed_ms": _int("elapsed_ms", minimum=0, maximum=ELAPSED_MAX_MS, required=False),
+        "elapsed_origin": _enum("elapsed_origin", ELAPSED_ORIGINS, required=False),
+        "department_relation": _enum("department_relation", DEPARTMENT_RELATIONS, required=False),
     },
     "recommendation_skipped": {
         "result_count": _int("result_count", minimum=0, maximum=100_000),
         "method": _enum("method", RECOMMENDATION_METHODS, required=False),
     },
+    "recommendation_run_completed": {
+        "method": _enum("method", RECOMMENDATION_METHODS),
+        "result_count": _int("result_count", minimum=0, maximum=100_000),
+        "impression_count": _int("impression_count", minimum=0, maximum=100_000),
+        "click_count": _int("click_count", minimum=0, maximum=100_000),
+        "add_count": _int("add_count", minimum=0, maximum=100_000),
+        "outcome": _enum("outcome", RUN_OUTCOMES),
+    },
+    "search_result_impression": {
+        "course_id": Field(column="course_id", kind="course_id"),
+        "position": _int("position", minimum=1, maximum=100_000),
+        "search_mode": _enum("search_mode", SEARCH_MODES),
+    },
+    "search_result_clicked": {
+        "course_id": Field(column="course_id", kind="course_id"),
+        "position": _int("position", minimum=1, maximum=100_000),
+        "search_mode": _enum("search_mode", SEARCH_MODES),
+        "elapsed_ms": _int("elapsed_ms", minimum=0, maximum=ELAPSED_MAX_MS, required=False),
+        "elapsed_origin": _enum("elapsed_origin", ELAPSED_ORIGINS, required=False),
+    },
     "course_added": {
         "course_id": Field(column="course_id", kind="course_id"),
         "source": _enum("source", ADD_SOURCES),
-        "position": _int("position", minimum=1, maximum=500, required=False),
+        "position": _int("position", minimum=1, maximum=100_000, required=False),
+        "elapsed_ms": _int("elapsed_ms", minimum=0, maximum=ELAPSED_MAX_MS, required=False),
+        "elapsed_origin": _enum("elapsed_origin", ELAPSED_ORIGINS, required=False),
+        "department_relation": _enum("department_relation", DEPARTMENT_RELATIONS, required=False),
     },
     "course_removed": {
         "course_id": Field(column="course_id", kind="course_id"),
+        "original_source": _enum("original_source", ADD_SOURCES, required=False),
+        "age_bucket": _enum("age_bucket", AGE_BUCKETS, required=False),
+    },
+    "course_readded": {
+        "course_id": Field(column="course_id", kind="course_id"),
+        "source": _enum("source", ADD_SOURCES),
     },
     "schedule_conflict": {
-        "conflict_count": _int("conflict_count", minimum=0, maximum=100),
+        # `conflict_count` is the v2 compatibility field. New clients send the
+        # actual/uncertain pair; validation below requires at least one form.
+        "conflict_count": _int("conflict_count", minimum=0, maximum=100, required=False),
+        "actual_conflict_count": _int("actual_conflict_count", minimum=0, maximum=100, required=False),
+        "uncertain_conflict_count": _int("uncertain_conflict_count", minimum=0, maximum=100, required=False),
         "action": _enum("action", CONFLICT_TRIGGERS),
     },
     "schedule_conflict_action": {
@@ -330,6 +385,15 @@ EVENT_SCHEMAS: dict[str, dict[str, Field]] = {
 }
 
 EVENT_NAMES: frozenset[str] = frozenset(EVENT_SCHEMAS)
+
+# These events are the additive Phase 1 contract. The gate in web.py can
+# reject them while leaving the original event stream and schema untouched.
+PHASE_ONE_V3_EVENTS: frozenset[str] = frozenset({
+    "recommendation_run_completed",
+    "search_result_impression",
+    "search_result_clicked",
+    "course_readded",
+})
 
 #: Every column an event may write, in a stable order. The insert statement is
 #: built from this list, so adding a property to `EVENT_SCHEMAS` without adding
@@ -355,7 +419,27 @@ EVENT_COLUMNS: tuple[str, ...] = (
     "query_cache_state",
     "refinement_index",
     "conflict_count",
+    "actual_conflict_count",
+    "uncertain_conflict_count",
     "action",
+    "impression_count",
+    "click_count",
+    "add_count",
+    "outcome",
+    "elapsed_ms",
+    "elapsed_origin",
+    "department_relation",
+    "original_source",
+    "age_bucket",
+    "client_build_sha",
+    "client_artifact_version",
+    "client_artifact_bundle_id",
+    "client_model_revision",
+    "client_ranking_version",
+    "client_query_analysis_version",
+    "server_build_sha",
+    "server_artifact_version",
+    "server_model_revision",
     "endpoint",
     "status",
     "component",
@@ -419,7 +503,7 @@ def validate_event(
     if not isinstance(raw, dict):
         raise AnalyticsRejection("event must be an object")
 
-    known_top_level = {"event", "event_id", "timestamp", "page", "session_id", "interaction_id", "data"}
+    known_top_level = {"event", "event_id", "timestamp", "page", "session_id", "interaction_id", "provenance", "schema_version", "data"}
     unknown = set(map(str, raw)) - known_top_level
     if unknown:
         raise AnalyticsRejection(f"unknown property: {sorted(unknown)[0]}")
@@ -429,6 +513,11 @@ def validate_event(
         raise AnalyticsRejection(f"unknown event: {name!r}")
 
     row: dict[str, Any] = {"event": name}
+    schema_version = raw.get("schema_version", 2)
+    if isinstance(schema_version, bool) or not isinstance(schema_version, int) or schema_version not in EVENT_SCHEMA_VERSIONS:
+        raise AnalyticsRejection("unsupported schema_version")
+    if "schema_version" in raw:
+        row["schema_version"] = schema_version
 
     event_id = raw.get("event_id")
     if event_id is None:
@@ -462,6 +551,18 @@ def validate_event(
         if not isinstance(page, str) or page not in PAGES:
             raise AnalyticsRejection("unknown page")
         row["page"] = page
+
+    provenance = raw.get("provenance")
+    if provenance is not None:
+        if not isinstance(provenance, dict):
+            raise AnalyticsRejection("provenance must be an object")
+        unknown_provenance = set(map(str, provenance)) - PROVENANCE_FIELDS
+        if unknown_provenance:
+            raise AnalyticsRejection(f"unknown provenance property: {sorted(unknown_provenance)[0]}")
+        for key, value in provenance.items():
+            if not isinstance(value, str) or not PROVENANCE_TOKEN_PATTERN.fullmatch(value):
+                raise AnalyticsRejection(f"provenance.{key} must be a bounded token")
+            row[str(key)] = value
 
     # `timestamp` is accepted for payload compatibility and then dropped: the
     # server's receive time is the one that gets stored. A client clock is both
@@ -499,6 +600,13 @@ def validate_event(
             row[field.column] = value
         else:  # pragma: no cover - guarded by the Field constructors above
             raise AnalyticsRejection(f"unsupported field kind: {field.kind}")
+
+    if name == "schedule_conflict" and not any(
+        data.get(key) is not None for key in ("conflict_count", "actual_conflict_count", "uncertain_conflict_count")
+    ):
+        raise AnalyticsRejection("schedule_conflict requires a conflict count")
+    if (data.get("elapsed_ms") is None) != (data.get("elapsed_origin") is None):
+        raise AnalyticsRejection("elapsed_ms and elapsed_origin must be provided together")
 
     # `page` is required context for page_view and already validated above.
     if name == "page_view" and "page" not in row:
@@ -601,12 +709,17 @@ class Retention:
 #: therefore expire on the shorter window.
 DIAGNOSTIC_EVENTS: frozenset[str] = frozenset({"api_performance", "error"})
 
-_INSERT_COLUMNS = ("event_id", "received_at", "day", "event", "session_id", "interaction_id",
+_INSERT_COLUMNS = ("event_id", "received_at", "day", "event", "schema_version", "session_id", "interaction_id",
                    "browser", "browser_major", "os", "device") + EVENT_COLUMNS
 _INSERT_SQL = (
     f"INSERT OR IGNORE INTO analytics_events ({', '.join(_INSERT_COLUMNS)}) "
     f"VALUES ({', '.join('?' * len(_INSERT_COLUMNS))})"
 )
+
+
+def _safe_provenance_token(value: Any) -> str:
+    text = str(value or "unknown")
+    return text if PROVENANCE_TOKEN_PATTERN.fullmatch(text) else "unknown"
 
 
 class AnalyticsStore:
@@ -662,6 +775,7 @@ class AnalyticsStore:
                 received_at TEXT NOT NULL,
                 day TEXT NOT NULL,
                 event TEXT NOT NULL,
+                schema_version INTEGER NOT NULL DEFAULT 2,
                 session_id TEXT,
                 interaction_id TEXT,
                 browser TEXT,
@@ -688,7 +802,27 @@ class AnalyticsStore:
                 query_cache_state TEXT,
                 refinement_index INTEGER,
                 conflict_count INTEGER,
+                actual_conflict_count INTEGER,
+                uncertain_conflict_count INTEGER,
                 action TEXT,
+                impression_count INTEGER,
+                click_count INTEGER,
+                add_count INTEGER,
+                outcome TEXT,
+                elapsed_ms INTEGER,
+                elapsed_origin TEXT,
+                department_relation TEXT,
+                original_source TEXT,
+                age_bucket TEXT,
+                client_build_sha TEXT,
+                client_artifact_version TEXT,
+                client_artifact_bundle_id TEXT,
+                client_model_revision TEXT,
+                client_ranking_version TEXT,
+                client_query_analysis_version TEXT,
+                server_build_sha TEXT,
+                server_artifact_version TEXT,
+                server_model_revision TEXT,
                 endpoint TEXT,
                 status INTEGER,
                 component TEXT,
@@ -701,12 +835,33 @@ class AnalyticsStore:
         }
         migrations = {
             "event_id": "TEXT",
+            "schema_version": "INTEGER NOT NULL DEFAULT 2",
             "asset_wait_ms": "INTEGER",
             "embedding_ms": "INTEGER",
             "ranking_ms": "INTEGER",
             "total_ms": "INTEGER",
             "asset_state": "TEXT",
             "query_cache_state": "TEXT",
+            "actual_conflict_count": "INTEGER",
+            "uncertain_conflict_count": "INTEGER",
+            "impression_count": "INTEGER",
+            "click_count": "INTEGER",
+            "add_count": "INTEGER",
+            "outcome": "TEXT",
+            "elapsed_ms": "INTEGER",
+            "elapsed_origin": "TEXT",
+            "department_relation": "TEXT",
+            "original_source": "TEXT",
+            "age_bucket": "TEXT",
+            "client_build_sha": "TEXT",
+            "client_artifact_version": "TEXT",
+            "client_artifact_bundle_id": "TEXT",
+            "client_model_revision": "TEXT",
+            "client_ranking_version": "TEXT",
+            "client_query_analysis_version": "TEXT",
+            "server_build_sha": "TEXT",
+            "server_artifact_version": "TEXT",
+            "server_model_revision": "TEXT",
         }
         for name, definition in migrations.items():
             if name not in columns:
@@ -747,6 +902,66 @@ class AnalyticsStore:
             """
         )
         connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS analytics_daily_course_surface (
+                day TEXT NOT NULL,
+                course_id TEXT NOT NULL,
+                surface TEXT NOT NULL,
+                impressions INTEGER NOT NULL DEFAULT 0,
+                clicks INTEGER NOT NULL DEFAULT 0,
+                adds INTEGER NOT NULL DEFAULT 0,
+                removes INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (day, course_id, surface)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS analytics_daily_recommendation_runs (
+                day TEXT NOT NULL,
+                method TEXT NOT NULL,
+                run_count INTEGER NOT NULL DEFAULT 0,
+                zero_result_runs INTEGER NOT NULL DEFAULT 0,
+                runs_with_impressions INTEGER NOT NULL DEFAULT 0,
+                runs_with_click INTEGER NOT NULL DEFAULT 0,
+                runs_with_add INTEGER NOT NULL DEFAULT 0,
+                skipped_runs INTEGER NOT NULL DEFAULT 0,
+                total_impressions INTEGER NOT NULL DEFAULT 0,
+                total_clicks INTEGER NOT NULL DEFAULT 0,
+                total_adds INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (day, method)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS analytics_daily_search_funnel (
+                day TEXT NOT NULL,
+                search_mode TEXT NOT NULL,
+                result_sets INTEGER NOT NULL DEFAULT 0,
+                zero_result_sets INTEGER NOT NULL DEFAULT 0,
+                result_impressions INTEGER NOT NULL DEFAULT 0,
+                result_clicks INTEGER NOT NULL DEFAULT 0,
+                result_sets_with_click INTEGER NOT NULL DEFAULT 0,
+                result_sets_with_add INTEGER NOT NULL DEFAULT 0,
+                adds_after_click INTEGER NOT NULL DEFAULT 0,
+                finalized INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (day, search_mode)
+            )
+            """
+        )
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS analytics_daily_decision_time_buckets (
+                day TEXT NOT NULL,
+                origin TEXT NOT NULL,
+                bucket TEXT NOT NULL,
+                value INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (day, origin, bucket)
+            )
+            """
+        )
+        connection.execute(
             "CREATE TABLE IF NOT EXISTS analytics_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
         )
         connection.execute(
@@ -757,7 +972,13 @@ class AnalyticsStore:
 
     # -- ingest ------------------------------------------------------------- #
 
-    def record(self, rows: Sequence[dict[str, Any]], *, user_agent: str | None) -> int:
+    def record(
+        self,
+        rows: Sequence[dict[str, Any]],
+        *,
+        user_agent: str | None,
+        server_provenance: Mapping[str, Any] | None = None,
+    ) -> int:
         """Persist already-validated rows. Returns how many were written."""
         if not rows:
             return 0
@@ -765,19 +986,29 @@ class AnalyticsStore:
         received_at = now.isoformat(timespec="seconds")
         day = now.date().isoformat()
         browser, browser_major, operating_system, device = reduce_user_agent(user_agent)
+        provenance = server_provenance or {}
         payload = [
             (
                 row.get("event_id"),
                 received_at,
                 day,
                 row["event"],
+                row.get("schema_version", 2),
                 row.get("session_id"),
                 row.get("interaction_id"),
                 browser,
                 browser_major,
                 operating_system,
                 device,
-                *(row.get(column) for column in EVENT_COLUMNS),
+                *(
+                    {
+                        **row,
+                        "server_build_sha": _safe_provenance_token(provenance.get("server_build_sha")),
+                        "server_artifact_version": _safe_provenance_token(provenance.get("server_artifact_version")),
+                        "server_model_revision": _safe_provenance_token(provenance.get("server_model_revision")),
+                    }.get(column)
+                    for column in EVENT_COLUMNS
+                ),
             )
             for row in rows
         ]
@@ -919,6 +1150,234 @@ class AnalyticsStore:
         index = min(len(ordered) - 1, max(0, round(fraction * (len(ordered) - 1))))
         return float(ordered[index])
 
+    def _aggregate_phase_one_tables(self, connection: sqlite3.Connection, day: str) -> None:
+        """Build Phase 1 durable aggregates without changing the legacy report.
+
+        The normalized tables are deliberately separate from
+        ``analytics_daily_courses``: the latter is a legacy mixed-source view
+        that Phase 2 will stop using. Search linkage is finalized once the
+        identifier retention window passes so a later maintenance sweep cannot
+        erase the only permanent copy of the result-set funnel.
+        """
+        connection.execute("DELETE FROM analytics_daily_course_surface WHERE day = ?", (day,))
+        connection.execute(
+            """
+            INSERT INTO analytics_daily_course_surface(
+                day, course_id, surface, impressions, clicks, adds, removes
+            )
+            SELECT day, course_id, surface,
+                   SUM(impressions), SUM(clicks), SUM(adds), SUM(removes)
+            FROM (
+                SELECT day, course_id,
+                       CASE method
+                         WHEN 'semantic' THEN 'semantic_recommendation'
+                         WHEN 'schedule_slot' THEN 'schedule_slot'
+                         ELSE 'unknown'
+                       END AS surface,
+                       1 AS impressions, 0 AS clicks, 0 AS adds, 0 AS removes
+                FROM analytics_events
+                WHERE day = ? AND event = 'recommendation_impression' AND course_id IS NOT NULL
+                UNION ALL
+                SELECT day, course_id,
+                       CASE method
+                         WHEN 'semantic' THEN 'semantic_recommendation'
+                         WHEN 'schedule_slot' THEN 'schedule_slot'
+                         ELSE 'unknown'
+                       END AS surface,
+                       0, 1, 0, 0
+                FROM analytics_events
+                WHERE day = ? AND event = 'recommendation_clicked' AND course_id IS NOT NULL
+                UNION ALL
+                SELECT day, course_id, 'search', 1, 0, 0, 0
+                FROM analytics_events
+                WHERE day = ? AND event = 'search_result_impression' AND course_id IS NOT NULL
+                UNION ALL
+                SELECT day, course_id, 'search', 0, 1, 0, 0
+                FROM analytics_events
+                WHERE day = ? AND event = 'search_result_clicked' AND course_id IS NOT NULL
+                UNION ALL
+                SELECT day, course_id,
+                       CASE source
+                         WHEN 'recommendation' THEN 'semantic_recommendation'
+                         WHEN 'schedule_slot' THEN 'schedule_slot'
+                         WHEN 'search' THEN 'search'
+                         WHEN 'manual' THEN 'manual'
+                         ELSE 'unknown'
+                       END AS surface,
+                       0, 0, 1, 0
+                FROM analytics_events
+                WHERE day = ? AND event = 'course_added' AND course_id IS NOT NULL
+                UNION ALL
+                SELECT day, course_id,
+                       CASE original_source
+                         WHEN 'recommendation' THEN 'semantic_recommendation'
+                         WHEN 'schedule_slot' THEN 'schedule_slot'
+                         WHEN 'search' THEN 'search'
+                         WHEN 'manual' THEN 'manual'
+                         ELSE 'unknown'
+                       END AS surface,
+                       0, 0, 0, 1
+                FROM analytics_events
+                WHERE day = ? AND event = 'course_removed' AND course_id IS NOT NULL
+            )
+            GROUP BY day, course_id, surface
+            """,
+            (day, day, day, day, day, day),
+        )
+
+        connection.execute("DELETE FROM analytics_daily_recommendation_runs WHERE day = ?", (day,))
+        connection.execute(
+            """
+            INSERT INTO analytics_daily_recommendation_runs(
+                day, method, run_count, zero_result_runs, runs_with_impressions,
+                runs_with_click, runs_with_add, skipped_runs,
+                total_impressions, total_clicks, total_adds
+            )
+            SELECT day, method,
+                   COUNT(*),
+                   SUM(outcome = 'zero_result'),
+                   SUM(impression_count > 0),
+                   SUM(click_count > 0),
+                   SUM(add_count > 0),
+                   SUM(outcome = 'results' AND result_count > 0 AND click_count = 0 AND add_count = 0),
+                   SUM(impression_count), SUM(click_count), SUM(add_count)
+            FROM analytics_events
+            WHERE day = ? AND event = 'recommendation_run_completed'
+            GROUP BY day, method
+            """,
+            (day,),
+        )
+
+        cutoff = (_utc_now() - timedelta(days=self.retention.identifier_days)).date().isoformat()
+        funnel_exists = connection.execute(
+            "SELECT 1 FROM analytics_daily_search_funnel WHERE day = ? LIMIT 1", (day,)
+        ).fetchone()
+        # Once interaction IDs are scrubbed, exact joins cannot be rebuilt from
+        # raw rows. Keep the first finalized result-set aggregate intact.
+        if not (day < cutoff and funnel_exists):
+            connection.execute("DELETE FROM analytics_daily_search_funnel WHERE day = ?", (day,))
+            for search_mode in sorted(SEARCH_MODES):
+                result_sets = connection.execute(
+                    """
+                    SELECT COUNT(DISTINCT interaction_id) FROM analytics_events
+                    WHERE day = ? AND event = 'search' AND search_mode = ?
+                      AND interaction_id IS NOT NULL
+                    """,
+                    (day, search_mode),
+                ).fetchone()[0]
+                zero_result_sets = connection.execute(
+                    """
+                    SELECT COUNT(DISTINCT interaction_id) FROM analytics_events
+                    WHERE day = ? AND event = 'zero_result' AND search_mode = ?
+                      AND interaction_id IS NOT NULL
+                    """,
+                    (day, search_mode),
+                ).fetchone()[0]
+                result_impressions = connection.execute(
+                    """
+                    SELECT COUNT(*) FROM analytics_events
+                    WHERE day = ? AND event = 'search_result_impression' AND search_mode = ?
+                    """,
+                    (day, search_mode),
+                ).fetchone()[0]
+                result_clicks = connection.execute(
+                    """
+                    SELECT COUNT(*) FROM analytics_events
+                    WHERE day = ? AND event = 'search_result_clicked' AND search_mode = ?
+                    """,
+                    (day, search_mode),
+                ).fetchone()[0]
+                result_sets_with_click = connection.execute(
+                    """
+                    SELECT COUNT(DISTINCT interaction_id) FROM analytics_events
+                    WHERE day = ? AND event = 'search_result_clicked' AND search_mode = ?
+                      AND interaction_id IS NOT NULL
+                    """,
+                    (day, search_mode),
+                ).fetchone()[0]
+                result_sets_with_add = connection.execute(
+                    """
+                    SELECT COUNT(DISTINCT added.interaction_id)
+                    FROM analytics_events AS added
+                    WHERE added.day = ? AND added.event = 'course_added'
+                      AND added.source = 'search' AND added.interaction_id IS NOT NULL
+                      AND EXISTS (
+                        SELECT 1 FROM analytics_events AS searched
+                        WHERE searched.day = added.day
+                          AND searched.event = 'search'
+                          AND searched.search_mode = ?
+                          AND searched.interaction_id = added.interaction_id
+                      )
+                    """,
+                    (day, search_mode),
+                ).fetchone()[0]
+                adds_after_click = connection.execute(
+                    """
+                    SELECT COUNT(*)
+                    FROM analytics_events AS added
+                    WHERE added.day = ? AND added.event = 'course_added'
+                      AND added.source = 'search' AND added.interaction_id IS NOT NULL
+                      AND EXISTS (
+                        SELECT 1 FROM analytics_events AS clicked
+                        WHERE clicked.day = added.day
+                          AND clicked.event = 'search_result_clicked'
+                          AND clicked.search_mode = ?
+                          AND clicked.interaction_id = added.interaction_id
+                          AND clicked.course_id = added.course_id
+                      )
+                    """,
+                    (day, search_mode),
+                ).fetchone()[0]
+                if any((result_sets, zero_result_sets, result_impressions, result_clicks, result_sets_with_click, result_sets_with_add, adds_after_click)):
+                    connection.execute(
+                        """
+                        INSERT INTO analytics_daily_search_funnel(
+                            day, search_mode, result_sets, zero_result_sets,
+                            result_impressions, result_clicks, result_sets_with_click,
+                            result_sets_with_add, adds_after_click, finalized
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                        (
+                            day,
+                            search_mode,
+                            int(result_sets),
+                            int(zero_result_sets),
+                            int(result_impressions),
+                            int(result_clicks),
+                            int(result_sets_with_click),
+                            int(result_sets_with_add),
+                            int(adds_after_click),
+                            int(day < cutoff),
+                        ),
+                    )
+
+        connection.execute("DELETE FROM analytics_daily_decision_time_buckets WHERE day = ?", (day,))
+        connection.execute(
+            """
+            INSERT INTO analytics_daily_decision_time_buckets(day, origin, bucket, value)
+            SELECT day, elapsed_origin, bucket, COUNT(*)
+            FROM (
+                SELECT day, elapsed_origin,
+                       CASE
+                         WHEN elapsed_ms < 1_000 THEN 'under_1s'
+                         WHEN elapsed_ms < 5_000 THEN '1s_to_5s'
+                         WHEN elapsed_ms < 10_000 THEN '5s_to_10s'
+                         WHEN elapsed_ms < 30_000 THEN '10s_to_30s'
+                         WHEN elapsed_ms < 60_000 THEN '30s_to_60s'
+                         WHEN elapsed_ms < 300_000 THEN '1m_to_5m'
+                         WHEN elapsed_ms < 900_000 THEN '5m_to_15m'
+                         WHEN elapsed_ms < 1_800_000 THEN '15m_to_30m'
+                         WHEN elapsed_ms < 3_600_000 THEN '30m_to_60m'
+                         ELSE '60m_to_120m'
+                       END AS bucket
+                FROM analytics_events
+                WHERE day = ? AND elapsed_ms IS NOT NULL AND elapsed_origin IS NOT NULL
+            )
+            GROUP BY day, elapsed_origin, bucket
+            """,
+            (day,),
+        )
+
     def _aggregate_day(self, connection: sqlite3.Connection, day: str) -> None:
         """Recompute one day's aggregates from raw. Idempotent by construction.
 
@@ -926,6 +1385,7 @@ class AnalyticsStore:
         time from whatever raw is still present — hence a full REPLACE of the
         day rather than an increment.
         """
+        self._aggregate_phase_one_tables(connection, day)
         metrics: dict[tuple[str, str], float] = {}
 
         def put(metric: str, dimension: str, value: float) -> None:

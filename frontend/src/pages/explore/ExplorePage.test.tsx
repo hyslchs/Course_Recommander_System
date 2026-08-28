@@ -401,7 +401,10 @@ describe("ExplorePage — the table's 操作 column", () => {
     // the same `putRecord("schedulePlans", …)` shape the card writes.
     await waitFor(() => expect(dbMocks.putRecord).toHaveBeenCalledWith(
       "schedulePlans",
-      expect.objectContaining({ entries: [{ courseId: "CS101", locked: false }], name: "我的課表" }),
+      expect.objectContaining({
+        entries: [expect.objectContaining({ courseId: "CS101", locked: false, originalSource: "search", addedAt: expect.any(String) })],
+        name: "我的課表",
+      }),
     ));
   });
 

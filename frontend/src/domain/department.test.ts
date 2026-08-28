@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { departmentNamesMatch, normalizeDepartmentLabel, sameDepartment } from "./department";
+import { departmentNamesMatch, departmentRelation, normalizeDepartmentLabel, sameDepartment } from "./department";
 import type { Course, Profile } from "./types";
 
 const profile = { department: "圖資", department_code: null } as Profile;
@@ -14,6 +14,13 @@ describe("official department identity", () => {
   it("recognizes a local abbreviation as the official department name", () => {
     expect(departmentNamesMatch("圖資", "圖書資訊學系")).toBe(true);
     expect(sameDepartment(course, profile)).toBe(true);
+    expect(departmentRelation(course, profile)).toBe("same_department");
+  });
+
+  it("returns bounded relation categories without exposing department labels", () => {
+    expect(departmentRelation({ ...course, department: "資訊工程學系", raw_department: "" } as Course, profile)).toBe("other_department");
+    expect(departmentRelation({ ...course, department: "", raw_department: "" } as Course, profile)).toBe("unknown");
+    expect(departmentRelation(course, undefined)).toBe("unknown");
   });
 
   it("does not merge unrelated department names", () => {

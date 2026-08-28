@@ -12,9 +12,10 @@
  * - **Nothing free-text.** No `innerText`, no query string, no URL, no error
  *   message, no course name. `feature`/`filter`/`component` are identifiers
  *   written in this file, not labels read off the DOM.
- * - **Nothing about the student.** Department, grade, minor, double major,
- *   completed courses and the timetable stay in IndexedDB. There is no field
- *   here that could carry them, deliberately.
+ * - **Nothing about the student.** Department relation, grade, minor, double
+ *   major, completed courses and the timetable stay local. Only the bounded
+ *   relation category may cross this boundary; department labels and IDs do
+ *   not.
  */
 
 export const ANALYTICS_ENDPOINT = "/api/v1/analytics/events";
@@ -77,6 +78,10 @@ export type RecommendationAssetState = "prefetched" | "in_flight" | "indexed_db"
 export type QueryCacheState = "hit" | "miss" | "unknown";
 export type RecommendationMethod = "schedule_slot" | "semantic";
 export type CourseAddSource = "manual" | "recommendation" | "schedule_slot" | "search";
+export type DepartmentRelation = "same_department" | "other_department" | "unknown";
+export type AgeBucket = "under_10m" | "10m_to_1h" | "1h_to_24h" | "1d_to_7d" | "over_7d" | "unknown";
+export type ElapsedOrigin = "recommendation_result" | "search_result" | "schedule_slot_result";
+export type RecommendationRunOutcome = "results" | "zero_result" | "error" | "abandoned";
 export type ConflictAction =
   | "cancel_add"
   | "disable_conflict_filter"
@@ -167,12 +172,53 @@ export type AnalyticsEventMap = {
   };
   zero_result: { search_mode: SearchMode };
   search_refined: { refinement_index: number };
-  recommendation_impression: { course_id: string; position: number; method: RecommendationMethod };
-  recommendation_clicked: { course_id: string; position: number; method?: RecommendationMethod };
+  recommendation_impression: {
+    course_id: string;
+    position: number;
+    method: RecommendationMethod;
+    department_relation?: DepartmentRelation;
+  };
+  recommendation_clicked: {
+    course_id: string;
+    position: number;
+    method?: RecommendationMethod;
+    elapsed_ms?: number;
+    elapsed_origin?: ElapsedOrigin;
+    department_relation?: DepartmentRelation;
+  };
   recommendation_skipped: { result_count: number; method?: RecommendationMethod };
-  course_added: { course_id: string; source: CourseAddSource; position?: number };
-  course_removed: { course_id: string };
-  schedule_conflict: { conflict_count: number; action: "course_added" };
+  recommendation_run_completed: {
+    method: RecommendationMethod;
+    result_count: number;
+    impression_count: number;
+    click_count: number;
+    add_count: number;
+    outcome: RecommendationRunOutcome;
+  };
+  search_result_impression: { course_id: string; position: number; search_mode: SearchMode };
+  search_result_clicked: {
+    course_id: string;
+    position: number;
+    search_mode: SearchMode;
+    elapsed_ms?: number;
+    elapsed_origin?: ElapsedOrigin;
+  };
+  course_added: {
+    course_id: string;
+    source: CourseAddSource;
+    position?: number;
+    elapsed_ms?: number;
+    elapsed_origin?: ElapsedOrigin;
+    department_relation?: DepartmentRelation;
+  };
+  course_removed: { course_id: string; original_source?: CourseAddSource; age_bucket?: AgeBucket };
+  course_readded: { course_id: string; source: CourseAddSource };
+  schedule_conflict: {
+    conflict_count?: number;
+    actual_conflict_count?: number;
+    uncertain_conflict_count?: number;
+    action: "course_added";
+  };
   schedule_conflict_action: { action: ConflictAction };
   api_performance: { endpoint: ApiEndpointName; latency_ms: number; status: number };
   error: { component: ErrorComponent; error_code: ErrorCode };
@@ -182,11 +228,23 @@ export type AnalyticsEventName = keyof AnalyticsEventMap;
 
 export interface AnalyticsEnvelope<K extends AnalyticsEventName = AnalyticsEventName> {
   event: K;
+  /** Omitted by legacy mode so an old backend still accepts the envelope. */
+  schema_version?: 2 | 3;
   timestamp: string;
   page?: AnalyticsPage;
   session_id?: string;
   interaction_id?: string;
+  provenance?: AnalyticsProvenance;
   data: AnalyticsEventMap[K];
+}
+
+export interface AnalyticsProvenance {
+  client_build_sha?: string;
+  client_artifact_version?: string;
+  client_artifact_bundle_id?: string;
+  client_model_revision?: string;
+  client_ranking_version?: string;
+  client_query_analysis_version?: string;
 }
 
 /** Optional per-call context. Neither id is ever persisted across a browser session. */

@@ -1,16 +1,18 @@
 ﻿import { useEffect, useState } from "react";
 import { useCourses } from "@/data/queries";
 import { putRecord } from "@/data/db";
-import { track } from "@/analytics/client";
-import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
+import { track, trackWithLegacy } from "@/analytics/client";
+import { courseConflictCounts, courseConflicts, meetingConflictCounts, meetingsConflict } from "@/domain/eligibility";
+import { departmentRelation } from "@/domain/department";
 import { formatMeetings, parseManualSections, weekdayLabels } from "@/domain/schedule";
 import { coursesInPlan } from "@/domain/scheduleUtils";
-import { useLocalDataState } from "@/hooks/localData";
+import { useLocalDataState, useProfile } from "@/hooks/localData";
 import { ConfirmDialog, useFeedback } from "@/components/ui";
 import type { Course, ScheduleEntry, SchedulePlan } from "@/domain/types";
 
 export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: SchedulePlan }) {
   const { writable } = useLocalDataState();
+  const profile = useProfile();
   const [query, setQuery] = useState("");
   const [selectedCourseId, setSelectedCourseId] = useState("");
   const [useCustomTime, setUseCustomTime] = useState(false);
@@ -44,8 +46,9 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
     if (!writable) return;
     setAdding(true);
     try {
-      await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, entry], updatedAt: new Date().toISOString() });
-      track("course_added", { course_id: entry.courseId, source: "manual" });
+      await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, { ...entry, originalSource: "manual", addedAt: entry.addedAt ?? new Date().toISOString() }], updatedAt: new Date().toISOString() });
+      const addedCourse = catalog.find((course) => course.course_id === entry.courseId);
+      trackWithLegacy("course_added", { course_id: entry.courseId, source: "manual", department_relation: addedCourse ? departmentRelation(addedCourse, profile) : "unknown" }, { course_id: entry.courseId, source: "manual" });
       setSelectedCourseId("");
       setQuery("");
       setUseCustomTime(false);
@@ -73,9 +76,11 @@ export function ManualCoursePanel({ catalog, plan }: { catalog: Course[]; plan: 
     const scheduledCourse = { ...selectedCourse, meetings };
     const courseConflict = courseConflicts(scheduledCourse, coursesInPlan(catalog, plan));
     const fixedConflict = meetingsConflict(meetings, (plan.fixedEntries ?? []).flatMap((item) => item.meetings));
+    const courseCounts = courseConflictCounts(scheduledCourse, coursesInPlan(catalog, plan));
+    const fixedCounts = meetingConflictCounts(meetings, (plan.fixedEntries ?? []).flatMap((item) => item.meetings));
     if (courseConflict.conflict || fixedConflict.conflict || courseConflict.uncertain || fixedConflict.uncertain) {
       const reason = courseConflict.conflict || fixedConflict.conflict ? "這門課與目前課表或固定時段衝堂。" : "這門課的週次資料不完整，可能與目前課表衝堂。";
-      track("schedule_conflict", { conflict_count: 1, action: "course_added" });
+      trackWithLegacy("schedule_conflict", { actual_conflict_count: courseCounts.actual + fixedCounts.actual, uncertain_conflict_count: courseCounts.uncertain + fixedCounts.uncertain, action: "course_added" }, { conflict_count: 1, action: "course_added" });
       setPendingConflict({ entry, courseName: selectedCourse.name_zh, reason });
       return;
     }

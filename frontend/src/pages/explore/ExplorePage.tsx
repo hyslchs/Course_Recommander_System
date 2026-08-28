@@ -16,6 +16,7 @@ import {
 import { FunnelSimple } from "@phosphor-icons/react";
 import { useCatalog, useCourses, useCoursesByIds, useFacets } from "@/data/queries";
 import { newInteractionId, track } from "@/analytics/client";
+import { SearchSurface, useSearchResultImpression, useStableSearchSurface } from "@/analytics/search";
 import { nextSearchStep, type SearchFlowState } from "@/analytics/searchFlow";
 import { getHighCreditOptions } from "@/domain/creditFilter";
 import { courseConflicts, evaluateEligibility, meetingsConflict } from "@/domain/eligibility";
@@ -151,6 +152,11 @@ function matchesExploreFilters(
   if (filters.courseTagFilters.length > 0 && !(course.course_tags ?? []).some((tag) => filters.courseTagFilters.includes(tag.code))) return false;
   if (filters.categoryFilters.length > 0 && !filters.categoryFilters.includes(classifyRecommendationCategory(course, profile))) return false;
   return true;
+}
+
+function ExploreResultCard({ course, position }: { course: Course; position: number }) {
+  const impressionRef = useSearchResultImpression(course.course_id, position);
+  return <div ref={impressionRef}><CourseCard course={course} searchPosition={position} /></div>;
 }
 
 export function ExplorePage() {
@@ -317,6 +323,17 @@ export function ExplorePage() {
     ? Math.max(1, Math.ceil(filteredCatalog.length / PAGE_SIZE))
     : serverTotalPages;
   const error = coursesQuery.error ? (coursesQuery.error as Error).message : "";
+  const resultSetKey = useMemo(
+    () => JSON.stringify({ query: debouncedQuery, department, weekday, page, filters }),
+    [debouncedQuery, department, filters, page, weekday],
+  );
+  const resultSetKeyRef = useRef("");
+  const resultSetStartedAt = useRef(performance.now());
+  useEffect(() => {
+    if (resultSetKeyRef.current !== resultSetKey) resultSetStartedAt.current = performance.now();
+  }, [resultSetKey]);
+  const [resultSet, setResultSet] = useState<{ interactionId: string; readyAt: number }>();
+  const searchSurface = useStableSearchSurface(resultSet?.interactionId, "keyword", resultSet?.readyAt);
 
   /**
    * Computed once for the whole page instead of once per `CourseCard`, because
@@ -361,29 +378,32 @@ export function ExplorePage() {
 
   const { data: coursesData, error: coursesError, isFetching, isPending } = coursesQuery;
   useEffect(() => {
-    const pending = pendingSearch.current;
-    if (!pending || isFetching || isPending) return;
-    if (coursesError) {
-      pendingSearch.current = undefined;
-      track("error", { component: "course_search", error_code: "COURSE_QUERY_FAILED" });
+    if (coursesError || fullFilterError) {
+      if (pendingSearch.current) {
+        pendingSearch.current = undefined;
+        track("error", { component: "course_search", error_code: "COURSE_QUERY_FAILED" });
+      }
       return;
     }
-    if (!coursesData) return;
+    const ready = filterCount > 0
+      ? !fullFilterLoading && !fullFilterError
+      : Boolean(coursesData) && !isFetching && !isPending;
+    if (!ready || resultSetKeyRef.current === resultSetKey) return;
+    resultSetKeyRef.current = resultSetKey;
+    const pending = pendingSearch.current;
     pendingSearch.current = undefined;
-    const resultCount = coursesData.total;
+    const interactionId = pending?.interactionId ?? newInteractionId("search");
+    const resultCount = total;
     track("search", {
       search_mode: "keyword",
-      query_length: pending.queryLength,
+      query_length: pending?.queryLength ?? debouncedQuery.trim().length,
       result_count: resultCount,
-      latency_ms: Math.round(performance.now() - pending.startedAt),
-    }, { interactionId: pending.interactionId });
-    if (resultCount === 0) {
-      track("zero_result", { search_mode: "keyword" }, { interactionId: pending.interactionId });
-    }
-    if (pending.flow.refinementIndex > 0) {
-      track("search_refined", { refinement_index: pending.flow.refinementIndex }, { interactionId: pending.flow.flowId });
-    }
-  }, [coursesData, coursesError, isFetching, isPending]);
+      latency_ms: Math.max(0, Math.round(performance.now() - (pending?.startedAt ?? resultSetStartedAt.current))),
+    }, { interactionId });
+    if (resultCount === 0) track("zero_result", { search_mode: "keyword" }, { interactionId });
+    if (pending?.flow.refinementIndex && pending.flow.refinementIndex > 0) track("search_refined", { refinement_index: pending.flow.refinementIndex }, { interactionId: pending.flow.flowId });
+    setResultSet({ interactionId, readyAt: performance.now() });
+  }, [coursesData, coursesError, filterCount, fullFilterError, fullFilterLoading, isFetching, isPending, resultSetKey, total]);
 
   const selectPage = (value: number) => setPage(Math.min(Math.max(1, value), totalPages));
   const fullFilterLabel = filterCount
@@ -650,8 +670,8 @@ export function ExplorePage() {
         >
           {coursesQuery.isFetching && <div className="updating-indicator" role="status">正在更新結果…</div>}
           {isDesktop
-            ? <CourseTable onSortChange={setSortDescriptor} rows={rows} sortDescriptor={sortDescriptor} />
-            : <div className="course-grid">{courses.map((item) => <CourseCard key={item.course_id} course={item} />)}</div>}
+            ? <SearchSurface value={searchSurface}><CourseTable onSortChange={setSortDescriptor} positionOffset={(page - 1) * PAGE_SIZE} rows={rows} sortDescriptor={sortDescriptor} /></SearchSurface>
+            : <SearchSurface value={searchSurface}><div className="course-grid">{courses.map((item, index) => <ExploreResultCard course={item} key={item.course_id} position={(page - 1) * PAGE_SIZE + index + 1} />)}</div></SearchSurface>}
         </div>
       )}
 

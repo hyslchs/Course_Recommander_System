@@ -9,8 +9,11 @@ import {
   flushAnalytics,
   isAnalyticsEnabled,
   newInteractionId,
+  setAnalyticsInstrumentationV3,
   setAnalyticsOptOut,
+  setAnalyticsProvenance,
   track,
+  trackV3,
 } from "./client";
 import { pageForPath } from "./events";
 import { nextSearchStep } from "./searchFlow";
@@ -160,6 +163,24 @@ describe("analytics client", () => {
     const [clicked, viewed] = lastRequestBody(fetchMock).events as Record<string, unknown>[];
     expect(clicked.interaction_id).toBe(interactionId);
     expect(viewed).not.toHaveProperty("interaction_id");
+  });
+
+  it("keeps Phase 1 events disabled until the backend gate and attaches bounded provenance", () => {
+    trackV3("search_result_impression", { course_id: "D1", position: 1, search_mode: "keyword" });
+    expect(__queuedEventsForTests()).toHaveLength(0);
+
+    setAnalyticsProvenance({ client_build_sha: "frontend-test", client_artifact_version: "artifact-1" });
+    setAnalyticsInstrumentationV3(true);
+    trackV3("search_result_impression", { course_id: "D1", position: 1, search_mode: "keyword" }, { interactionId: "search_abc123" });
+    vi.advanceTimersByTime(FLUSH_DELAY_MS);
+    const [event] = lastRequestBody(fetchMock).events as Record<string, unknown>[];
+    expect(event).toMatchObject({
+      event: "search_result_impression",
+      schema_version: 3,
+      interaction_id: "search_abc123",
+      provenance: { client_build_sha: "frontend-test", client_artifact_version: "artifact-1" },
+    });
+    expect(event).not.toHaveProperty("data.query");
   });
 
   it("puts nothing in the payload beyond the declared envelope", () => {

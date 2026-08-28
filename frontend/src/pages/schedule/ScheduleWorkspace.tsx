@@ -3,9 +3,10 @@ import { Sparkle, Warning, X } from "@phosphor-icons/react";
 import { Button, Tabs, ToggleButton, ToggleButtonGroup, Toolbar } from "@heroui/react";
 import { getCatalog, getEmbeddingBundle } from "@/data/api";
 import { deleteRecord, getAllRecords, putRecord } from "@/data/db";
-import { track } from "@/analytics/client";
+import { track, trackWithLegacy, trackV3 } from "@/analytics/client";
 import { RecommendationSurface, useRecommendationRun } from "@/analytics/recommendation";
 import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
+import { departmentRelation } from "@/domain/department";
 import {
   buildScheduleBlocks,
   EXTENDED_SCHEDULE_SECTIONS,
@@ -27,6 +28,7 @@ import { useLocalDataState, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { ConfirmDialog, Modal, StateAlert, useFeedback } from "@/components/ui";
 import type { CompletedCourse, Course, FixedScheduleEntry, RecommendationCategory, ScheduleEntry, SchedulePlan } from "@/domain/types";
+import type { AgeBucket } from "@/analytics/events";
 import { ClassBlock } from "./ClassBlock";
 import { CourseDetails } from "./CourseDetails";
 import { ManualCoursePanel } from "./ManualCoursePanel";
@@ -37,6 +39,17 @@ import {
   type SelectedScheduleSlot,
   type SlotRecommendationContextValue,
 } from "./SlotRecommendationContext";
+
+function scheduleAgeBucket(addedAt?: string): AgeBucket {
+  if (!addedAt) return "unknown";
+  const ageMs = Date.now() - Date.parse(addedAt);
+  if (!Number.isFinite(ageMs) || ageMs < 0) return "unknown";
+  if (ageMs < 10 * 60 * 1000) return "under_10m";
+  if (ageMs < 60 * 60 * 1000) return "10m_to_1h";
+  if (ageMs < 24 * 60 * 60 * 1000) return "1h_to_24h";
+  if (ageMs < 7 * 24 * 60 * 60 * 1000) return "1d_to_7d";
+  return "over_7d";
+}
 
 interface LoadedSlotRecommendationData {
   catalog: Course[];
@@ -197,6 +210,7 @@ export function ScheduleWorkspace({ catalog, loadWarning }: { catalog: Course[];
     } catch (error) {
       if (requestId === slotRequestRef.current) {
         setSlotRecommendationError((error as Error).message || "無法讀取課程資料");
+        slotRun.complete("error");
         track("error", { component: "schedule", error_code: "CATALOG_LOAD_FAILED" });
       }
     } finally {
@@ -204,6 +218,7 @@ export function ScheduleWorkspace({ catalog, loadWarning }: { catalog: Course[];
     }
   };
   const closeSlotRecommendations = () => {
+    slotRun.complete(slotRecommendationLoading ? "abandoned" : undefined);
     slotRequestRef.current += 1;
     setSelectedSlot(undefined);
     setSlotRecommendation(undefined);
@@ -246,14 +261,17 @@ export function ScheduleWorkspace({ catalog, loadWarning }: { catalog: Course[];
     }
     setAddingRecommendedCourseId(courseId);
     try {
-      await putRecord("schedulePlans", { ...active, entries: [...active.entries, { courseId, locked: false }], updatedAt: new Date().toISOString() });
+      await putRecord("schedulePlans", { ...active, entries: [...active.entries, { courseId, locked: false, originalSource: "schedule_slot", addedAt: new Date().toISOString() }], updatedAt: new Date().toISOString() });
       const position = (slotRecommendation?.recommendations.findIndex((item) => item.course.course_id === courseId) ?? -1) + 1;
       slotRun.surface?.markEngaged();
-      track(
+      const elapsedMs = slotRun.surface?.elapsedSinceReady();
+      trackWithLegacy(
         "course_added",
+        { course_id: courseId, source: "schedule_slot", ...(position > 0 ? { position } : {}), department_relation: departmentRelation(course, profile), ...(elapsedMs === undefined ? {} : { elapsed_ms: elapsedMs, elapsed_origin: "schedule_slot_result" as const }) },
         { course_id: courseId, source: "schedule_slot", ...(position > 0 ? { position } : {}) },
         { interactionId: slotRun.surface?.interactionId },
       );
+      slotRun.surface?.recordAdd();
       notify(`已將「${course.name_zh}」加入「${active.name}」`);
       closeSlotRecommendations();
     } catch (error) {
@@ -376,7 +394,11 @@ export function ScheduleWorkspace({ catalog, loadWarning }: { catalog: Course[];
     // Course-level only, and deliberately *not* linked to whichever add it
     // undoes: there is no identifier that would survive long enough to do that,
     // which is the point. The dashboard labels it aggregate behaviour.
-    track("course_removed", { course_id: courseId });
+    trackWithLegacy(
+      "course_removed",
+      { course_id: courseId, ...(entry.originalSource ? { original_source: entry.originalSource } : {}), age_bucket: scheduleAgeBucket(entry.addedAt) },
+      { course_id: courseId },
+    );
     // Only when the block being removed was actually drawn as a clash — every
     // other removal is ordinary schedule editing, not conflict resolution.
     if (resolvingConflict) track("schedule_conflict_action", { action: "remove_course" });
@@ -397,7 +419,10 @@ export function ScheduleWorkspace({ catalog, loadWarning }: { catalog: Course[];
     if (!writable) return;
     const plan = plansRef.current.find((item) => item.id === removed.planId);
     if (plan && !plan.entries.some((item) => item.courseId === removed.entry.courseId)) {
-      try { await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, removed.entry], updatedAt: new Date().toISOString() }); }
+      try {
+        await putRecord("schedulePlans", { ...plan, entries: [...plan.entries, removed.entry], updatedAt: new Date().toISOString() });
+        if (removed.entry.originalSource) trackV3("course_readded", { course_id: removed.entry.courseId, source: removed.entry.originalSource });
+      }
       catch (error) { notify("復原課程失敗：" + (error as Error).message, "error"); }
     }
   };

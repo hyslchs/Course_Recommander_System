@@ -117,6 +117,113 @@ def test_search_timing_fields_are_validated_without_accepting_query_text():
         })
 
 
+def test_phase_one_fields_and_provenance_are_bounded():
+    row = validate_event({
+        "event": "search_result_clicked",
+        "schema_version": 3,
+        "interaction_id": "search_abc123",
+        "provenance": {
+            "client_build_sha": "frontend-1.0.0",
+            "client_artifact_version": "catalog-1151",
+            "client_artifact_bundle_id": "bundle-abc123",
+            "client_model_revision": "model-v1",
+            "client_ranking_version": "rank-courses-v1",
+            "client_query_analysis_version": "deterministic-v1",
+        },
+        "data": {
+            "course_id": "C1", "position": 4, "search_mode": "keyword",
+            "elapsed_ms": 12_345, "elapsed_origin": "search_result",
+        },
+    })
+    assert row["client_artifact_bundle_id"] == "bundle-abc123"
+    assert row["schema_version"] == 3
+    assert row["elapsed_ms"] == 12_345
+    assert validate_event({"event": "page_view", "schema_version": 2, "data": {"page": "schedule"}})["schema_version"] == 2
+    with pytest.raises(AnalyticsRejection):
+        validate_event({
+            "event": "search_result_clicked",
+            "data": {"course_id": "C1", "position": 1, "search_mode": "keyword", "elapsed_ms": 10},
+        })
+    with pytest.raises(AnalyticsRejection):
+        validate_event({
+            "event": "recommendation_run_completed",
+            "provenance": {"client_build_sha": "bad/identity"},
+            "data": {
+                "method": "semantic", "result_count": 1, "impression_count": 1,
+                "click_count": 0, "add_count": 0, "outcome": "results",
+            },
+        })
+    with pytest.raises(AnalyticsRejection):
+        validate_event({
+            "event": "schedule_conflict",
+            "data": {"action": "course_added"},
+        })
+
+
+def test_phase_one_aggregates_isolate_surfaces_and_preserve_funnel_denominators(tmp_path):
+    store = _store(tmp_path)
+    store.record([
+        {"event": "recommendation_impression", "interaction_id": "rec_aaaa", "course_id": "C1", "position": 1, "method": "semantic"},
+        {"event": "recommendation_clicked", "interaction_id": "rec_aaaa", "course_id": "C1", "position": 1, "method": "semantic", "elapsed_ms": 2_000, "elapsed_origin": "recommendation_result"},
+        {"event": "recommendation_run_completed", "interaction_id": "rec_aaaa", "method": "semantic", "result_count": 2, "impression_count": 1, "click_count": 1, "add_count": 1, "outcome": "results"},
+        {"event": "course_added", "interaction_id": "rec_aaaa", "course_id": "C1", "source": "recommendation"},
+        {"event": "search", "interaction_id": "search_aaaa", "search_mode": "keyword", "query_length": 0, "result_count": 1, "latency_ms": 4},
+        {"event": "search_result_impression", "interaction_id": "search_aaaa", "course_id": "C2", "position": 1, "search_mode": "keyword"},
+        {"event": "search_result_clicked", "interaction_id": "search_aaaa", "course_id": "C2", "position": 1, "search_mode": "keyword", "elapsed_ms": 7_000, "elapsed_origin": "search_result"},
+        {"event": "course_added", "interaction_id": "search_aaaa", "course_id": "C2", "source": "search"},
+        {"event": "course_added", "course_id": "C3", "source": "manual"},
+        {"event": "course_removed", "course_id": "C1", "original_source": "recommendation", "age_bucket": "1d_to_7d"},
+        {"event": "course_readded", "course_id": "C1", "source": "recommendation"},
+    ], user_agent=None)
+    store.maintain(force=True)
+
+    with store._connect() as connection:  # noqa: SLF001
+        surfaces = {
+            (row[1], row[2]): tuple(row[3:])
+            for row in connection.execute(
+                "SELECT day, course_id, surface, impressions, clicks, adds, removes FROM analytics_daily_course_surface"
+            )
+        }
+        runs = connection.execute(
+            "SELECT run_count, zero_result_runs, runs_with_impressions, runs_with_click, runs_with_add, skipped_runs, total_impressions, total_clicks, total_adds "
+            "FROM analytics_daily_recommendation_runs"
+        ).fetchone()
+        funnel = connection.execute(
+            "SELECT result_sets, zero_result_sets, result_impressions, result_clicks, result_sets_with_click, result_sets_with_add, adds_after_click "
+            "FROM analytics_daily_search_funnel WHERE search_mode = 'keyword'"
+        ).fetchone()
+        buckets = connection.execute(
+            "SELECT origin, bucket, value FROM analytics_daily_decision_time_buckets ORDER BY origin, bucket"
+        ).fetchall()
+
+    assert surfaces.get(("C1", "semantic_recommendation")) == (1, 1, 1, 1)
+    assert surfaces.get(("C2", "search")) == (1, 1, 1, 0)
+    assert surfaces.get(("C3", "manual")) == (0, 0, 1, 0)
+    assert tuple(runs) == (1, 0, 1, 1, 1, 0, 1, 1, 1)
+    assert tuple(funnel) == (1, 0, 1, 1, 1, 1, 1)
+    assert ("recommendation_result", "1s_to_5s", 1) in buckets
+    assert ("search_result", "5s_to_10s", 1) in buckets
+
+
+def test_server_and_client_provenance_are_persisted_as_bounded_tokens(tmp_path):
+    store = _store(tmp_path)
+    row = validate_event({
+        "event": "recommendation_run_completed",
+        "provenance": {"client_build_sha": "frontend-1.0.0", "client_ranking_version": "rank-courses-v1"},
+        "data": {"method": "semantic", "result_count": 0, "impression_count": 0, "click_count": 0, "add_count": 0, "outcome": "zero_result"},
+    })
+    store.record([row], user_agent=None, server_provenance={
+        "server_build_sha": "server-abc123",
+        "server_artifact_version": "artifact-1151",
+        "server_model_revision": "model-v1",
+    })
+    with store._connect() as connection:  # noqa: SLF001
+        saved = connection.execute(
+            "SELECT client_build_sha, client_ranking_version, server_build_sha, server_artifact_version, server_model_revision FROM analytics_events"
+        ).fetchone()
+    assert tuple(saved) == ("frontend-1.0.0", "rank-courses-v1", "server-abc123", "artifact-1151", "model-v1")
+
+
 def test_search_timing_percentiles_and_states_are_reported(tmp_path):
     store = _store(tmp_path)
     store.record(
@@ -492,6 +599,21 @@ def test_endpoint_accepts_valid_events_and_drops_invalid_ones(tmp_path):
         ]})
         assert response.status_code == 202
         assert response.json() == {"accepted": 2, "rejected": 2}
+
+
+def test_phase_one_event_gate_is_off_until_backend_enablement(tmp_path, monkeypatch):
+    monkeypatch.delenv("FJU_ANALYTICS_INSTRUMENTATION_V3", raising=False)
+    with _client(tmp_path) as client:
+        event = {
+            "event": "search_result_impression",
+            "interaction_id": "search_abc123",
+            "data": {"course_id": "1", "position": 1, "search_mode": "keyword"},
+        }
+        assert client.get("/api/v1/features").json()["analytics_instrumentation_v3"] is False
+        assert client.post("/api/v1/analytics/events", json={"events": [event]}).json() == {"accepted": 0, "rejected": 1}
+        monkeypatch.setenv("FJU_ANALYTICS_INSTRUMENTATION_V3", "1")
+        assert client.get("/api/v1/features").json()["analytics_instrumentation_v3"] is True
+        assert client.post("/api/v1/analytics/events", json={"events": [event]}).json() == {"accepted": 1, "rejected": 0}
 
 
 def test_endpoint_refuses_forbidden_properties_and_oversized_batches(tmp_path):

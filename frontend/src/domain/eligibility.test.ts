@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { eligibilityStatusLabels, eligibilityStatusShortLabels, evaluateEligibility, formatCourseStudyLevelLabel, getEligibilityRules, inferAudienceDepartment, inferAudienceGrade, inferCourseStudyLevel, inferProfileStudyLevel, meetingsConflict, studyLevelsMatch } from "./eligibility";
+import { courseConflictCounts, eligibilityStatusLabels, eligibilityStatusShortLabels, evaluateEligibility, formatCourseStudyLevelLabel, getEligibilityRules, inferAudienceDepartment, inferAudienceGrade, inferCourseStudyLevel, inferProfileStudyLevel, meetingConflictCounts, meetingsConflict, studyLevelsMatch } from "./eligibility";
 import type { Course, EligibilityStatus, Profile } from "./types";
 
 const profile: Profile = { id: "current", division: "日間部", department: "資訊工程學系", grade: 2, admissionYear: 115, interests: "AI", preferredWeekdays: [], updatedAt: "now" };
@@ -54,6 +54,18 @@ describe("eligibility", () => {
       [{ weekday: 1, sections: ["D1"], room: null, week_pattern: "A" }],
       [{ weekday: 1, sections: ["D1"], room: null, week_pattern: "A" }],
     ).conflict).toBe(true);
+  });
+  it("counts actual and uncertain conflict pairs separately", () => {
+    expect(meetingConflictCounts(
+      [
+        { weekday: 1, sections: ["D1"], room: null, week_pattern: "A" },
+        { weekday: 1, sections: ["D2"], room: null, week_pattern: "A" },
+      ],
+      [{ weekday: 1, sections: ["D1"], room: null, week_pattern: "A" }, { weekday: 1, sections: ["D2"], room: null, week_pattern: null }],
+    )).toEqual({ actual: 1, uncertain: 1 });
+    expect(courseConflictCounts({ meetings: [{ weekday: 1, sections: ["D1"], room: null, week_pattern: "A" }] } as unknown as Course, [
+      { meetings: [{ weekday: 1, sections: ["D1"], room: null, week_pattern: "A" }] } as unknown as Course,
+    ])).toEqual({ actual: 1, uncertain: 0 });
   });
 });
 

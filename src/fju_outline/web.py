@@ -27,6 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .analytics import (
     MAX_EVENTS_PER_BATCH,
+    PHASE_ONE_V3_EVENTS,
     AnalyticsRejection,
     AnalyticsCapacityError,
     AnalyticsStore,
@@ -914,6 +915,12 @@ def register_routes(application: FastAPI) -> None:
             "compound_query_enabled": _compound_enabled(),
             "query_analysis_version": ANALYSIS_VERSION,
             "analytics_enabled": application.state.analytics_store is not None,
+            # New clients default this to false when talking to an older
+            # backend, which makes a frontend rollback safe without changing
+            # the legacy event stream.
+            "analytics_instrumentation_v3": (
+                application.state.analytics_store is not None and _analytics_instrumentation_v3_enabled()
+            ),
             "ai_assistant_enabled": (
                 application.state.rag_service is not None
                 and application.state.ai_configured
@@ -929,7 +936,7 @@ def register_routes(application: FastAPI) -> None:
     # `AnalyticsBatch` is deliberately *not* a nested Pydantic model of the
     # event shape. Each event is validated by `analytics.validate_event`
     # against a per-event allowlist, because a single Pydantic model able to
-    # describe fifteen different `data` shapes ends up permissive at the union
+    # describe the different `data` shapes ends up permissive at the union
     # boundaries. Pydantic's job here is only "a list of objects, bounded".
     # ----------------------------------------------------------------- #
 
@@ -965,8 +972,22 @@ def register_routes(application: FastAPI) -> None:
         catalog = request.app.state.store
         course_exists = (lambda course_id: course_id in catalog.by_id) if catalog else None
         accepted, rejected = validate_batch(events, course_exists=course_exists, derive_event_id=True)
+        if not _analytics_instrumentation_v3_enabled():
+            gated_events = [row for row in accepted if row.get("event") in PHASE_ONE_V3_EVENTS]
+            accepted = [row for row in accepted if row.get("event") not in PHASE_ONE_V3_EVENTS]
+            rejected = [*rejected, *gated_events]
         try:
-            written = store.record(accepted, user_agent=request.headers.get("user-agent"))
+            artifact_store = request.app.state.store
+            manifest = artifact_store.manifest if artifact_store is not None else {}
+            written = store.record(
+                accepted,
+                user_agent=request.headers.get("user-agent"),
+                server_provenance={
+                    "server_build_sha": os.environ.get("FJU_SERVER_BUILD_SHA", "unknown"),
+                    "server_artifact_version": manifest.get("artifact_version", "unknown"),
+                    "server_model_revision": manifest.get("model_revision", "unknown"),
+                },
+            )
             store.maintain()
         except AnalyticsCapacityError:
             logger.warning("security_event=analytics_capacity_reject")
@@ -1468,6 +1489,12 @@ def _section_options(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _compound_enabled() -> bool:
     return os.environ.get("FJU_COMPOUND_QUERY_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _analytics_instrumentation_v3_enabled() -> bool:
+    return os.environ.get("FJU_ANALYTICS_INSTRUMENTATION_V3", "0").strip().lower() in {
+        "1", "true", "yes", "on",
+    }
 
 
 def _department_options(items: list[dict[str, Any]]) -> list[dict[str, str | None]]:

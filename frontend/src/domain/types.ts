@@ -205,6 +205,10 @@ export interface ScheduleEntry {
   courseId: string;
   locked: boolean;
   meetingsOverride?: Meeting[];
+  /** Local-only provenance for removal/undo analytics; never sent as an ID. */
+  originalSource?: "recommendation" | "schedule_slot" | "search" | "manual";
+  /** ISO time written locally when the course is added. */
+  addedAt?: string;
 }
 export interface SchedulePlan {
   id: string;

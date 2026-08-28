@@ -3,9 +3,11 @@ import { CalendarCheck, CalendarPlus, Heart } from "@phosphor-icons/react";
 import { Button, ToggleButton, Tooltip } from "@heroui/react";
 import { useFetchCoursesByIds } from "@/data/queries";
 import { deleteRecord, putRecord } from "@/data/db";
-import { track } from "@/analytics/client";
-import { courseConflicts, meetingsConflict } from "@/domain/eligibility";
-import { useLocalDataState, useLocalRecords } from "@/hooks/localData";
+import { track, trackWithLegacy } from "@/analytics/client";
+import { useSearchSurface } from "@/analytics/search";
+import { courseConflictCounts, courseConflicts, meetingConflictCounts, meetingsConflict } from "@/domain/eligibility";
+import { departmentRelation } from "@/domain/department";
+import { useLocalDataState, useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { ConfirmDialog, useFeedback } from "@/components/ui";
 import type { Course, SchedulePlan } from "@/domain/types";
@@ -32,10 +34,12 @@ import type { Course, SchedulePlan } from "@/domain/types";
  * so the conflict rules and the storage shape cannot diverge. What can diverge is
  * the orchestration. Extracting the hook is the follow-up.
  */
-export function CourseRowActions({ course }: { course: Course }) {
+export function CourseRowActions({ course, position }: { course: Course; position?: number }) {
   const favorites = useLocalRecords<{ id: string }>("favorites");
   const { writable } = useLocalDataState();
   const { activePlan, selectPlan } = useSchedulePlans();
+  const profile = useProfile();
+  const searchSurface = useSearchSurface();
   const fetchCoursesByIds = useFetchCoursesByIds();
   const { notify } = useFeedback();
   const [pending, setPending] = useState<"favorite" | "schedule" | "">("");
@@ -61,13 +65,23 @@ export function CourseRowActions({ course }: { course: Course }) {
     try {
       await putRecord("schedulePlans", {
         ...plan,
-        entries: [...plan.entries, { courseId: course.course_id, locked: false }],
+        entries: [...plan.entries, { courseId: course.course_id, locked: false, originalSource: "search", addedAt: new Date().toISOString() }],
         updatedAt: new Date().toISOString(),
       });
       if (!activePlan) await selectPlan(plan.id);
-      // No interaction id: 探索課程 is a catalogue browse, not a recommendation
-      // run, so this add is a course-level fact and nothing more.
-      track("course_added", { course_id: course.course_id, source: "search" });
+      const elapsedMs = searchSurface?.elapsedSinceReady();
+      trackWithLegacy(
+        "course_added",
+        {
+          course_id: course.course_id,
+          source: "search",
+          ...(position ? { position } : {}),
+          department_relation: departmentRelation(course, profile),
+          ...(elapsedMs === undefined ? {} : { elapsed_ms: elapsedMs, elapsed_origin: "search_result" as const }),
+        },
+        { course_id: course.course_id, source: "search", ...(position ? { position } : {}) },
+        { interactionId: searchSurface?.interactionId },
+      );
       notify("已加入「" + plan.name + "」");
     } catch (error) {
       track("error", { component: "schedule", error_code: "SCHEDULE_WRITE_FAILED" });
@@ -89,12 +103,14 @@ export function CourseRowActions({ course }: { course: Course }) {
     }
     const courseConflict = courseConflicts(course, scheduledCourses);
     const fixedConflict = meetingsConflict(course.meetings, (plan.fixedEntries ?? []).flatMap((entry) => entry.meetings));
+    const courseCounts = courseConflictCounts(course, scheduledCourses);
+    const fixedCounts = meetingConflictCounts(course.meetings, (plan.fixedEntries ?? []).flatMap((entry) => entry.meetings));
     if (courseConflict.conflict || fixedConflict.conflict) {
-      track("schedule_conflict", { conflict_count: 1, action: "course_added" });
+      trackWithLegacy("schedule_conflict", { actual_conflict_count: courseCounts.actual + fixedCounts.actual, uncertain_conflict_count: courseCounts.uncertain + fixedCounts.uncertain, action: "course_added" }, { conflict_count: 1, action: "course_added" });
       setConflictRequest({ plan, message: "這門課與目前課表衝堂。仍要加入嗎？" }); return;
     }
     if (courseConflict.uncertain || fixedConflict.uncertain) {
-      track("schedule_conflict", { conflict_count: 1, action: "course_added" });
+      trackWithLegacy("schedule_conflict", { actual_conflict_count: courseCounts.actual, uncertain_conflict_count: Math.max(1, courseCounts.uncertain + fixedCounts.uncertain), action: "course_added" }, { conflict_count: 1, action: "course_added" });
       setConflictRequest({ plan, message: "週次資料不完整，可能衝堂。仍要加入嗎？" }); return;
     }
     await commitSchedule(plan);

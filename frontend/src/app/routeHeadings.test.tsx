@@ -65,6 +65,7 @@ describe("route heading contract", () => {
     apiMocks.getDepartmentCatalog.mockResolvedValue({ divisions: [], departments: [] });
     apiMocks.getClassGroups.mockResolvedValue([]);
     apiMocks.getCatalog.mockResolvedValue([]);
+    apiMocks.getFeatures.mockResolvedValue({ compound_query_enabled: false, query_analysis_version: "deterministic-v1", analytics_instrumentation_v3: false });
     apiMocks.preloadRecommendationAssets.mockResolvedValue({
       catalog: [], courseIds: [], vectors: new Float32Array(), dimension: 1,
       searchIndex: { documents: new Map(), documentFrequency: new Map(), averageFieldLength: { title: 0, objective: 0, weekly_progress: 0, prerequisite: 0, materials: 0, skills: 0 }, documentCount: 0 },

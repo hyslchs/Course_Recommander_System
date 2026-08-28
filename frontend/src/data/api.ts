@@ -1,5 +1,5 @@
 ﻿import { getRecord, putRecord } from "./db";
-import { track } from "@/analytics/client";
+import { setAnalyticsInstrumentationV3, setAnalyticsProvenance, track } from "@/analytics/client";
 import type { ApiEndpointName } from "@/analytics/events";
 import type { AIAnswer, AIAskContext, AIHistoryTurn, ArtifactManifest, Course, DepartmentCatalog, EmbeddingIndex, HardConstraints } from "@/domain/types";
 import type { RouteBundle, RouteInfo } from "@/domain/queryAnalysis";
@@ -53,7 +53,13 @@ async function getJson<T>(endpoint: ApiEndpointName, url: string, init?: Request
 }
 
 export async function getManifest(): Promise<ArtifactManifest> {
-  return getJson("catalog_manifest", "/api/v1/catalog/manifest");
+  const manifest = await getJson<ArtifactManifest>("catalog_manifest", "/api/v1/catalog/manifest");
+  setAnalyticsProvenance({
+    client_artifact_version: manifest.artifact_version,
+    client_artifact_bundle_id: (manifest as ArtifactManifest & { bundle_id?: string }).bundle_id,
+    client_model_revision: manifest.model_revision,
+  });
+  return manifest;
 }
 
 export interface CatalogSummaryPayload {
@@ -347,8 +353,11 @@ export async function embedQueries(texts: string[]): Promise<{ vectors: Float32A
   return { vectors: result.vectors.map((vector) => new Float32Array(vector)), modelVersion: result.model_version, dimension: result.dimension };
 }
 
-export async function getFeatures(): Promise<{ compound_query_enabled: boolean; query_analysis_version: string; analytics_enabled?: boolean; ai_assistant_enabled?: boolean; ai_model?: string; ai_max_question_chars?: number }> {
-  return getJson("features", "/api/v1/features");
+export async function getFeatures(): Promise<{ compound_query_enabled: boolean; query_analysis_version: string; analytics_enabled?: boolean; analytics_instrumentation_v3?: boolean; ai_assistant_enabled?: boolean; ai_model?: string; ai_max_question_chars?: number }> {
+  const features = await getJson<{ compound_query_enabled: boolean; query_analysis_version: string; analytics_enabled?: boolean; analytics_instrumentation_v3?: boolean; ai_assistant_enabled?: boolean; ai_model?: string; ai_max_question_chars?: number }>("features", "/api/v1/features");
+  setAnalyticsInstrumentationV3(features.analytics_instrumentation_v3 === true);
+  setAnalyticsProvenance({ client_query_analysis_version: features.query_analysis_version });
+  return features;
 }
 
 export async function askCourseAssistant(input: {

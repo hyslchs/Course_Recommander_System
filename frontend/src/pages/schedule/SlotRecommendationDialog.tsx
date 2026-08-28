@@ -2,11 +2,13 @@ import { Check, Plus, Sparkle, Warning } from "@phosphor-icons/react";
 import { track } from "@/analytics/client";
 import { useRecommendationClick, useRecommendationImpression } from "@/analytics/recommendation";
 import { recommendationCategoryLabels } from "@/domain/recommendation";
+import { departmentRelation } from "@/domain/department";
 import { formatMeetings, weekdayLabels } from "@/domain/schedule";
 import { CategoryChip, EligibilityChip } from "@/components/CourseCard";
 import { Modal, StateAlert } from "@/components/ui";
 import { Button } from "@heroui/react";
 import type { ScheduleSlotRecommendation } from "@/domain/scheduleRecommendation";
+import { useProfile } from "@/hooks/localData";
 import { scheduleRecommendationCategories, useSlotRecommendation } from "./SlotRecommendationContext";
 
 /**
@@ -28,8 +30,10 @@ function SlotRecommendationRow({
   onAdd: (courseId: string) => void;
 }) {
   const courseId = recommendation.course.course_id;
-  const impressionRef = useRecommendationImpression(courseId, index + 1);
-  const recordClick = useRecommendationClick(courseId, index + 1);
+  const profile = useProfile();
+  const relation = departmentRelation(recommendation.course, profile);
+  const impressionRef = useRecommendationImpression(courseId, index + 1, relation);
+  const recordClick = useRecommendationClick(courseId, index + 1, relation);
   return <article ref={impressionRef}>
     <div className="slot-recommendation-rank" aria-label={`推薦順位 ${index + 1}`}>{index + 1}</div>
     <div className="slot-recommendation-content">

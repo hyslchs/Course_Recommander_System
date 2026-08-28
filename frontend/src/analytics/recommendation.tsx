@@ -22,8 +22,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { newInteractionId, track } from "./client";
-import type { RecommendationMethod } from "./events";
+import { newInteractionId, track, trackWithLegacy, trackV3 } from "./client";
+import type { DepartmentRelation, RecommendationMethod, RecommendationRunOutcome } from "./events";
 
 export interface RecommendationSurfaceValue {
   /** The current run. Every funnel event for these results carries it. */
@@ -34,6 +34,10 @@ export interface RecommendationSurfaceValue {
    * `recommendation_skipped` event for this run — see {@link useRecommendationRun}.
    */
   markEngaged: () => void;
+  recordImpression: () => void;
+  recordClick: () => void;
+  recordAdd: () => void;
+  elapsedSinceReady: () => number | undefined;
 }
 
 const RecommendationSurfaceContext = createContext<RecommendationSurfaceValue | undefined>(undefined);
@@ -65,7 +69,7 @@ export function useRecommendationSurface(): RecommendationSurfaceValue | undefin
  * Fires at most once per (run, course). Where `IntersectionObserver` is missing
  * the hook records nothing at all, rather than guessing.
  */
-export function useRecommendationImpression(courseId: string, position: number) {
+export function useRecommendationImpression(courseId: string, position: number, relation: DepartmentRelation = "unknown") {
   const surface = useRecommendationSurface();
   const [node, setNode] = useState<HTMLElement | null>(null);
   const interactionId = surface?.interactionId;
@@ -86,11 +90,13 @@ export function useRecommendationImpression(courseId: string, position: number) 
         if (timer !== undefined) return;
         timer = setTimeout(() => {
           observer.disconnect();
-          track(
+          trackWithLegacy(
             "recommendation_impression",
+            { course_id: courseId, position, method, department_relation: relation },
             { course_id: courseId, position, method },
             { interactionId },
           );
+          surface?.recordImpression();
         }, 300);
       },
       { threshold: 0.5 },
@@ -100,7 +106,7 @@ export function useRecommendationImpression(courseId: string, position: number) 
       if (timer !== undefined) clearTimeout(timer);
       observer.disconnect();
     };
-  }, [courseId, interactionId, method, node, position]);
+  }, [courseId, interactionId, method, node, position, relation, surface]);
 
   return setNode;
 }
@@ -113,30 +119,42 @@ export function useRecommendationImpression(courseId: string, position: number) 
  * not clicks — they are their own `feature_clicked` events, and folding them
  * into CTR would make the number mean nothing in particular.
  */
-export function useRecommendationClick(courseId: string, position: number | undefined) {
+export function useRecommendationClick(courseId: string, position: number | undefined, relation: DepartmentRelation = "unknown") {
   const surface = useRecommendationSurface();
   const clicked = useRef("");
   return useCallback(() => {
     if (!surface || !position) return;
-    surface.markEngaged();
     const key = `${surface.interactionId}:${courseId}`;
     if (clicked.current === key) return;
     clicked.current = key;
-    track(
+    surface.markEngaged();
+    surface.recordClick();
+    const elapsedMs = surface.elapsedSinceReady();
+    const enhanced = {
+      course_id: courseId,
+      position,
+      method: surface.method,
+      department_relation: relation,
+      ...(elapsedMs === undefined ? {} : { elapsed_ms: elapsedMs, elapsed_origin: "recommendation_result" as const }),
+    };
+    trackWithLegacy(
       "recommendation_clicked",
+      enhanced,
       { course_id: courseId, position, method: surface.method },
       { interactionId: surface.interactionId },
     );
-  }, [courseId, position, surface]);
+  }, [courseId, position, relation, surface]);
 }
 
 export interface RecommendationRun {
   /** Pass to {@link RecommendationSurface}. `undefined` until the first run. */
   surface: RecommendationSurfaceValue | undefined;
   /** Opens a new run, closing the previous one. Returns the new interaction id. */
-  start: () => string;
+  start: (pendingOutcome?: RecommendationRunOutcome) => string;
   /** How many results the current run put on screen. Safe to call repeatedly. */
   settle: (resultCount: number) => void;
+  /** Completes the current run exactly once, including zero/error outcomes. */
+  complete: (outcome?: RecommendationRunOutcome) => void;
 }
 
 /**
@@ -153,42 +171,94 @@ export interface RecommendationRun {
  */
 export function useRecommendationRun(method: RecommendationMethod): RecommendationRun {
   const [interactionId, setInteractionId] = useState("");
-  const active = useRef<{ id: string; resultCount: number; engaged: boolean } | undefined>(undefined);
+  const active = useRef<{
+    id: string;
+    resultCount: number;
+    impressionCount: number;
+    clickCount: number;
+    addCount: number;
+    resultReadyAt?: number;
+    pending: boolean;
+  } | undefined>(undefined);
 
-  const closeCurrentRun = useCallback(() => {
+  const closeCurrentRun = useCallback((forcedOutcome?: RecommendationRunOutcome) => {
     const run = active.current;
     active.current = undefined;
-    if (!run || run.engaged || run.resultCount <= 0) return;
-    track("recommendation_skipped", { result_count: run.resultCount, method }, { interactionId: run.id });
+    if (!run) {
+      setInteractionId("");
+      return;
+    }
+    setInteractionId("");
+    const outcome = forcedOutcome ?? (run.pending ? "abandoned" : run.resultCount > 0 ? "results" : "zero_result");
+    trackV3(
+      "recommendation_run_completed",
+      {
+        method,
+        result_count: run.resultCount,
+        impression_count: run.impressionCount,
+        click_count: run.clickCount,
+        add_count: run.addCount,
+        outcome,
+      },
+      { interactionId: run.id },
+    );
+    if (outcome === "results" && run.resultCount > 0 && run.clickCount === 0 && run.addCount === 0) {
+      track("recommendation_skipped", { result_count: run.resultCount, method }, { interactionId: run.id });
+    }
   }, [method]);
 
   // The cleanup closes the last run when the page unmounts. `closeCurrentRun` is
   // stable for a given `method`, so this does not re-run on every render.
   useEffect(() => closeCurrentRun, [closeCurrentRun]);
 
-  const start = useCallback(() => {
-    closeCurrentRun();
+  const start = useCallback((pendingOutcome?: RecommendationRunOutcome) => {
+    closeCurrentRun(pendingOutcome);
     const id = newInteractionId("rec");
-    active.current = { id, resultCount: 0, engaged: false };
+    active.current = { id, resultCount: 0, impressionCount: 0, clickCount: 0, addCount: 0, pending: true };
     setInteractionId(id);
     return id;
   }, [closeCurrentRun]);
 
   const settle = useCallback((resultCount: number) => {
-    if (active.current) active.current.resultCount = resultCount;
+    if (active.current) {
+      active.current.resultCount = resultCount;
+      active.current.pending = false;
+      if (resultCount >= 0 && active.current.resultReadyAt === undefined) active.current.resultReadyAt = performance.now();
+    }
   }, []);
 
   const markEngaged = useCallback(() => {
-    if (active.current) active.current.engaged = true;
+    // Kept as a stable compatibility callback for existing surfaces. Run
+    // engagement is now derived from the explicit click/add counters.
+  }, []);
+
+  const recordImpression = useCallback(() => {
+    if (active.current) active.current.impressionCount += 1;
+  }, []);
+
+  const recordClick = useCallback(() => {
+    if (active.current) active.current.clickCount += 1;
+  }, []);
+
+  const recordAdd = useCallback(() => {
+    if (active.current) active.current.addCount += 1;
+  }, []);
+
+  const elapsedSinceReady = useCallback(() => {
+    const readyAt = active.current?.resultReadyAt;
+    if (readyAt === undefined) return undefined;
+    const elapsed = Math.round(performance.now() - readyAt);
+    return elapsed >= 0 && elapsed <= 7_200_000 ? elapsed : undefined;
   }, []);
 
   const surface = useMemo<RecommendationSurfaceValue | undefined>(
-    () => (interactionId ? { interactionId, method, markEngaged } : undefined),
-    [interactionId, markEngaged, method],
+    () => (interactionId ? { interactionId, method, markEngaged, recordImpression, recordClick, recordAdd, elapsedSinceReady } : undefined),
+    [elapsedSinceReady, interactionId, markEngaged, method, recordAdd, recordClick, recordImpression],
   );
 
   // Memoised, and load-bearing: `RecommendPage` lists its re-rank callback in an
   // effect's dependency array, so a fresh object every render would re-run the
   // effect, set state, and re-render — forever.
-  return useMemo(() => ({ surface, start, settle }), [settle, start, surface]);
+  const complete = useCallback((outcome?: RecommendationRunOutcome) => closeCurrentRun(outcome), [closeCurrentRun]);
+  return useMemo(() => ({ surface, start, settle, complete }), [complete, settle, start, surface]);
 }

@@ -224,6 +224,127 @@ def test_server_and_client_provenance_are_persisted_as_bounded_tokens(tmp_path):
     assert tuple(saved) == ("frontend-1.0.0", "rank-courses-v1", "server-abc123", "artifact-1151", "model-v1")
 
 
+def test_phase_two_research_report_reads_normalized_aggregates(tmp_path):
+    store = _store(tmp_path)
+    rows = [
+        validate_event({
+            "event": "recommendation_impression", "interaction_id": "rec_aaaa",
+            "provenance": {"client_artifact_version": "artifact-1151"},
+            "data": {"course_id": "C1", "position": 1, "method": "semantic", "department_relation": "same_department"},
+        }),
+        validate_event({
+            "event": "recommendation_impression", "interaction_id": "rec_aaaa",
+            "provenance": {"client_artifact_version": "artifact-1151"},
+            "data": {"course_id": "C2", "position": 2, "method": "semantic", "department_relation": "same_department"},
+        }),
+        validate_event({
+            "event": "recommendation_clicked", "interaction_id": "rec_aaaa",
+            "provenance": {"client_artifact_version": "artifact-1151"},
+            "data": {"course_id": "C1", "position": 1, "method": "semantic", "elapsed_ms": 800, "elapsed_origin": "recommendation_result", "department_relation": "same_department"},
+        }),
+        validate_event({
+            "event": "recommendation_run_completed", "interaction_id": "rec_aaaa",
+            "provenance": {"client_artifact_version": "artifact-1151"},
+            "data": {"method": "semantic", "result_count": 2, "impression_count": 2, "click_count": 1, "add_count": 1, "outcome": "results"},
+        }),
+        validate_event({
+            "event": "recommendation_run_completed", "interaction_id": "rec_bbbb",
+            "provenance": {"client_artifact_version": "artifact-1151"},
+            "data": {"method": "semantic", "result_count": 0, "impression_count": 0, "click_count": 0, "add_count": 0, "outcome": "zero_result"},
+        }),
+        validate_event({
+            "event": "course_added", "interaction_id": "rec_aaaa",
+            "provenance": {"client_artifact_version": "artifact-1151"},
+            "data": {"course_id": "C1", "source": "recommendation", "department_relation": "same_department"},
+        }),
+        validate_event({
+            "event": "search", "interaction_id": "search_aaaa",
+            "data": {"search_mode": "keyword", "query_length": 4, "result_count": 1, "latency_ms": 20},
+        }),
+        validate_event({
+            "event": "search_result_impression", "interaction_id": "search_aaaa",
+            "data": {"course_id": "C2", "position": 1, "search_mode": "keyword"},
+        }),
+        validate_event({
+            "event": "search_result_clicked", "interaction_id": "search_aaaa",
+            "data": {"course_id": "C2", "position": 1, "search_mode": "keyword", "elapsed_ms": 4_000, "elapsed_origin": "search_result"},
+        }),
+        validate_event({
+            "event": "course_added", "interaction_id": "search_aaaa",
+            "data": {"course_id": "C2", "source": "search"},
+        }),
+        validate_event({
+            "event": "recommendation_impression", "interaction_id": "rec_cccc",
+            "data": {"course_id": "C1", "position": 1, "method": "schedule_slot", "department_relation": "other_department"},
+        }),
+        validate_event({
+            "event": "recommendation_clicked", "interaction_id": "rec_cccc",
+            "data": {"course_id": "C1", "position": 1, "method": "schedule_slot"},
+        }),
+        validate_event({
+            "event": "course_removed", "data": {"course_id": "C1", "original_source": "recommendation", "age_bucket": "1d_to_7d"},
+        }),
+    ]
+    store.record(rows, user_agent=None)
+    store.maintain(force=True)
+    before = store.research_report(days=1)
+
+    with store._connect() as connection:  # noqa: SLF001
+        connection.execute("DELETE FROM analytics_events")
+
+    report = store.research_report(days=1)
+    assert report["data_definition_version"] == "phase2-research-v1"
+    assert report["data_start_date"] == before["data_start_date"]
+    assert report["backfill"]["estimated_values"] is False
+    assert report["surfaces"]["semantic_recommendation"]["ctr"] == 0.5
+    assert report["surfaces"]["schedule_slot"]["ctr"] == 1.0
+    assert report["recommendation"]["totals"]["run_count"] == 2
+    assert report["recommendation"]["totals"]["zero_result_rate"] == 0.5
+    assert report["search"]["totals"]["result_sets"] == 1
+    assert report["search"]["totals"]["adds_after_click"] == 1
+    assert report["decision_time"]["by_origin"]["recommendation_result"]["p50_ms"] == 500.0
+    assert report["decision_time"]["by_origin"]["search_result"]["p50_ms"] == 3000.0
+    assert report["removals"]["by_source"]["values"] == {"recommendation": 1}
+    assert report["data_quality"]["legacy_data"]["legacy_mixed_adds"] == 2
+
+
+def test_phase_two_small_department_and_provenance_slices_are_suppressed(tmp_path):
+    store = _store(tmp_path)
+    store.record(
+        [
+            validate_event({
+                "event": "recommendation_impression",
+                "interaction_id": "rec_aaaa",
+                "provenance": {"client_artifact_version": "artifact-small"},
+                "data": {"course_id": "C1", "position": index, "method": "semantic", "department_relation": "same_department"},
+            })
+            for index in range(1, 10)
+        ],
+        user_agent=None,
+    )
+    report = store.research_report(days=1)
+    relation = report["department_relation"]["impressions"]
+    artifact = report["provenance"]["client_artifact_version"]
+    assert relation["values"] == {}
+    assert relation["suppressed_sample_size"] == 9
+    assert artifact["values"] == {}
+    assert "department_relation.impressions" in report["data_quality"]["insufficient_sample_size"]["suppressed_dimensions"]
+    assert "provenance.client_artifact_version" in report["data_quality"]["insufficient_sample_size"]["suppressed_dimensions"]
+
+
+def test_phase_two_report_gate_rolls_back_to_legacy_view(tmp_path, monkeypatch):
+    monkeypatch.setenv("FJU_ANALYTICS_ADMIN_TOKEN", "s3cret")
+    monkeypatch.setenv("FJU_ANALYTICS_RESEARCH_REPORT_V2", "0")
+    with _client(tmp_path, token="s3cret", monkeypatch=monkeypatch) as client:
+        legacy = client.get("/api/v1/analytics/report", headers={"X-Analytics-Token": "s3cret"})
+        assert legacy.status_code == 200
+        assert legacy.json()["data_definition_version"] == "legacy-mixed-v1"
+        monkeypatch.setenv("FJU_ANALYTICS_RESEARCH_REPORT_V2", "1")
+        research = client.get("/api/v1/analytics/report", headers={"X-Analytics-Token": "s3cret"})
+        assert research.status_code == 200
+        assert research.json()["data_definition_version"] == "phase2-research-v1"
+
+
 def test_search_timing_percentiles_and_states_are_reported(tmp_path):
     store = _store(tmp_path)
     store.record(
@@ -672,6 +793,8 @@ def test_dashboard_page_carries_no_data(tmp_path):
         assert page.status_code == 200
         assert "X-Analytics-Token" in page.text
         assert "noindex" in page.text
+        assert "renderResearch" in page.text
+        assert "renderLegacy" in page.text
 
 
 def test_dashboard_does_not_invite_browser_password_autofill(tmp_path):

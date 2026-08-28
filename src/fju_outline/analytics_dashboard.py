@@ -50,6 +50,9 @@ DASHBOARD_HTML = """<!doctype html>
   tr:last-child td { border-bottom:none; }
   td.n, th.n { text-align:right; }
   .flag { color:var(--warn); font-weight:600; }
+  .banner { border:1px solid var(--warn); border-radius:10px; padding:10px 12px; margin:12px 0;
+            color:var(--warn); background:color-mix(in srgb, var(--warn) 8%, var(--card)); }
+  .muted { color:var(--muted); }
   .cols { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); }
   #error { color:var(--warn); }
 </style>
@@ -107,7 +110,7 @@ function ranked(map, headers) {
   return table(headers, rows);
 }
 
-function render(data) {
+function renderLegacy(data) {
   const o = data.overview, api = data.api, search = data.search || {};
   const timing = search.timing || {};
   const endpoints = Object.keys(api.requests || {}).sort((a, b) => (api.requests[b] || 0) - (api.requests[a] || 0));
@@ -175,6 +178,120 @@ function render(data) {
     "<h2>保存期限</h2>",
     tiles(Object.entries(data.retention).map(([k, v]) => [k, v])),
   ].join("");
+}
+
+function distributionRows(distribution, label) {
+  const rows = Object.entries(distribution?.values || {})
+    .sort((a, b) => b[1] - a[1])
+    .map(([value, count]) => [esc(label ? `${label}: ${value}` : value), num(count)]);
+  if (distribution?.suppressed) {
+    rows.push([`<span class="muted">${esc(label ? `${label}: ` : "")}n &lt; ${num(10)}（已隱藏）</span>`,
+      num(distribution.suppressed_sample_size)]);
+  }
+  return rows;
+}
+
+function renderResearch(data) {
+  const quality = data.data_quality || {};
+  const overview = data.overview || {};
+  const surfaces = data.surfaces || {};
+  const recommendation = data.recommendation || {};
+  const search = data.search || {};
+  const banners = [];
+  if (quality.legacy_data?.present) banners.push(quality.legacy_data.warning);
+  if ((quality.unknown_source?.surface_events || 0) > 0) {
+    banners.push(`有 ${num(quality.unknown_source.surface_events)} 筆 surface/source 無法判定。`);
+  }
+  const missing = Object.entries(quality.missing_provenance || {})
+    .filter(([, item]) => item.missing > 0)
+    .map(([field, item]) => `${field}: ${num(item.missing)}`);
+  if (missing.length) banners.push(`缺少 provenance：${missing.join("、")}`);
+  if (quality.insufficient_sample_size?.suppressed_dimensions?.length) {
+    banners.push(`小樣本切片已隱藏（n < ${num(quality.insufficient_sample_size.minimum_n)}）：` +
+      quality.insufficient_sample_size.suppressed_dimensions.join("、"));
+  }
+  const surfaceRows = Object.entries(surfaces).map(([surface, item]) => [
+    esc(surface), num(item.impressions), num(item.clicks), num(item.adds), num(item.removes),
+    pct(item.ctr), pct(item.adoption), pct(item.click_to_add),
+  ]);
+  const courseRows = (data.courses || []).map((course) => [
+    esc(course.course_id), esc(course.surface), num(course.impressions), num(course.clicks),
+    num(course.adds), num(course.removes), pct(course.ctr), pct(course.adoption), pct(course.click_to_add),
+  ]);
+  const runRows = (recommendation.by_method || []).map((item) => [
+    esc(item.method), num(item.run_count), num(item.zero_result_runs), num(item.skipped_runs),
+    num(item.total_impressions), num(item.total_clicks), pct(item.ctr), pct(item.skip_rate), pct(item.zero_result_rate),
+  ]);
+  if (recommendation.totals) runRows.push([
+    "合計", num(recommendation.totals.run_count), num(recommendation.totals.zero_result_runs),
+    num(recommendation.totals.skipped_runs), num(recommendation.totals.total_impressions),
+    num(recommendation.totals.total_clicks), pct(recommendation.totals.ctr),
+    pct(recommendation.totals.skip_rate), pct(recommendation.totals.zero_result_rate),
+  ]);
+  const funnelRows = (search.by_mode || []).map((item) => [
+    esc(item.search_mode), num(item.result_sets), num(item.zero_result_sets), num(item.result_impressions),
+    num(item.result_clicks), pct(item.ctr), pct(item.result_set_click_rate),
+    pct(item.result_set_add_rate), num(item.adds_after_click),
+  ]);
+  if (search.totals) funnelRows.push([
+    "合計", num(search.totals.result_sets), num(search.totals.zero_result_sets),
+    num(search.totals.result_impressions), num(search.totals.result_clicks), pct(search.totals.ctr),
+    pct(search.totals.result_set_click_rate), pct(search.totals.result_set_add_rate),
+    num(search.totals.adds_after_click),
+  ]);
+  const decisionRows = Object.entries(data.decision_time?.by_origin || {}).map(([origin, item]) => [
+    esc(origin), num(item.sample_size), ms(item.p50_ms), ms(item.p75_ms), ms(item.p90_ms),
+  ]);
+  const relationRows = Object.entries(data.department_relation || {}).flatMap(([scope, item]) =>
+    distributionRows(item, scope));
+  const removalRows = [
+    ...distributionRows(data.removals?.by_source, "source"),
+    ...distributionRows(data.removals?.by_age_bucket, "age_bucket"),
+  ];
+  const provenanceRows = Object.entries(data.provenance || {}).flatMap(([field, item]) =>
+    distributionRows(item, field));
+  const bannerHtml = banners.map((message) => `<div class="banner" role="status">${esc(message)}</div>`).join("");
+  $("out").innerHTML = [
+    bannerHtml,
+    `<p class="note">Definition ${esc(data.data_definition_version)}；研究資料起始日：${esc(data.data_start_date || "—")}；只從 Phase 1 durable aggregates 讀取。</p>`,
+    "<h2>Research overview</h2>",
+    tiles([
+      ["Semantic recommendation CTR", pct(overview.semantic_recommendation_ctr)],
+      ["Schedule-slot CTR", pct(overview.schedule_slot_ctr)],
+      ["Recommendation skip rate", pct(overview.recommendation_run_skip_rate)],
+      ["Zero-result run rate", pct(overview.zero_result_run_rate)],
+    ]),
+    "<h2>Surface-specific course metrics</h2>",
+    table(["Surface", "曝光", "點擊", "加入", "移除", "CTR", "Adoption", "Click→Add"], surfaceRows),
+    "<h2>Course / surface</h2>",
+    table(["Course", "Surface", "曝光", "點擊", "加入", "移除", "CTR", "Adoption", "Click→Add"], courseRows),
+    "<h2>Recommendation run funnel</h2>",
+    table(["Method", "Runs", "Zero", "Skipped", "曝光", "點擊", "CTR", "Skip rate", "Zero rate"], runRows),
+    "<h2>Explore result funnel</h2>",
+    table(["Mode", "Result sets", "Zero sets", "Impressions", "Clicks", "CTR", "Set→click", "Set→add", "Adds after click"], funnelRows),
+    "<h2>Decision time</h2>",
+    table(["Origin", "N", "P50", "P75", "P90"], decisionRows),
+    '<p class="note">Percentiles are derived from the cross-day fixed histogram; they are not the maximum of daily percentiles.</p>',
+    "<h2>Removal / undo</h2>",
+    table(["Slice", "次數"], removalRows),
+    "<h2>Department relation</h2>",
+    table(["Relation slice", "次數"], relationRows),
+    "<h2>Provenance versions</h2>",
+    table(["Version field / value", "次數"], provenanceRows),
+    `<p class="note">${esc(data.legacy_mixed_metric_warning || "Legacy mixed adds are retained for compatibility only.")}</p>`,
+    "<h2>Data governance</h2>",
+    tiles([
+      ["Definition", data.data_definition_version],
+      ["Data start", data.data_start_date || "—"],
+      ["Raw event policy", data.backfill?.source || "—"],
+      ["Estimated backfill", data.backfill?.estimated_values ? "yes" : "no"],
+    ]),
+  ].join("");
+}
+
+function render(data) {
+  if (data.data_definition_version === "phase2-research-v1") renderResearch(data);
+  else renderLegacy(data);
 }
 
 $("controls").addEventListener("submit", async (event) => {

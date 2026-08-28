@@ -164,6 +164,21 @@ ELAPSED_ORIGINS: frozenset[str] = frozenset({"recommendation_result", "search_re
 RUN_OUTCOMES: frozenset[str] = frozenset({"results", "zero_result", "error", "abandoned"})
 PROVENANCE_TOKEN_PATTERN = re.compile(r"^[A-Za-z0-9_.:-]{1,128}$")
 ELAPSED_MAX_MS = 7_200_000
+RESEARCH_REPORT_VERSION = "phase2-research-v1"
+LEGACY_REPORT_VERSION = "legacy-mixed-v1"
+MIN_RESEARCH_SLICE_N = 10
+DECISION_TIME_BUCKETS: tuple[tuple[str, int, int], ...] = (
+    ("under_1s", 0, 1_000),
+    ("1s_to_5s", 1_000, 5_000),
+    ("5s_to_10s", 5_000, 10_000),
+    ("10s_to_30s", 10_000, 30_000),
+    ("30s_to_60s", 30_000, 60_000),
+    ("1m_to_5m", 60_000, 300_000),
+    ("5m_to_15m", 300_000, 900_000),
+    ("15m_to_30m", 900_000, 1_800_000),
+    ("30m_to_60m", 1_800_000, 3_600_000),
+    ("60m_to_120m", 3_600_000, 7_200_001),
+)
 CONFLICT_TRIGGERS: frozenset[str] = frozenset({"course_added"})
 CONFLICT_ACTIONS: frozenset[str] = frozenset({
     "cancel_add",
@@ -962,6 +977,17 @@ class AnalyticsStore:
             """
         )
         connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS analytics_daily_research_dimensions (
+                day TEXT NOT NULL,
+                dimension TEXT NOT NULL,
+                value TEXT NOT NULL,
+                count INTEGER NOT NULL DEFAULT 0,
+                PRIMARY KEY (day, dimension, value)
+            )
+            """
+        )
+        connection.execute(
             "CREATE TABLE IF NOT EXISTS analytics_meta (key TEXT PRIMARY KEY, value TEXT NOT NULL)"
         )
         connection.execute(
@@ -1378,6 +1404,87 @@ class AnalyticsStore:
             (day,),
         )
 
+        connection.execute("DELETE FROM analytics_daily_research_dimensions WHERE day = ?", (day,))
+        connection.execute(
+            """
+            INSERT INTO analytics_daily_research_dimensions(day, dimension, value, count)
+            SELECT day, dimension, value, COUNT(*)
+            FROM (
+                SELECT day, 'department_relation_impression' AS dimension,
+                       COALESCE(department_relation, 'unknown') AS value
+                FROM analytics_events
+                WHERE day = ? AND event = 'recommendation_impression'
+                UNION ALL
+                SELECT day, 'department_relation_click',
+                       COALESCE(department_relation, 'unknown')
+                FROM analytics_events
+                WHERE day = ? AND event = 'recommendation_clicked'
+                UNION ALL
+                SELECT day, 'department_relation_add',
+                       COALESCE(department_relation, 'unknown')
+                FROM analytics_events
+                WHERE day = ? AND event = 'course_added'
+                UNION ALL
+                SELECT day, 'course_removed_original_source',
+                       COALESCE(original_source, 'unknown')
+                FROM analytics_events
+                WHERE day = ? AND event = 'course_removed'
+                UNION ALL
+                SELECT day, 'course_removed_age_bucket',
+                       COALESCE(age_bucket, 'unknown')
+                FROM analytics_events
+                WHERE day = ? AND event = 'course_removed'
+                UNION ALL
+                SELECT day, 'provenance_client_build_sha',
+                       COALESCE(client_build_sha, 'unknown')
+                FROM analytics_events
+                WHERE day = ?
+                UNION ALL
+                SELECT day, 'provenance_client_artifact_version',
+                       COALESCE(client_artifact_version, 'unknown')
+                FROM analytics_events
+                WHERE day = ?
+                UNION ALL
+                SELECT day, 'provenance_client_artifact_bundle_id',
+                       COALESCE(client_artifact_bundle_id, 'unknown')
+                FROM analytics_events
+                WHERE day = ?
+                UNION ALL
+                SELECT day, 'provenance_client_model_revision',
+                       COALESCE(client_model_revision, 'unknown')
+                FROM analytics_events
+                WHERE day = ?
+                UNION ALL
+                SELECT day, 'provenance_client_ranking_version',
+                       COALESCE(client_ranking_version, 'unknown')
+                FROM analytics_events
+                WHERE day = ?
+                UNION ALL
+                SELECT day, 'provenance_client_query_analysis_version',
+                       COALESCE(client_query_analysis_version, 'unknown')
+                FROM analytics_events
+                WHERE day = ?
+                UNION ALL
+                SELECT day, 'provenance_server_build_sha',
+                       COALESCE(server_build_sha, 'unknown')
+                FROM analytics_events
+                WHERE day = ?
+                UNION ALL
+                SELECT day, 'provenance_server_artifact_version',
+                       COALESCE(server_artifact_version, 'unknown')
+                FROM analytics_events
+                WHERE day = ?
+                UNION ALL
+                SELECT day, 'provenance_server_model_revision',
+                       COALESCE(server_model_revision, 'unknown')
+                FROM analytics_events
+                WHERE day = ?
+            )
+            GROUP BY day, dimension, value
+            """,
+            (day,) * 14,
+        )
+
     def _aggregate_day(self, connection: sqlite3.Connection, day: str) -> None:
         """Recompute one day's aggregates from raw. Idempotent by construction.
 
@@ -1588,6 +1695,402 @@ class AnalyticsStore:
 
     # -- reporting ---------------------------------------------------------- #
 
+    @staticmethod
+    def _histogram_percentile(histogram: Mapping[str, int], fraction: float) -> float | None:
+        """Return a bounded representative percentile from fixed buckets.
+
+        Daily decision-time percentiles are not additive.  This deliberately
+        consumes the cross-day histogram and returns the midpoint of the bucket
+        containing the requested rank; it never combines daily percentiles.
+        """
+        total = sum(max(0, int(histogram.get(label, 0))) for label, _, _ in DECISION_TIME_BUCKETS)
+        if total <= 0:
+            return None
+        rank = min(total - 1, max(0, int(round(fraction * (total - 1)))))
+        seen = 0
+        for label, lower, upper in DECISION_TIME_BUCKETS:
+            count = max(0, int(histogram.get(label, 0)))
+            if rank < seen + count:
+                return round((lower + upper) / 2, 1)
+            seen += count
+        return None
+
+    @staticmethod
+    def _research_distribution(
+        rows: Sequence[tuple[str, int]],
+        *,
+        suppress_small: bool = False,
+    ) -> dict[str, Any]:
+        counts = {str(value): int(count) for value, count in rows}
+        visible = counts
+        suppressed_sample_size = 0
+        suppressed_categories = 0
+        if suppress_small:
+            visible = {
+                value: count
+                for value, count in counts.items()
+                if count >= MIN_RESEARCH_SLICE_N
+            }
+            suppressed_sample_size = sum(
+                count for value, count in counts.items() if value not in visible
+            )
+            suppressed_categories = sum(1 for value in counts if value not in visible)
+        return {
+            "values": visible,
+            "sample_size": sum(counts.values()),
+            "suppressed": suppressed_sample_size > 0,
+            "suppressed_sample_size": suppressed_sample_size,
+            "suppressed_categories": suppressed_categories,
+        }
+
+    @staticmethod
+    def _research_ratio(numerator: int | float, denominator: int | float) -> float | None:
+        return round(float(numerator) / float(denominator), 4) if denominator else None
+
+    def research_report(self, *, days: int = 30, course_limit: int = 25) -> dict[str, Any]:
+        """Build the Phase 2 research-facing report from durable aggregates.
+
+        This method intentionally never reads ``analytics_events``.  The
+        maintenance pass may rebuild aggregates from raw events that are still
+        inside retention, but the report itself remains valid after raw rows,
+        identifiers and interaction links have expired.
+        """
+        self.maintain(force=True)
+        end = _utc_now().date()
+        start = (end - timedelta(days=max(1, days) - 1)).isoformat()
+        end_day = end.isoformat()
+        with self._lock, self._connect() as connection:
+            data_start_row = connection.execute(
+                """
+                SELECT MIN(day) FROM (
+                    SELECT day FROM analytics_daily_course_surface
+                    UNION ALL SELECT day FROM analytics_daily_recommendation_runs
+                    UNION ALL SELECT day FROM analytics_daily_search_funnel
+                    UNION ALL SELECT day FROM analytics_daily_decision_time_buckets
+                    UNION ALL SELECT day FROM analytics_daily_research_dimensions
+                )
+                """
+            ).fetchone()
+            data_start_date = str(data_start_row[0]) if data_start_row and data_start_row[0] else None
+
+            surfaces: dict[str, dict[str, Any]] = {}
+            for surface, impressions, clicks, adds, removes in connection.execute(
+                """
+                SELECT surface, SUM(impressions), SUM(clicks), SUM(adds), SUM(removes)
+                FROM analytics_daily_course_surface
+                WHERE day BETWEEN ? AND ?
+                GROUP BY surface
+                ORDER BY surface
+                """,
+                (start, end_day),
+            ):
+                impressions = int(impressions or 0)
+                clicks = int(clicks or 0)
+                adds = int(adds or 0)
+                removes = int(removes or 0)
+                surfaces[str(surface)] = {
+                    "impressions": impressions,
+                    "clicks": clicks,
+                    "adds": adds,
+                    "removes": removes,
+                    "ctr": self._research_ratio(clicks, impressions),
+                    "adoption": self._research_ratio(adds, impressions),
+                    "click_to_add": self._research_ratio(adds, clicks),
+                }
+
+            course_surface = [
+                {
+                    "course_id": str(course_id),
+                    "surface": str(surface),
+                    "impressions": int(impressions or 0),
+                    "clicks": int(clicks or 0),
+                    "adds": int(adds or 0),
+                    "removes": int(removes or 0),
+                    "ctr": self._research_ratio(clicks or 0, impressions or 0),
+                    "adoption": self._research_ratio(adds or 0, impressions or 0),
+                    "click_to_add": self._research_ratio(adds or 0, clicks or 0),
+                }
+                for course_id, surface, impressions, clicks, adds, removes in connection.execute(
+                    """
+                    SELECT course_id, surface, SUM(impressions), SUM(clicks), SUM(adds), SUM(removes)
+                    FROM analytics_daily_course_surface
+                    WHERE day BETWEEN ? AND ?
+                    GROUP BY course_id, surface
+                    ORDER BY SUM(impressions) DESC, SUM(clicks) DESC, course_id, surface
+                    LIMIT ?
+                    """,
+                    (start, end_day, max(1, min(500, course_limit))),
+                )
+            ]
+
+            run_rows = [
+                {
+                    "method": str(method),
+                    "run_count": int(run_count or 0),
+                    "zero_result_runs": int(zero_result_runs or 0),
+                    "runs_with_impressions": int(runs_with_impressions or 0),
+                    "runs_with_click": int(runs_with_click or 0),
+                    "runs_with_add": int(runs_with_add or 0),
+                    "skipped_runs": int(skipped_runs or 0),
+                    "total_impressions": int(total_impressions or 0),
+                    "total_clicks": int(total_clicks or 0),
+                    "total_adds": int(total_adds or 0),
+                }
+                for method, run_count, zero_result_runs, runs_with_impressions,
+                runs_with_click, runs_with_add, skipped_runs, total_impressions,
+                total_clicks, total_adds in connection.execute(
+                    """
+                    SELECT method, SUM(run_count), SUM(zero_result_runs),
+                           SUM(runs_with_impressions), SUM(runs_with_click),
+                           SUM(runs_with_add), SUM(skipped_runs),
+                           SUM(total_impressions), SUM(total_clicks), SUM(total_adds)
+                    FROM analytics_daily_recommendation_runs
+                    WHERE day BETWEEN ? AND ?
+                    GROUP BY method
+                    ORDER BY method
+                    """,
+                    (start, end_day),
+                )
+            ]
+
+            search_rows = [
+                {
+                    "search_mode": str(search_mode),
+                    "result_sets": int(result_sets or 0),
+                    "zero_result_sets": int(zero_result_sets or 0),
+                    "result_impressions": int(result_impressions or 0),
+                    "result_clicks": int(result_clicks or 0),
+                    "result_sets_with_click": int(result_sets_with_click or 0),
+                    "result_sets_with_add": int(result_sets_with_add or 0),
+                    "adds_after_click": int(adds_after_click or 0),
+                }
+                for search_mode, result_sets, zero_result_sets, result_impressions,
+                result_clicks, result_sets_with_click, result_sets_with_add,
+                adds_after_click in connection.execute(
+                    """
+                    SELECT search_mode, SUM(result_sets), SUM(zero_result_sets),
+                           SUM(result_impressions), SUM(result_clicks),
+                           SUM(result_sets_with_click), SUM(result_sets_with_add),
+                           SUM(adds_after_click)
+                    FROM analytics_daily_search_funnel
+                    WHERE day BETWEEN ? AND ?
+                    GROUP BY search_mode
+                    ORDER BY search_mode
+                    """,
+                    (start, end_day),
+                )
+            ]
+
+            decision_rows = [
+                (str(origin), str(bucket), int(value or 0))
+                for origin, bucket, value in connection.execute(
+                    """
+                    SELECT origin, bucket, SUM(value)
+                    FROM analytics_daily_decision_time_buckets
+                    WHERE day BETWEEN ? AND ?
+                    GROUP BY origin, bucket
+                    """,
+                    (start, end_day),
+                )
+            ]
+
+            dimension_rows: dict[str, list[tuple[str, int]]] = {}
+            for dimension, value, count in connection.execute(
+                """
+                SELECT dimension, value, SUM(count)
+                FROM analytics_daily_research_dimensions
+                WHERE day BETWEEN ? AND ?
+                GROUP BY dimension, value
+                ORDER BY dimension, value
+                """,
+                (start, end_day),
+            ):
+                dimension_rows.setdefault(str(dimension), []).append((str(value), int(count or 0)))
+
+            legacy_mixed_row_count, legacy_mixed_adds = connection.execute(
+                """
+                SELECT COUNT(*), COALESCE(SUM(adds), 0)
+                FROM analytics_daily_courses
+                WHERE day BETWEEN ? AND ?
+                """,
+                (start, end_day),
+            ).fetchone()
+            legacy_mixed_row_count = int(legacy_mixed_row_count or 0)
+            legacy_mixed_adds = int(legacy_mixed_adds or 0)
+
+            unknown_surface_events = int(
+                connection.execute(
+                    """
+                    SELECT COALESCE(SUM(impressions + clicks + adds + removes), 0)
+                    FROM analytics_daily_course_surface
+                    WHERE day BETWEEN ? AND ? AND surface = 'unknown'
+                    """,
+                    (start, end_day),
+                ).fetchone()[0]
+                or 0
+            )
+
+        run_totals = {
+            key: sum(row[key] for row in run_rows)
+            for key in (
+                "run_count", "zero_result_runs", "runs_with_impressions", "runs_with_click",
+                "runs_with_add", "skipped_runs", "total_impressions", "total_clicks", "total_adds",
+            )
+        }
+        for row in run_rows:
+            row.update({
+                "skip_rate": self._research_ratio(row["skipped_runs"], row["run_count"]),
+                "zero_result_rate": self._research_ratio(row["zero_result_runs"], row["run_count"]),
+                "ctr": self._research_ratio(row["total_clicks"], row["total_impressions"]),
+                "adoption": self._research_ratio(row["total_adds"], row["total_impressions"]),
+                "click_to_add": self._research_ratio(row["total_adds"], row["total_clicks"]),
+            })
+        run_totals.update({
+            "skip_rate": self._research_ratio(run_totals["skipped_runs"], run_totals["run_count"]),
+            "zero_result_rate": self._research_ratio(run_totals["zero_result_runs"], run_totals["run_count"]),
+            "ctr": self._research_ratio(run_totals["total_clicks"], run_totals["total_impressions"]),
+            "adoption": self._research_ratio(run_totals["total_adds"], run_totals["total_impressions"]),
+            "click_to_add": self._research_ratio(run_totals["total_adds"], run_totals["total_clicks"]),
+        })
+
+        search_totals = {
+            key: sum(row[key] for row in search_rows)
+            for key in (
+                "result_sets", "zero_result_sets", "result_impressions", "result_clicks",
+                "result_sets_with_click", "result_sets_with_add", "adds_after_click",
+            )
+        }
+        for row in search_rows:
+            row.update({
+                "zero_result_rate": self._research_ratio(row["zero_result_sets"], row["result_sets"]),
+                "ctr": self._research_ratio(row["result_clicks"], row["result_impressions"]),
+                "result_set_click_rate": self._research_ratio(row["result_sets_with_click"], row["result_sets"]),
+                "result_set_add_rate": self._research_ratio(row["result_sets_with_add"], row["result_sets"]),
+                "adds_after_click_rate": self._research_ratio(row["adds_after_click"], row["result_clicks"]),
+            })
+        search_totals.update({
+            "zero_result_rate": self._research_ratio(search_totals["zero_result_sets"], search_totals["result_sets"]),
+            "ctr": self._research_ratio(search_totals["result_clicks"], search_totals["result_impressions"]),
+            "result_set_click_rate": self._research_ratio(search_totals["result_sets_with_click"], search_totals["result_sets"]),
+            "result_set_add_rate": self._research_ratio(search_totals["result_sets_with_add"], search_totals["result_sets"]),
+            "adds_after_click_rate": self._research_ratio(search_totals["adds_after_click"], search_totals["result_clicks"]),
+        })
+
+        decision_by_origin: dict[str, dict[str, Any]] = {}
+        for origin, bucket, value in decision_rows:
+            entry = decision_by_origin.setdefault(origin, {"buckets": {}})
+            entry["buckets"][bucket] = value
+        for entry in decision_by_origin.values():
+            histogram = entry["buckets"]
+            entry["sample_size"] = sum(histogram.values())
+            entry["p50_ms"] = self._histogram_percentile(histogram, 0.50)
+            entry["p75_ms"] = self._histogram_percentile(histogram, 0.75)
+            entry["p90_ms"] = self._histogram_percentile(histogram, 0.90)
+
+        relation = {
+            name: self._research_distribution(dimension_rows.get(dimension, []), suppress_small=True)
+            for name, dimension in (
+                ("impressions", "department_relation_impression"),
+                ("clicks", "department_relation_click"),
+                ("adds", "department_relation_add"),
+            )
+        }
+        removals = {
+            "by_source": self._research_distribution(
+                dimension_rows.get("course_removed_original_source", [])
+            ),
+            "by_age_bucket": self._research_distribution(
+                dimension_rows.get("course_removed_age_bucket", [])
+            ),
+        }
+        provenance_fields = (
+            "client_build_sha", "client_artifact_version", "client_artifact_bundle_id",
+            "client_model_revision", "client_ranking_version", "client_query_analysis_version",
+            "server_build_sha", "server_artifact_version", "server_model_revision",
+        )
+        provenance = {
+            field: self._research_distribution(
+                dimension_rows.get(f"provenance_{field}", []), suppress_small=True
+            )
+            for field in provenance_fields
+        }
+        missing_provenance = {
+            field: {
+                "missing": int(distribution["values"].get("unknown", 0))
+                + int(distribution["suppressed_sample_size"] if "unknown" not in distribution["values"] else 0),
+                "sample_size": distribution["sample_size"],
+            }
+            for field, distribution in provenance.items()
+        }
+        # Use the unsuppressed dimension rows for quality counts.  A hidden
+        # value is still a valid aggregate; only its low-n label is withheld.
+        for field in provenance_fields:
+            all_counts = dict(dimension_rows.get(f"provenance_{field}", []))
+            missing_provenance[field]["missing"] = int(all_counts.get("unknown", 0))
+
+        suppressed_dimensions = [
+            name
+            for name, distribution in (
+                *((f"department_relation.{name}", distribution) for name, distribution in relation.items()),
+                *((f"provenance.{field}", distribution) for field, distribution in provenance.items()),
+            )
+            if distribution["suppressed"]
+        ]
+        legacy_warning = (
+            "analytics_daily_courses.adds is legacy_mixed_adds and must not be used "
+            "for recommendation adoption, churn, or source-specific research metrics."
+        )
+        return {
+            "data_definition_version": RESEARCH_REPORT_VERSION,
+            "data_start_date": data_start_date,
+            "range": {"start": start, "end": end_day, "days": days},
+            "retention": {
+                "raw_events_days": self.retention.events_days,
+                "diagnostic_days": self.retention.diagnostics_days,
+                "identifier_days": self.retention.identifier_days,
+                "aggregates": "retained",
+                "raw_search_query": "never stored",
+            },
+            "backfill": {
+                "source": "retained_raw_events_only",
+                "estimated_values": False,
+                "unresolved_history": "legacy_mixed_or_omitted_when_source_is_unprovable",
+                "raw_event_retention_days": self.retention.events_days,
+            },
+            "data_quality": {
+                "legacy_data": {
+                    "present": legacy_mixed_row_count > 0,
+                    "legacy_mixed_rows": legacy_mixed_row_count,
+                    "legacy_mixed_adds": legacy_mixed_adds,
+                    "warning": legacy_warning,
+                },
+                "unknown_source": {
+                    "surface_events": unknown_surface_events,
+                    "removal_source": removals["by_source"]["values"].get("unknown", 0),
+                },
+                "missing_provenance": missing_provenance,
+                "insufficient_sample_size": {
+                    "minimum_n": MIN_RESEARCH_SLICE_N,
+                    "suppressed_dimensions": suppressed_dimensions,
+                },
+            },
+            "legacy_mixed_metric_warning": legacy_warning,
+            "overview": {
+                "semantic_recommendation_ctr": surfaces.get("semantic_recommendation", {}).get("ctr"),
+                "schedule_slot_ctr": surfaces.get("schedule_slot", {}).get("ctr"),
+                "recommendation_run_skip_rate": run_totals["skip_rate"],
+                "zero_result_run_rate": run_totals["zero_result_rate"],
+            },
+            "surfaces": surfaces,
+            "courses": course_surface,
+            "recommendation": {"by_method": run_rows, "totals": run_totals},
+            "search": {"by_mode": search_rows, "totals": search_totals},
+            "decision_time": {"by_origin": decision_by_origin, "bucket_definition": DECISION_TIME_BUCKETS},
+            "removals": removals,
+            "department_relation": relation,
+            "provenance": provenance,
+        }
+
     def report(self, *, days: int = 30, course_limit: int = 25) -> dict[str, Any]:
         """The dashboard's single data source. Reads aggregates, never raw."""
         self.maintain(force=True)
@@ -1653,6 +2156,15 @@ class AnalyticsStore:
             adds_from_recommendation = float(
                 metrics.get("course_added_source", {}).get("recommendation", 0.0)
             )
+            legacy_data_start_row = connection.execute(
+                "SELECT MIN(day) FROM analytics_daily_metrics WHERE day BETWEEN ? AND ?",
+                (start, end_day),
+            ).fetchone()
+            legacy_data_start_date = (
+                str(legacy_data_start_row[0])
+                if legacy_data_start_row and legacy_data_start_row[0]
+                else None
+            )
 
         counts = metrics.get("event_count", {})
         impressions = counts.get("recommendation_impression", 0.0)
@@ -1667,6 +2179,8 @@ class AnalyticsStore:
             return round(numerator / denominator, 4) if denominator else None
 
         return {
+            "data_definition_version": LEGACY_REPORT_VERSION,
+            "data_start_date": legacy_data_start_date,
             "range": {"start": start, "end": end_day, "days": days},
             "retention": {
                 "raw_events_days": self.retention.events_days,

@@ -1025,7 +1025,10 @@ def register_routes(application: FastAPI) -> None:
             "analytics_report",
         ):
             raise HTTPException(status_code=429, detail="Too many analytics report requests")
-        return _require_analytics_admin(request).report(days=days, course_limit=course_limit)
+        store = _require_analytics_admin(request)
+        if _analytics_research_report_v2_enabled():
+            return store.research_report(days=days, course_limit=course_limit)
+        return store.report(days=days, course_limit=course_limit)
 
     @application.get("/api/v1/analytics/dashboard", include_in_schema=False)
     def analytics_dashboard() -> Response:
@@ -1493,6 +1496,13 @@ def _compound_enabled() -> bool:
 
 def _analytics_instrumentation_v3_enabled() -> bool:
     return os.environ.get("FJU_ANALYTICS_INSTRUMENTATION_V3", "0").strip().lower() in {
+        "1", "true", "yes", "on",
+    }
+
+
+def _analytics_research_report_v2_enabled() -> bool:
+    """Phase 2 report switch; enabled by default for immediate dashboard cutover."""
+    return os.environ.get("FJU_ANALYTICS_RESEARCH_REPORT_V2", "1").strip().lower() in {
         "1", "true", "yes", "on",
     }
 

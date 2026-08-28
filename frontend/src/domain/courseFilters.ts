@@ -1,4 +1,4 @@
-import type { Course, WeightedCourseOption } from "./types";
+import type { CourseSummary, WeightedCourseOption } from "./types";
 
 export const OFFICIAL_SECTIONS = [
   "D0", "D1", "D2", "D3", "D4", "DN", "D5", "D6", "D7", "D8",
@@ -69,7 +69,7 @@ function matchesWeighted(rows: WeightedCourseOption[] | undefined, selectedIds: 
   return values.some((item) => selected.has(item.id) && item.percent === maximum);
 }
 
-function matchesAssessmentStyle(course: Course, style: AssessmentStyle): boolean {
+function matchesAssessmentStyle(course: CourseSummary, style: AssessmentStyle): boolean {
   if (style === "all") return true;
   const values = new Map((course.assessments ?? []).map((item) => [item.id, item.percent]));
   const sum = (ids: Iterable<string>) => [...ids].reduce((total, id) => total + (values.get(id) ?? 0), 0);
@@ -79,7 +79,7 @@ function matchesAssessmentStyle(course: Course, style: AssessmentStyle): boolean
   return maximum > 0 && totals[style] === maximum;
 }
 
-function matchesRelations(course: Course, filters: RelationFilters): boolean {
+function matchesRelations(course: CourseSummary, filters: RelationFilters): boolean {
   const available = (course.relations ?? []).filter((item) => filters.includeIndirect || item.strength === "direct");
   const matchesGroup = (selected: string[], groups: string[]) => !selected.length || available.some((item) => selected.includes(item.id) && groups.includes(item.group));
   return matchesGroup(filters.literacy, ["literacy"])
@@ -87,7 +87,7 @@ function matchesRelations(course: Course, filters: RelationFilters): boolean {
     && matchesGroup(filters.specialIssues, ["special_issues"]);
 }
 
-function matchesOnline(course: Course, filter: OnlineTeachingFilter): boolean {
+function matchesOnline(course: CourseSummary, filter: OnlineTeachingFilter): boolean {
   if (filter.mode === "all") return true;
   const value = course.online_teaching;
   if (!value) return false;
@@ -98,7 +98,7 @@ function matchesOnline(course: Course, filter: OnlineTeachingFilter): boolean {
   return value.sync || value.async;
 }
 
-export function matchesAdvancedCourseFilters(course: Course, filters: AdvancedCourseFilters): boolean {
+export function matchesAdvancedCourseFilters(course: CourseSummary, filters: AdvancedCourseFilters): boolean {
   if (filters.classTime.mode === "sections") {
     const actual = course.meetings.flatMap((meeting) => meeting.sections);
     if (!intersects(actual, filters.classTime.sections)) return false;

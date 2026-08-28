@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import base64
 import hashlib
 import json
 import math
 import os
 import re
+import unicodedata
+import zlib
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable, Protocol
@@ -25,6 +28,8 @@ from .query_routes import ROUTES, build_route_embeddings, route_data
 
 ARTIFACT_VERSION = "fju_recommender_v3"
 CATALOG_SCHEMA_VERSION = "fju_catalog_v4"
+CATALOG_SUMMARY_SCHEMA_VERSION = "fju_catalog_summary_v1"
+SEARCH_INDEX_SCHEMA_VERSION = "fju_bm25_index_v1"
 CATALOG_SCHEMA_FIELDS = (
     "study_level",
     "audience_grade",
@@ -51,6 +56,65 @@ SECTION_WEIGHTS = {
     "prerequisite": 0.15,
     "skills": 0.10,
 }
+SEARCH_FIELDS = (
+    "title",
+    "objective",
+    "weekly_progress",
+    "prerequisite",
+    "materials",
+    "skills",
+)
+SEARCH_FIELD_WEIGHTS = {
+    "title": 3.2,
+    "objective": 1.8,
+    "weekly_progress": 1.3,
+    "prerequisite": 1.0,
+    "materials": 0.9,
+    "skills": 0.8,
+}
+SEARCH_K1 = 1.2
+SEARCH_B = 0.75
+CATALOG_SUMMARY_FIELDS = (
+    "course_id",
+    "ava_no",
+    "name_zh",
+    "name_en",
+    "credits",
+    "required_elective_name",
+    "course_tags",
+    "academic_year",
+    "semester",
+    "department",
+    "audience_department",
+    "raw_department",
+    "department_identity",
+    "department_display",
+    "division_code",
+    "department_code",
+    "official_department_name_zh",
+    "official_department_label",
+    "official_department_type",
+    "department_match",
+    "study_level",
+    "audience_grade",
+    "grade",
+    "class_group",
+    "division",
+    "teacher",
+    "teacher_en",
+    "instructors",
+    "teaching_language",
+    "material_language",
+    "relations",
+    "teaching_methods",
+    "assessments",
+    "online_teaching",
+    "meetings",
+    "prerequisite",
+    "eligibility_base_status",
+    "eligibility_rules",
+    "source_url",
+)
 GRADE_RE = re.compile(r"^(.+?)([一二三四五六七])([甲乙丙丁戊己庚辛壬癸愛智仁勇忠孝信義和平]*)$")
 GRADE_MAP = {"一": 1, "二": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7}
 
@@ -297,6 +361,226 @@ def _offline_model_loading_enabled() -> bool:
     return os.environ.get("HF_HUB_OFFLINE", "0").strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _normalize_search_text(value: Any) -> str:
+    return unicodedata.normalize("NFKC", str(value or "")).lower()
+
+
+def _is_han(character: str) -> bool:
+    codepoint = ord(character)
+    return (
+        0x3400 <= codepoint <= 0x4DBF
+        or 0x4E00 <= codepoint <= 0x9FFF
+        or 0xF900 <= codepoint <= 0xFAFF
+    )
+
+
+def _tokenize_search(value: Any) -> list[str]:
+    normalized = _normalize_search_text(value)
+    tokens: list[str] = []
+    tokens.extend(re.findall(r"[a-z0-9]+(?:[+#.-][a-z0-9]+)*", normalized))
+
+    index = 0
+    while index < len(normalized):
+        if not _is_han(normalized[index]):
+            index += 1
+            continue
+        end = index + 1
+        while end < len(normalized) and _is_han(normalized[end]):
+            end += 1
+        run = normalized[index:end]
+        characters = list(run)
+        tokens.extend(characters)
+        tokens.extend(
+            characters[position] + characters[position + 1]
+            for position in range(len(characters) - 1)
+        )
+        index = end
+
+    word: list[str] = []
+    for character in normalized:
+        if character.isalnum():
+            word.append(character)
+            continue
+        if word:
+            token = "".join(word)
+            if token not in tokens:
+                tokens.append(token)
+            word = []
+    if word:
+        token = "".join(word)
+        if token not in tokens:
+            tokens.append(token)
+    return [token for token in tokens if token]
+
+
+def _search_field_text(course: dict[str, Any], field: str) -> str:
+    if field == "title":
+        return f"{course.get('name_zh') or ''} {course.get('name_en') or ''}"
+    if field == "prerequisite":
+        sections = course.get("sections") or {}
+        return f"{course.get('prerequisite') or ''} {sections.get('prerequisite') or ''}"
+    return str((course.get("sections") or {}).get(field) or "")
+
+
+def build_search_index_payload(catalog: list[dict[str, Any]]) -> dict[str, Any]:
+    """Build the compact, client-hydratable BM25 index used by RecommendPage.
+
+    The browser receives token counts and document statistics, not the verbose
+    syllabus paragraphs.  Integer vocabulary references keep repeated tokens
+    out of every document while preserving the existing TypeScript scorer's
+    inputs exactly.
+    """
+
+    vocabulary: set[str] = set()
+    document_tokens: dict[str, dict[str, dict[str, int]]] = {}
+    document_lengths: dict[str, dict[str, int]] = {}
+    field_lengths: dict[str, list[int]] = {field: [] for field in SEARCH_FIELDS}
+    document_frequency: dict[str, dict[str, int]] = {field: {} for field in SEARCH_FIELDS}
+
+    for course in catalog:
+        course_id = str(course["course_id"])
+        per_field: dict[str, dict[str, int]] = {}
+        per_length: dict[str, int] = {}
+        for field in SEARCH_FIELDS:
+            counts: dict[str, int] = {}
+            for token in _tokenize_search(_search_field_text(course, field)):
+                counts[token] = counts.get(token, 0) + 1
+            per_field[field] = counts
+            length = sum(counts.values())
+            per_length[field] = length
+            field_lengths[field].append(length)
+            for token in counts:
+                vocabulary.add(token)
+                document_frequency[field][token] = document_frequency[field].get(token, 0) + 1
+        document_tokens[course_id] = per_field
+        document_lengths[course_id] = per_length
+
+    ordered_vocabulary = sorted(vocabulary)
+    token_id = {token: index for index, token in enumerate(ordered_vocabulary)}
+    documents: dict[str, Any] = {}
+    for course in catalog:
+        course_id = str(course["course_id"])
+        fields: dict[str, Any] = {}
+        for field in SEARCH_FIELDS:
+            fields[field] = {
+                "length": document_lengths[course_id][field],
+                "counts": [
+                    [token_id[token], count]
+                    for token, count in sorted(document_tokens[course_id][field].items())
+                ],
+            }
+        documents[course_id] = {
+            "fields": fields,
+            "title_text": _normalize_search_text(_search_field_text(course, "title")),
+        }
+
+    return {
+        "schema_version": SEARCH_INDEX_SCHEMA_VERSION,
+        "tokenizer_version": "nfkc-lower-ascii-han-v1",
+        "fields": list(SEARCH_FIELDS),
+        "field_weights": SEARCH_FIELD_WEIGHTS,
+        "k1": SEARCH_K1,
+        "b": SEARCH_B,
+        "vocabulary": ordered_vocabulary,
+        "document_frequency": {
+            field: [[token_id[token], frequency] for token, frequency in sorted(values.items())]
+            for field, values in document_frequency.items()
+        },
+        "average_field_length": {
+            field: sum(lengths) / max(1, len(lengths))
+            for field, lengths in field_lengths.items()
+        },
+        "document_count": len(catalog),
+        "documents": documents,
+    }
+
+
+def _normalize_family_text(value: Any) -> str:
+    normalized = _normalize_search_text(value)
+    return "".join(
+        character
+        for character in normalized
+        if not (unicodedata.category(character).startswith("P") or unicodedata.category(character).startswith("S"))
+        and not character.isspace()
+    ).strip()
+
+
+def _course_family_signature(course: dict[str, Any]) -> str:
+    sections = course.get("sections") or {}
+    return _normalize_family_text(
+        "\n".join(
+            value
+            for value in (
+                sections.get("objective"),
+                sections.get("weekly_progress"),
+                course.get("prerequisite"),
+            )
+            if value
+        )
+    )
+
+
+def build_catalog_summary(catalog: list[dict[str, Any]]) -> dict[str, Any]:
+    """Return metadata and the compact search index for the first-run client."""
+
+    courses = [
+        {
+            **{
+                field: (
+                    [
+                        {**rule, "evidence": ""}
+                        for rule in (course.get(field) or [])
+                    ]
+                    if field == "eligibility_rules"
+                    else course.get(field)
+                )
+                for field in CATALOG_SUMMARY_FIELDS
+            },
+            "family_signature": _course_family_signature(course),
+        }
+        for course in catalog
+    ]
+    return {
+        "schema_version": CATALOG_SUMMARY_SCHEMA_VERSION,
+        "course_count": len(courses),
+        "course_ids": [course["course_id"] for course in courses],
+        "courses": courses,
+        "search_index": build_search_index_payload(catalog),
+    }
+
+
+def serialize_catalog_summary(summary: dict[str, Any]) -> dict[str, Any]:
+    """Wrap the summary in a compact browser-decodable deflate envelope."""
+
+    compressed = zlib.compress(orjson.dumps(summary), level=9)
+    return {
+        "schema_version": CATALOG_SUMMARY_SCHEMA_VERSION,
+        "encoding": "deflate-base64-v1",
+        "course_count": int(summary["course_count"]),
+        "payload": base64.b64encode(compressed).decode("ascii"),
+    }
+
+
+def deserialize_catalog_summary(value: Any) -> dict[str, Any]:
+    """Read both the compact artifact and the pre-compression development shape."""
+
+    if isinstance(value, dict) and value.get("encoding") == "deflate-base64-v1":
+        payload = value.get("payload")
+        if not isinstance(payload, str):
+            raise ValueError("Catalog summary payload is missing")
+        try:
+            decoded = zlib.decompress(base64.b64decode(payload))
+            summary = orjson.loads(decoded)
+        except (ValueError, zlib.error, orjson.JSONDecodeError) as exc:
+            raise ValueError("Catalog summary payload is invalid") from exc
+        if not isinstance(summary, dict):
+            raise ValueError("Catalog summary must be an object")
+        return summary
+    if isinstance(value, dict):
+        return value
+    raise ValueError("Catalog summary must be an object")
+
+
 def build_artifacts(
     records: Iterable[dict[str, Any]],
     output_dir: Path,
@@ -318,9 +602,11 @@ def build_artifacts(
         raise ValueError("Embedding count does not match catalog count")
 
     catalog_path = output_dir / "catalog.json"
+    summary_path = output_dir / "catalog-summary.json"
     index_path = output_dir / "embedding-index.json"
     vectors_path = output_dir / "course-embeddings.f32"
     catalog_path.write_bytes(orjson.dumps(catalog))
+    summary_path.write_bytes(orjson.dumps(serialize_catalog_summary(build_catalog_summary(catalog))))
     index = {
         "artifact_version": ARTIFACT_VERSION,
         "dimension": int(vectors.shape[1]),
@@ -353,7 +639,7 @@ def build_artifacts(
         "route_count": int(route_vectors.shape[0]),
         "files": {
             path.name: {"sha256": _sha256(path), "bytes": path.stat().st_size}
-            for path in (catalog_path, index_path, vectors_path, route_index_path, route_vectors_path)
+            for path in (catalog_path, summary_path, index_path, vectors_path, route_index_path, route_vectors_path)
         },
     }
     manifest_path = output_dir / "artifact-manifest.json"
@@ -430,20 +716,28 @@ def refresh_catalog_artifact(
         raise ValueError("Canonical course count does not match artifact manifest")
 
     catalog_path = output_dir / "catalog.json"
+    summary_path = output_dir / "catalog-summary.json"
     manifest_path = output_dir / "artifact-manifest.json"
     catalog_tmp = catalog_path.with_suffix(".json.tmp")
+    summary_tmp = summary_path.with_suffix(".json.tmp")
     manifest_tmp = manifest_path.with_suffix(".json.tmp")
     catalog_tmp.write_bytes(orjson.dumps(catalog))
+    summary_tmp.write_bytes(orjson.dumps(serialize_catalog_summary(build_catalog_summary(catalog))))
     manifest["catalog_schema_version"] = CATALOG_SCHEMA_VERSION
     manifest["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
     manifest.setdefault("files", {})["catalog.json"] = {
         "sha256": _sha256(catalog_tmp),
         "bytes": catalog_tmp.stat().st_size,
     }
+    manifest.setdefault("files", {})["catalog-summary.json"] = {
+        "sha256": _sha256(summary_tmp),
+        "bytes": summary_tmp.stat().st_size,
+    }
     manifest_tmp.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     catalog_tmp.replace(catalog_path)
+    summary_tmp.replace(summary_path)
     manifest_tmp.replace(manifest_path)
     return validate_artifacts(output_dir)
 
@@ -460,11 +754,17 @@ def migrate_catalog_artifact(output_dir: Path) -> dict[str, Any]:
     ]
     if migrated != catalog:
         catalog_path.write_bytes(orjson.dumps(migrated))
+    summary_path = output_dir / "catalog-summary.json"
+    summary_path.write_bytes(orjson.dumps(serialize_catalog_summary(build_catalog_summary(migrated))))
     manifest["catalog_schema_version"] = CATALOG_SCHEMA_VERSION
     files = manifest.setdefault("files", {})
     files["catalog.json"] = {
         "sha256": _sha256(catalog_path),
         "bytes": catalog_path.stat().st_size,
+    }
+    files["catalog-summary.json"] = {
+        "sha256": _sha256(summary_path),
+        "bytes": summary_path.stat().st_size,
     }
     (output_dir / "artifact-manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"

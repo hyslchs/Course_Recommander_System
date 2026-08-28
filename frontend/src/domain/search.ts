@@ -1,4 +1,4 @@
-import type { Course } from "./types";
+import type { Course, CourseSummary } from "./types";
 
 export type SearchField = "title" | "objective" | "weekly_progress" | "prerequisite" | "materials" | "skills";
 
@@ -40,6 +40,23 @@ export interface SearchIndex {
   documentCount: number;
 }
 
+export interface SerializedSearchIndex {
+  schema_version: string;
+  tokenizer_version: string;
+  fields: SearchField[];
+  field_weights: Record<SearchField, number>;
+  k1: number;
+  b: number;
+  vocabulary: string[];
+  document_frequency: Record<SearchField, Array<[number, number]>>;
+  average_field_length: Record<SearchField, number>;
+  document_count: number;
+  documents: Record<string, {
+    title_text: string;
+    fields: Record<SearchField, { length: number; counts: Array<[number, number]> }>;
+  }>;
+}
+
 export interface LexicalMatch {
   score: number;
   titleMatch: number;
@@ -72,10 +89,11 @@ function tokenize(value: string): string[] {
   return tokens.filter(Boolean);
 }
 
-function fieldText(course: Course, field: SearchField): string {
+function fieldText(course: Course | CourseSummary, field: SearchField): string {
+  const sections = "sections" in course ? course.sections : undefined;
   if (field === "title") return `${course.name_zh} ${course.name_en}`;
-  if (field === "prerequisite") return `${course.prerequisite} ${course.sections.prerequisite ?? ""}`;
-  return course.sections[field] ?? "";
+  if (field === "prerequisite") return `${course.prerequisite} ${sections?.prerequisite ?? ""}`;
+  return sections?.[field] ?? "";
 }
 
 function indexField(value: string): IndexedField {
@@ -84,7 +102,7 @@ function indexField(value: string): IndexedField {
   return { length: [...counts.values()].reduce((sum, count) => sum + count, 0), counts };
 }
 
-export function buildSearchIndex(catalog: Course[]): SearchIndex {
+export function buildSearchIndex(catalog: Array<Course | CourseSummary>): SearchIndex {
   const documents = new Map<string, IndexedDocument>();
   const documentFrequency = new Map<string, number>();
   const fieldLengths: Record<SearchField, number[]> = {
@@ -142,7 +160,38 @@ function clamp(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
 
-export function scoreLexically(index: SearchIndex, course: Course, query: string): LexicalMatch {
+export function hydrateSearchIndex(payload: SerializedSearchIndex): SearchIndex {
+  const vocabulary = payload.vocabulary ?? [];
+  const tokenAt = (id: number): string => {
+    const token = vocabulary[id];
+    if (token === undefined) throw new Error("推薦搜尋索引格式不正確");
+    return token;
+  };
+  const documents = new Map<string, IndexedDocument>();
+  for (const [courseId, rawDocument] of Object.entries(payload.documents ?? {})) {
+    const fields = Object.fromEntries(searchFields.map((field) => {
+      const rawField = rawDocument.fields?.[field];
+      if (!rawField) throw new Error("推薦搜尋索引缺少課程欄位");
+      const counts = new Map<string, number>(rawField.counts.map(([id, count]) => [tokenAt(id), count]));
+      return [field, { length: rawField.length, counts }];
+    })) as Record<SearchField, IndexedField>;
+    documents.set(courseId, { fields, titleText: rawDocument.title_text ?? "" });
+  }
+  const documentFrequency = new Map<string, number>();
+  for (const field of searchFields) {
+    for (const [id, frequency] of payload.document_frequency?.[field] ?? []) {
+      documentFrequency.set(`${field}:${tokenAt(id)}`, frequency);
+    }
+  }
+  return {
+    documents,
+    documentFrequency,
+    averageFieldLength: payload.average_field_length,
+    documentCount: payload.document_count,
+  };
+}
+
+export function scoreLexically(index: SearchIndex, course: Course | CourseSummary, query: string): LexicalMatch {
   const queryTokens = [...new Set(tokenize(query))];
   if (!queryTokens.length) return { score: 0, titleMatch: 0, exactTitle: false, matchedTerms: [], matchedFields: [] };
   const document = index.documents.get(course.course_id);

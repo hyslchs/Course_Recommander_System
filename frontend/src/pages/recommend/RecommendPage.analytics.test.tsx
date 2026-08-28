@@ -12,6 +12,7 @@ const apiMocks = vi.hoisted(() => ({
   embedQuery: vi.fn(),
   getCatalog: vi.fn(),
   getEmbeddingBundle: vi.fn(),
+  preloadRecommendationAssets: vi.fn(),
   getFacets: vi.fn(),
 }));
 const dbMocks = vi.hoisted(() => ({ getAllRecords: vi.fn(), putRecord: vi.fn() }));
@@ -70,6 +71,11 @@ describe("recommend page analytics", () => {
     apiMocks.getCatalog.mockResolvedValue([]);
     apiMocks.getEmbeddingBundle.mockResolvedValue({
       manifest: {}, index: { course_ids: [], dimension: 1 }, vectors: new Float32Array(),
+    });
+    apiMocks.preloadRecommendationAssets.mockResolvedValue({
+      catalog: [], courseIds: [], vectors: new Float32Array(), dimension: 1,
+      searchIndex: { documents: new Map(), documentFrequency: new Map(), averageFieldLength: { title: 0, objective: 0, weekly_progress: 0, prerequisite: 0, materials: 0, skills: 0 }, documentCount: 0 },
+      manifest: {},
     });
     apiMocks.embedQuery.mockResolvedValue(new Float32Array([1]));
     dbMocks.getAllRecords.mockResolvedValue([]);

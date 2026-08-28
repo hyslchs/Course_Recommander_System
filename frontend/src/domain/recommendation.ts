@@ -5,6 +5,7 @@ import { matchesAdvancedCourseFilters, type AdvancedCourseFilters } from "./cour
 import type {
   CompletedCourse,
   Course,
+  CourseSummary,
   Profile,
   Recommendation,
   RecommendationCategory,
@@ -32,7 +33,7 @@ export interface FilterEvidenceLabels {
   assessment?: Record<string, string>;
 }
 
-export function classifyRecommendationCategory(course: Course, profile?: Profile): RecommendationCategory {
+export function classifyRecommendationCategory(course: CourseSummary, profile?: Profile): RecommendationCategory {
   const isSameDepartment = sameDepartment(course, profile);
   if (isSameDepartment && course.required_elective_name === "必修") return "home_required";
   if (isSameDepartment && course.required_elective_name !== "通識") return "home_elective";
@@ -87,15 +88,17 @@ function normalizeFamilyText(value: string | null | undefined): string {
     .trim();
 }
 
-function courseContentSignature(course: Course): string {
+function courseContentSignature(course: CourseSummary): string {
+  if (course.family_signature) return course.family_signature;
+  const sections = (course as Partial<Course>).sections;
   return normalizeFamilyText([
-    course.sections.objective,
-    course.sections.weekly_progress,
+    sections?.objective,
+    sections?.weekly_progress,
     course.prerequisite,
   ].filter(Boolean).join("\n"));
 }
 
-function courseDepartmentSignature(course: Course): string {
+function courseDepartmentSignature(course: CourseSummary): string {
   const value = [
     course.department_identity,
     course.official_department_name_zh,
@@ -105,7 +108,7 @@ function courseDepartmentSignature(course: Course): string {
   return normalizeFamilyText(value);
 }
 
-function isGenericIndependentCourseTitle(course: Course): boolean {
+function isGenericIndependentCourseTitle(course: CourseSummary): boolean {
   return /(專題|論文|獨立研究|個別研究|書報討論|實習)/.test(course.name_zh);
 }
 
@@ -116,8 +119,8 @@ function isGenericIndependentCourseTitle(course: Course): boolean {
  * This avoids merging generic titles such as 「專題（一）」 across departments.
  */
 export function sameCourseFamily(
-  left: Course,
-  right: Course,
+  left: CourseSummary,
+  right: CourseSummary,
   leftVector?: Float32Array,
   rightVector?: Float32Array,
 ): boolean {
@@ -145,7 +148,7 @@ export function sameCourseFamily(
   );
 }
 
-function groupCourseFamilies<T extends { course: Course; vector: Float32Array }>(items: T[]): T[][] {
+function groupCourseFamilies<T extends { course: CourseSummary; vector: Float32Array }>(items: T[]): T[][] {
   const groups: T[][] = [];
   for (const item of items) {
     const group = groups.find((candidate) => sameCourseFamily(
@@ -230,7 +233,7 @@ function queryReasons(
 }
 
 function advancedFilterReasons(
-  course: Course,
+  course: CourseSummary,
   filters?: AdvancedCourseFilters,
   labels: FilterEvidenceLabels = {},
 ): string[] {
@@ -242,7 +245,7 @@ function advancedFilterReasons(
     if (matched.length) reasons.push(`包含 ${matched.join("、")}`);
   }
   const matchedWeighted = (
-    rows: Course["teaching_methods"] | Course["assessments"],
+    rows: CourseSummary["teaching_methods"] | CourseSummary["assessments"],
     selectedIds: string[],
     criterion: AdvancedCourseFilters["teachingMethodCriterion"],
   ) => {
@@ -285,7 +288,7 @@ function advancedFilterReasons(
 }
 
 function rankSingleCourses(input: {
-  catalog: Course[];
+  catalog: CourseSummary[];
   courseIds: string[];
   vectors: Float32Array;
   dimension: number;
@@ -298,9 +301,9 @@ function rankSingleCourses(input: {
   creditFilters?: number[];
   completed: CompletedCourse[];
   dismissedIds: string[];
-  scheduledCourses?: Course[];
-  scheduledMeetings?: Course["meetings"];
-  lockedCourses?: Course[];
+  scheduledCourses?: CourseSummary[];
+  scheduledMeetings?: CourseSummary["meetings"];
+  lockedCourses?: CourseSummary[];
   preferredWeekdays?: number[];
   includeNonPreferredWeekdays?: boolean;
   timeOfDayFilter?: TimeOfDayFilter;
@@ -440,7 +443,7 @@ function rankSingleCourses(input: {
 }
 
 export function rankCourses(input: {
-  catalog: Course[];
+  catalog: CourseSummary[];
   courseIds: string[];
   vectors: Float32Array;
   dimension: number;
@@ -453,9 +456,9 @@ export function rankCourses(input: {
   creditFilters?: number[];
   completed: CompletedCourse[];
   dismissedIds: string[];
-  scheduledCourses?: Course[];
-  scheduledMeetings?: Course["meetings"];
-  lockedCourses?: Course[];
+  scheduledCourses?: CourseSummary[];
+  scheduledMeetings?: CourseSummary["meetings"];
+  lockedCourses?: CourseSummary[];
   preferredWeekdays?: number[];
   includeNonPreferredWeekdays?: boolean;
   timeOfDayFilter?: TimeOfDayFilter;
@@ -507,7 +510,7 @@ export function countCourseCandidates(input: Parameters<typeof rankCourses>[0]):
   return candidateCount;
 }
 
-function matchesHardConstraints(course: Course, constraints: HardConstraints): boolean {
+function matchesHardConstraints(course: CourseSummary, constraints: HardConstraints): boolean {
   const meetings = course.meetings ?? [];
   const inferredStudyLevel = inferCourseStudyLevel(course);
   if (constraints.weekdays?.length && !meetings.some((meeting) => meeting.weekday !== null && constraints.weekdays!.includes(meeting.weekday))) return false;

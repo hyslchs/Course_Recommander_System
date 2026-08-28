@@ -2,6 +2,7 @@
 import { Badge, Button, Card, Description, Label, Tag, TagGroup, TextArea } from "@heroui/react";
 import { FunnelSimple } from "@phosphor-icons/react";
 import { useFacets, useRecommendationSources, type FacetMap } from "@/data/queries";
+import { preloadRecommendationAssets } from "@/data/api";
 import { putRecord } from "@/data/db";
 import { track } from "@/analytics/client";
 import { changedFilters } from "@/analytics/filters";
@@ -16,7 +17,7 @@ import { inferProfileStudyLevel } from "@/domain/eligibility";
 import { defaultPreferredWeekdays } from "@/domain/profileDefaults";
 import { rankCoursesWithDiagnostics } from "@/domain/recommendation";
 import { coursesInPlan, meetingsInPlan } from "@/domain/scheduleUtils";
-import { buildSearchIndex } from "@/domain/search";
+import type { SearchIndex } from "@/domain/search";
 import { sanitizeSubjectQuery, type DetectedFilterPhrase } from "@/domain/subjectQuery";
 import { useLocalDataState, useLocalRecords, useProfile } from "@/hooks/localData";
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
@@ -32,7 +33,7 @@ import {
   removeAppliedFilters,
   type RecommendFilters,
 } from "./filterState";
-import type { CompletedCourse, Course, Recommendation } from "@/domain/types";
+import type { CompletedCourse, CourseSummary, Recommendation } from "@/domain/types";
 
 /** Stable identity so the `useMemo`s below do not rerun while facets are loading. */
 const emptyFacets: FacetMap = {};
@@ -53,6 +54,7 @@ type RecommendationEmbedding = {
   courseIds: string[];
   vectors: Float32Array;
   dimension: number;
+  searchIndex: SearchIndex;
 };
 
 /**
@@ -96,8 +98,7 @@ function RecommendationResult({ item, index }: { item: Recommendation; index: nu
 export function RecommendPage() {
   const { writable } = useLocalDataState();
   const profile = useProfile();
-  const [catalog, setCatalog] = useState<Course[]>([]);
-  const searchIndex = useMemo(() => buildSearchIndex(catalog), [catalog]);
+  const [catalog, setCatalog] = useState<CourseSummary[]>([]);
   // Same cache entry as ExplorePage's — the facet list is fetched once per session.
   const facets = useFacets().data ?? emptyFacets;
   const completed = useLocalRecords<CompletedCourse & { id: string }>("completedCourses");
@@ -142,6 +143,13 @@ export function RecommendPage() {
     const preferredWeekdays = profile?.preferredWeekdays?.length ? profile.preferredWeekdays : defaultPreferredWeekdays;
     setFilters((current) => ({ ...current, preferredWeekdays }));
   }, [profile?.preferredWeekdays]);
+  useEffect(() => {
+    if (!profile) return;
+    // Profile completion is the intent signal for this route. The promise is
+    // shared with the button-triggered request, so a click never downloads a
+    // second copy of the catalog or vectors.
+    void preloadRecommendationAssets().catch(() => undefined);
+  }, [profile]);
 
   const creditOptions = useMemo(() => (facets.credits ?? [])
     .map((item) => Number(item.value))
@@ -175,7 +183,7 @@ export function RecommendPage() {
       dimension: embedding.dimension,
       query: embedding.query,
       queryText: embedding.queryText,
-      searchIndex,
+      searchIndex: embedding.searchIndex,
       profile,
       categoryFilters: applied.categoryFilters,
       courseTagFilters: applied.courseTagFilters,
@@ -190,7 +198,7 @@ export function RecommendPage() {
       scheduledCourses: applied.includeScheduleInfo ? scheduledCourses : [],
       scheduledMeetings: applied.includeScheduleInfo ? scheduledMeetings : [],
     };
-  }, [activePlan, catalog, completed, dismissed, labelMaps, profile, searchIndex]);
+  }, [activePlan, catalog, completed, dismissed, labelMaps, profile]);
   const rerank = useCallback((embedding: RecommendationEmbedding, applied: RecommendFilters) => {
     const diagnostic = rankCoursesWithDiagnostics(buildRankingInput(embedding, applied));
     setResults(diagnostic.recommendations);
@@ -325,6 +333,7 @@ export function RecommendPage() {
           courseIds: loaded.courseIds,
           vectors: loaded.vectors,
           dimension: loaded.dimension,
+          searchIndex: loaded.searchIndex,
         });
       },
     });

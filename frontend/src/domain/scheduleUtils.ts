@@ -1,4 +1,4 @@
-import type { Course, Meeting, ScheduleEntry, SchedulePlan } from "./types";
+import type { CourseSummary, Meeting, ScheduleEntry, SchedulePlan } from "./types";
 
 /** Record id under which the shared active plan is persisted in the `recommendationPreferences` store. */
 export const ACTIVE_SCHEDULE_PREFERENCE_ID = "active-schedule-plan-v1";
@@ -10,12 +10,12 @@ export interface ActiveSchedulePreference {
 }
 
 /** Return the course as it is actually scheduled, including a manual time override. */
-export function courseForScheduleEntry(course: Course, entry: ScheduleEntry): Course {
-  return entry.meetingsOverride ? { ...course, meetings: entry.meetingsOverride } : course;
+export function courseForScheduleEntry<T extends CourseSummary>(course: T, entry: ScheduleEntry): T {
+  return (entry.meetingsOverride ? { ...course, meetings: entry.meetingsOverride } : course) as T;
 }
 
 /** Resolve all catalog-backed entries in a plan while preserving their order. */
-export function coursesInPlan(catalog: Course[], plan?: SchedulePlan): Course[] {
+export function coursesInPlan<T extends CourseSummary>(catalog: T[], plan?: SchedulePlan): T[] {
   if (!plan) return [];
   const courseById = new Map(catalog.map((course) => [course.course_id, course]));
   return plan.entries.flatMap((entry) => {
@@ -25,7 +25,7 @@ export function coursesInPlan(catalog: Course[], plan?: SchedulePlan): Course[] 
 }
 
 /** Return every occupied meeting, including non-course fixed timetable entries. */
-export function meetingsInPlan(catalog: Course[], plan?: SchedulePlan): Meeting[] {
+export function meetingsInPlan<T extends CourseSummary>(catalog: T[], plan?: SchedulePlan): Meeting[] {
   if (!plan) return [];
   return [
     ...coursesInPlan(catalog, plan).flatMap((course) => course.meetings),

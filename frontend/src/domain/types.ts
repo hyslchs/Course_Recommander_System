@@ -227,7 +227,7 @@ export interface ArtifactManifest {
   course_count: number;
   analysis_version?: string;
   route_count?: number;
-  files?: Record<string, { sha256: string; bytes: number }>;
+  files?: Record<string, { sha256: string; bytes: number }> | Array<{ filename: string; sha256: string; bytes: number }>;
 }
 
 export interface EmbeddingIndex {
@@ -247,9 +247,9 @@ export type RecommendationCategoryFilter = RecommendationCategory;
 export type RecommendationCategoryFilters = RecommendationCategory[];
 
 export interface Recommendation {
-  course: Course;
+  course: CourseSummary;
   /** Other sections or cross-listed offerings that belong to the same course family. */
-  alternatives?: Course[];
+  alternatives?: CourseSummary[];
   score: number;
   eligibility: EligibilityStatus;
   category: RecommendationCategory;
@@ -312,3 +312,13 @@ export interface QueryAnalysis {
   fallbackReason?: string;
   warnings: string[];
 }
+
+/**
+ * The first-run recommendation payload. Verbose syllabus text is deliberately
+ * absent; it is fetched from `/api/v1/courses/:id` when a card is expanded.
+ */
+export type CourseSummary = Omit<Course, "sections" | "enrollment_note"> & {
+  family_signature?: string;
+};
+
+export type CourseDetail = Pick<Course, "course_id" | "sections" | "enrollment_note">;

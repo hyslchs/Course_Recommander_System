@@ -1,4 +1,4 @@
-import type { Course, Profile } from "./types";
+import type { CourseSummary, Profile } from "./types";
 
 export type DepartmentType = "department" | "program" | "degree_program" | "credit_program" | "micro_program" | "college" | "graduate_institute";
 
@@ -73,7 +73,7 @@ export function departmentNamesMatch(left: string | null | undefined, right: str
   return position === shorter.length;
 }
 
-export function sameDepartment(course: Course, profile?: Profile): boolean {
+export function sameDepartment(course: CourseSummary, profile?: Profile): boolean {
   if (!profile?.department) return false;
   if (course.department_match?.status === "ambiguous") return false;
   if (course.department_identity && profile.department_identity

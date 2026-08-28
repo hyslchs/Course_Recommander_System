@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowSquareOut, Heart } from "@phosphor-icons/react";
 import { Alert, Button, Card, Chip, Disclosure, Radio, RadioGroup, ToggleButton, Tooltip } from "@heroui/react";
+import { getCourse } from "@/data/api";
 import { useFetchCoursesByIds } from "@/data/queries";
 import { deleteRecord, putRecord } from "@/data/db";
 import { track } from "@/analytics/client";
@@ -19,7 +20,7 @@ import { useLocalDataState, useLocalRecords, useProfile } from "@/hooks/localDat
 import { useSchedulePlans } from "@/hooks/useSchedulePlans";
 import { ConfirmDialog, useFeedback } from "@/components/ui";
 import { CategoryChip, EligibilityChip } from "./statusPresentation";
-import type { CompletedCourse, Course, Recommendation, SchedulePlan } from "@/domain/types";
+import type { CompletedCourse, Course, CourseSummary, Recommendation, SchedulePlan } from "@/domain/types";
 
 /** Syllabus field names the assistant may cite, as shown on a recommendation card. */
 const assistantFieldLabels: Record<string, string> = {
@@ -60,7 +61,9 @@ function ExpandableText({ value }: { value: string }) {
   );
 }
 
-export function CourseCard({ course, alternatives, rank, reasons, cautions, matchedFields, recommendationCategory }: { course: Course; alternatives?: Course[]; rank?: number; reasons?: string[]; cautions?: string[]; matchedFields?: string[]; recommendationCategory?: Recommendation["category"] }) {
+type CardCourse = CourseSummary | Course;
+
+export function CourseCard({ course, alternatives, rank, reasons, cautions, matchedFields, recommendationCategory }: { course: CardCourse; alternatives?: CardCourse[]; rank?: number; reasons?: string[]; cautions?: string[]; matchedFields?: string[]; recommendationCategory?: Recommendation["category"] }) {
   // Context, not props: 25 cards used to mean 25 IndexedDB reads of each store
   // and a three-level `profile` prop drill (plan §6.3-1 and §6.3-2).
   const completed = useLocalRecords<CompletedCourse & { id: string }>("completedCourses");
@@ -82,6 +85,30 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
   const [selectedCourseId, setSelectedCourseId] = useState(course.course_id);
   useEffect(() => setSelectedCourseId(course.course_id), [course.course_id]);
   const selectedCourse = variants.find((item) => item.course_id === selectedCourseId) ?? course;
+  const [courseDetails, setCourseDetails] = useState<Record<string, Course>>({});
+  const [detailLoadingFor, setDetailLoadingFor] = useState<string>();
+  const [detailError, setDetailError] = useState("");
+  const selectedDetail: Course | undefined = "sections" in selectedCourse
+    ? selectedCourse
+    : courseDetails[selectedCourse.course_id];
+  const loadCourseDetail = async (courseId: string, force = false) => {
+    const source = variants.find((item) => item.course_id === courseId);
+    if (!force && courseDetails[courseId]) return;
+    if (source && "sections" in source) {
+      setCourseDetails((current) => ({ ...current, [courseId]: source }));
+      return;
+    }
+    setDetailLoadingFor(courseId);
+    setDetailError("");
+    try {
+      const detail = await getCourse(courseId);
+      setCourseDetails((current) => ({ ...current, [courseId]: detail }));
+    } catch (error) {
+      setDetailError((error as Error).message || "無法載入課程詳細資料");
+    } finally {
+      setDetailLoadingFor(undefined);
+    }
+  };
   const selectedRecommendationCategory = recommendationCategory ? classifyRecommendationCategory(selectedCourse, profile) : undefined;
   const completedNames = new Set(completed.map((item) => item.courseName));
   const eligibility = evaluateEligibility(selectedCourse, profile, completedNames);
@@ -280,6 +307,7 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
             if (!expanded) return;
             track("feature_clicked", { feature: "open_course_detail" });
             recordRecommendationClick();
+            void loadCourseDetail(selectedCourse.course_id);
           }}
         >
           <Disclosure.Heading>
@@ -289,14 +317,23 @@ export function CourseCard({ course, alternatives, rank, reasons, cautions, matc
             </Disclosure.Trigger>
           </Disclosure.Heading>
           <Disclosure.Content>
-            <div className="details">
+            {!selectedDetail && detailLoadingFor === selectedCourse.course_id ? (
+              <p role="status">正在載入課綱詳細資料…</p>
+            ) : !selectedDetail && detailError ? (
+              <div role="alert">
+                <p>課綱詳細資料載入失敗：{detailError}</p>
+                <Button className="min-h-11" onPress={() => void loadCourseDetail(selectedCourse.course_id, true)} variant="secondary">重試</Button>
+              </div>
+            ) : selectedDetail ? <div className="details">
               {/* h4, not h3: `Disclosure.Heading` is itself the h3 under the card's h2. */}
               <h4>課程目標</h4>
-              <ExpandableText value={selectedCourse.sections.objective || "未提供"} />
+              <ExpandableText value={selectedDetail.sections.objective || "未提供"} />
               {selectedCourse.prerequisite && <><h4>先備知識</h4><ExpandableText value={selectedCourse.prerequisite} /></>}
-              {getEligibilityRules(selectedCourse).map((rule, index) => <div className="evidence" key={rule.kind + "-" + index}><strong>{rule.message}</strong><ExpandableText value={rule.evidence} /></div>)}
+              {getEligibilityRules(selectedDetail).map((rule, index) => <div className="evidence" key={rule.kind + "-" + index}><strong>{rule.message}</strong><ExpandableText value={rule.evidence} /></div>)}
               <a className="outline-link button-link" href={selectedCourse.source_url} rel="noreferrer" target="_blank" onClick={() => { track("feature_clicked", { feature: "open_official_syllabus" }); recordRecommendationClick(); }}><span>開啟官方課綱</span><ArrowSquareOut aria-hidden="true" /></a>
             </div>
+            : <p role="status">展開後載入課綱詳細資料。</p>
+            }
           </Disclosure.Content>
         </Disclosure>
       </Card.Content>

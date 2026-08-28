@@ -7,6 +7,7 @@ import numpy as np
 from fju_outline.artifacts import (
     CATALOG_SCHEMA_VERSION,
     build_artifacts,
+    deserialize_catalog_summary,
     normalize_catalog_course_schema,
     validate_artifacts,
 )
@@ -81,6 +82,11 @@ def test_build_and_validate_versioned_artifacts(tmp_path):
     assert catalog[0]["study_level"] == "undergraduate"
     assert catalog[0]["audience_grade"] == 3
     assert catalog[0]["course_tags"] == []
+    summary = deserialize_catalog_summary(json.loads((output / "catalog-summary.json").read_text(encoding="utf-8")))
+    assert summary["course_count"] == 2
+    assert [item["course_id"] for item in summary["courses"]] == ["1", "2"]
+    assert "sections" not in summary["courses"][0]
+    assert summary["search_index"]["schema_version"].startswith("fju_bm25_index_")
 
 
 def test_catalog_preserves_official_department_identity():

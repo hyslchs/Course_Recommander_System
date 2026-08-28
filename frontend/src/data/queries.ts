@@ -8,13 +8,14 @@ import {
   getCourses,
   getCoursesByIds,
   getDepartmentCatalog,
-  getEmbeddingBundle,
   getFacets,
   getFeatures,
   lookupCourses,
+  preloadRecommendationAssets,
 } from "./api";
 import { analyzeQuery } from "@/domain/queryAnalysis";
-import type { AIAnswer, AIAskContext, AIHistoryTurn, Course, HardConstraints } from "@/domain/types";
+import type { AIAnswer, AIAskContext, AIHistoryTurn, Course, CourseSummary, HardConstraints } from "@/domain/types";
+import type { SearchIndex } from "@/domain/search";
 
 /**
  * Every server read the UI performs, in one place (plan §6.4).
@@ -137,11 +138,12 @@ export function useLookupCourses() {
 }
 
 export interface RecommendationSources {
-  catalog: Course[];
+  catalog: CourseSummary[];
   courseIds: string[];
   vectors: Float32Array;
   dimension: number;
   query: Float32Array;
+  searchIndex: SearchIndex;
 }
 
 /**
@@ -152,17 +154,17 @@ export interface RecommendationSources {
 export function useRecommendationSources() {
   return useMutation({
     mutationFn: async (subjectQuery: string): Promise<RecommendationSources> => {
-      const [catalog, bundle, query] = await Promise.all([
-        getCatalog(),
-        getEmbeddingBundle(),
+      const [assets, query] = await Promise.all([
+        preloadRecommendationAssets(),
         embedQuery(subjectQuery),
       ]);
       return {
-        catalog,
-        courseIds: bundle.index.course_ids,
-        vectors: bundle.vectors,
-        dimension: bundle.index.dimension,
+        catalog: assets.catalog,
+        courseIds: assets.courseIds,
+        vectors: assets.vectors,
+        dimension: assets.dimension,
         query,
+        searchIndex: assets.searchIndex,
       };
     },
   });

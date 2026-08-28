@@ -85,6 +85,7 @@ export type ConflictAction =
 export type ApiEndpointName =
   | "ai_ask"
   | "catalog_data"
+  | "catalog_summary"
   | "catalog_manifest"
   | "class_groups"
   | "course_detail"

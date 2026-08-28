@@ -36,10 +36,13 @@ from .analytics import (
 from .analytics_dashboard import DASHBOARD_HTML
 from .artifacts import (
     CATALOG_SCHEMA_VERSION,
+    build_catalog_summary,
+    deserialize_catalog_summary,
     DEFAULT_MODEL,
     encoder_from_manifest,
     load_catalog_for_artifact,
     normalize_embedding_index,
+    serialize_catalog_summary,
     validate_artifacts,
 )
 from .query_routes import ANALYSIS_VERSION
@@ -148,6 +151,7 @@ class ArtifactStore:
         self.index = normalize_embedding_index(raw_index, self.manifest)
         self.catalog = load_catalog_for_artifact(artifacts_dir, self.manifest, raw_index)
         self.by_id = {str(item["course_id"]): item for item in self.catalog}
+        self.catalog_summary = self._load_catalog_summary(artifacts_dir / "catalog-summary.json")
         dataset_year = artifacts_dir.name.split("-", 1)[0]
         self.academic_year = int(
             self.manifest.get("academic_year")
@@ -166,6 +170,21 @@ class ArtifactStore:
         )
         if len(self.catalog) != self.manifest["course_count"]:
             raise ValueError("Catalog count does not match manifest")
+
+    def _load_catalog_summary(self, summary_path: Path) -> dict[str, Any]:
+        if summary_path.exists():
+            try:
+                summary = deserialize_catalog_summary(orjson.loads(summary_path.read_bytes()))
+                if (
+                    isinstance(summary, dict)
+                    and int(summary.get("course_count", -1)) == len(self.catalog)
+                    and [str(item.get("course_id")) for item in summary.get("courses", [])]
+                    == [str(item.get("course_id")) for item in self.catalog]
+                ):
+                    return summary
+            except (TypeError, ValueError, orjson.JSONDecodeError):
+                logger.warning("Ignoring invalid catalog-summary.json", exc_info=True)
+        return build_catalog_summary(self.catalog)
 
     def facets(self) -> dict[str, Any]:
         return {
@@ -649,6 +668,21 @@ def register_routes(application: FastAPI) -> None:
         return FileResponse(
             store.artifacts_dir / "catalog.json",
             media_type="application/json",
+            headers={"Cache-Control": "public, max-age=86400"},
+        )
+
+    @application.get("/api/v1/catalog/summary")
+    def catalog_summary(request: Request) -> Response:
+        store = require_store(request)
+        summary_path = store.artifacts_dir / "catalog-summary.json"
+        if summary_path.exists():
+            return FileResponse(
+                summary_path,
+                media_type="application/json",
+                headers={"Cache-Control": "public, max-age=86400"},
+            )
+        return JSONResponse(
+            serialize_catalog_summary(store.catalog_summary),
             headers={"Cache-Control": "public, max-age=86400"},
         )
 

@@ -7,7 +7,7 @@ import numpy as np
 from fastapi.testclient import TestClient
 from starlette.requests import Request
 
-from fju_outline.artifacts import build_artifacts
+from fju_outline.artifacts import build_artifacts, deserialize_catalog_summary
 from fju_outline.web import ArtifactStore, RateLimiter, create_app, get_rate_limit_client_key
 
 from test_artifacts import FakeEncoder, _record
@@ -101,6 +101,14 @@ def test_health_catalog_and_embedding_api(tmp_path):
     with _client(tmp_path) as client:
         assert client.get("/health/ready").status_code == 200
         assert client.get("/api/v1/catalog/manifest").json()["course_count"] == 1
+        summary = client.get("/api/v1/catalog/summary")
+        assert summary.status_code == 200
+        assert summary.headers["cache-control"] == "public, max-age=86400"
+        assert summary.json()["encoding"] == "deflate-base64-v1"
+        decoded_summary = deserialize_catalog_summary(summary.json())
+        assert decoded_summary["courses"][0]["course_id"] == "1"
+        assert "sections" not in decoded_summary["courses"][0]
+        assert decoded_summary["search_index"]["document_count"] == 1
         departments = client.get("/api/v1/departments")
         assert departments.status_code == 200
         assert departments.json()["schema_version"].startswith("fju_department_catalog_")

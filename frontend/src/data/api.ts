@@ -3,6 +3,8 @@ import { track } from "@/analytics/client";
 import type { ApiEndpointName } from "@/analytics/events";
 import type { AIAnswer, AIAskContext, AIHistoryTurn, ArtifactManifest, Course, DepartmentCatalog, EmbeddingIndex, HardConstraints } from "@/domain/types";
 import type { RouteBundle, RouteInfo } from "@/domain/queryAnalysis";
+import { hydrateSearchIndex, type SearchIndex, type SerializedSearchIndex } from "@/domain/search";
+import type { CourseSummary } from "@/domain/types";
 
 /**
  * `fetch` plus one `api_performance` sample.
@@ -50,13 +52,39 @@ export async function getManifest(): Promise<ArtifactManifest> {
   return getJson("catalog_manifest", "/api/v1/catalog/manifest");
 }
 
+export interface CatalogSummaryPayload {
+  schema_version: string;
+  course_count: number;
+  course_ids: string[];
+  courses: CourseSummary[];
+  search_index: SerializedSearchIndex;
+}
+
+interface CompressedCatalogSummaryPayload {
+  schema_version: string;
+  encoding: "deflate-base64-v1";
+  course_count: number;
+  payload: string;
+}
+
+export interface RecommendationAssets {
+  catalog: CourseSummary[];
+  courseIds: string[];
+  vectors: Float32Array;
+  dimension: number;
+  searchIndex: SearchIndex;
+  manifest: ArtifactManifest;
+}
+
 export function artifactCacheKey(
   manifest: ArtifactManifest,
-  resource: "catalog" | "vectors",
+  resource: "catalog" | "catalog_summary" | "vectors",
   files: string[],
 ): string {
   const identities = files.map((filename) => {
-    const hash = manifest.files?.[filename]?.sha256;
+    const hash = Array.isArray(manifest.files)
+      ? manifest.files.find((entry) => entry.filename === filename)?.sha256
+      : manifest.files?.[filename]?.sha256;
     if (hash) return `${filename}=${hash}`;
     // Keep older manifests usable while ensuring a schema/generation change
     // cannot silently reuse a previously cached response.
@@ -114,8 +142,34 @@ export async function lookupCourses(values: string[]): Promise<{
   });
 }
 
-export async function getCourse(courseId: string): Promise<Course> {
-  return getJson("course_detail", `/api/v1/courses/${encodeURIComponent(courseId)}`);
+const courseDetailCache = new Map<string, Promise<Course>>();
+
+export function getCourse(courseId: string): Promise<Course> {
+  const cached = courseDetailCache.get(courseId);
+  if (cached) return cached;
+  const request = getJson<Course>("course_detail", `/api/v1/courses/${encodeURIComponent(courseId)}`);
+  courseDetailCache.set(courseId, request);
+  void request.catch(() => {
+    if (courseDetailCache.get(courseId) === request) courseDetailCache.delete(courseId);
+  });
+  return request;
+}
+
+export async function getCatalogSummary(): Promise<CatalogSummaryPayload> {
+  const manifest = await getManifest();
+  const key = artifactCacheKey(manifest, "catalog_summary", ["catalog-summary.json"]);
+  const cached = await getRecord<{ id: string; data: CatalogSummaryPayload | CompressedCatalogSummaryPayload }>("catalogCache", key);
+  const artifact = cached?.data ?? await getJson<CatalogSummaryPayload | CompressedCatalogSummaryPayload>("catalog_summary", "/api/v1/catalog/summary");
+  const summary = "encoding" in artifact ? await decodeCatalogSummary(artifact) : artifact;
+  if (cached) return summary;
+  await putRecord("catalogCache", { id: key, data: summary });
+  return summary;
+}
+
+async function decodeCatalogSummary(artifact: CompressedCatalogSummaryPayload): Promise<CatalogSummaryPayload> {
+  const binary = Uint8Array.from(atob(artifact.payload), (character) => character.charCodeAt(0));
+  const stream = new Blob([binary]).stream().pipeThrough(new DecompressionStream("deflate"));
+  return JSON.parse(await new Response(stream).text()) as CatalogSummaryPayload;
 }
 
 export async function getCatalog(): Promise<Course[]> {
@@ -151,6 +205,26 @@ export async function getEmbeddingBundle(): Promise<{
     throw new Error("課程向量與索引版本不一致");
   }
   return { manifest, index, vectors };
+}
+
+let recommendationAssetsPromise: Promise<RecommendationAssets> | undefined;
+
+/** Share the background download with the first recommendation request. */
+export function preloadRecommendationAssets(): Promise<RecommendationAssets> {
+  if (recommendationAssetsPromise) return recommendationAssetsPromise;
+  const loading = Promise.all([getCatalogSummary(), getEmbeddingBundle()]).then(([summary, bundle]) => ({
+    catalog: summary.courses,
+    courseIds: bundle.index.course_ids,
+    vectors: bundle.vectors,
+    dimension: bundle.index.dimension,
+    searchIndex: hydrateSearchIndex(summary.search_index),
+    manifest: bundle.manifest,
+  }));
+  recommendationAssetsPromise = loading.catch((error) => {
+    recommendationAssetsPromise = undefined;
+    throw error;
+  });
+  return recommendationAssetsPromise;
 }
 
 export async function embedQuery(text: string): Promise<Float32Array> {

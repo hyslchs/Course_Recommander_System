@@ -1,4 +1,4 @@
-import type { Course, EligibilityRule, EligibilityStatus, Meeting, Profile, StudyLevel } from "./types";
+import type { Course, CourseSummary, EligibilityRule, EligibilityStatus, Meeting, Profile, StudyLevel } from "./types";
 import { departmentNamesMatch } from "./department";
 
 export interface EligibilityResult {
@@ -133,7 +133,7 @@ export function inferAudienceGrade(course: Pick<Course, "audience_grade" | "grad
   return { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7 }[match[1] as "一" | "二" | "三" | "四" | "五" | "六" | "七"] ?? Number(match[1]);
 }
 
-export function getEligibilityRules(course: Course): EligibilityRule[] {
+export function getEligibilityRules(course: CourseSummary): EligibilityRule[] {
   // Course level is informational in the recommender. Some departments allow
   // undergraduates to take graduate courses early, so it must not become an
   // automatic eligibility restriction.
@@ -159,7 +159,7 @@ export function getEligibilityRules(course: Course): EligibilityRule[] {
 }
 
 export function evaluateEligibility(
-  course: Course,
+  course: CourseSummary,
   profile: Profile | undefined,
   completedNames: Set<string>,
 ): EligibilityResult {
@@ -219,7 +219,7 @@ export function meetingsConflict(left: Meeting[], right: Meeting[]): { conflict:
   return { conflict: false, uncertain };
 }
 
-export function courseConflicts(course: Course, scheduled: Course[]) {
+export function courseConflicts(course: CourseSummary, scheduled: CourseSummary[]) {
   return scheduled.reduce(
     (result, other) => {
       const current = meetingsConflict(course.meetings, other.meetings);

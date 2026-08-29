@@ -1,6 +1,8 @@
 # syntax=docker/dockerfile:1.7
 FROM node:24.15-alpine AS frontend
 WORKDIR /app/frontend
+ARG CLIENT_BUILD_SHA=unknown
+ENV VITE_FJU_CLIENT_BUILD_SHA=${CLIENT_BUILD_SHA}
 # Build the production React bundle and its optimized font assets.
 RUN apk add --no-cache python3 py3-pip py3-brotli \
     && pip install --break-system-packages --no-cache-dir "fonttools==4.63.0"

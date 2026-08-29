@@ -61,9 +61,13 @@ let memorySession: SessionRecord | undefined;
 /** The route the app is currently on, so events raised deep in a tree carry it. */
 let currentPage: AnalyticsPage | undefined;
 let instrumentationV3Enabled = false;
-const configuredClientBuildSha = (globalThis as typeof globalThis & { __FJU_CLIENT_BUILD_SHA__?: unknown }).__FJU_CLIENT_BUILD_SHA__;
+const runtimeClientBuildSha = (globalThis as typeof globalThis & { __FJU_CLIENT_BUILD_SHA__?: unknown }).__FJU_CLIENT_BUILD_SHA__;
+const configuredClientBuildSha =
+  import.meta.env.VITE_FJU_CLIENT_BUILD_SHA?.trim()
+  || (typeof runtimeClientBuildSha === "string" ? runtimeClientBuildSha.trim() : "")
+  || "unknown";
 let analyticsProvenance: AnalyticsProvenance = {
-  client_build_sha: typeof configuredClientBuildSha === "string" && configuredClientBuildSha ? configuredClientBuildSha : "frontend-1.0.0",
+  client_build_sha: configuredClientBuildSha,
   client_ranking_version: "rank-courses-v1",
   client_query_analysis_version: "deterministic-v1",
 };
@@ -405,7 +409,7 @@ export function __resetAnalyticsForTests(): void {
   sessionDisabled = false;
   instrumentationV3Enabled = false;
   analyticsProvenance = {
-    client_build_sha: typeof configuredClientBuildSha === "string" && configuredClientBuildSha ? configuredClientBuildSha : "frontend-1.0.0",
+    client_build_sha: configuredClientBuildSha,
     client_ranking_version: "rank-courses-v1",
     client_query_analysis_version: "deterministic-v1",
   };

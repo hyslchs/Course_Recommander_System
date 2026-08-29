@@ -16,6 +16,7 @@ import {
 import { FunnelSimple } from "@phosphor-icons/react";
 import { useCatalog, useCourses, useCoursesByIds, useFacets } from "@/data/queries";
 import { newInteractionId, track } from "@/analytics/client";
+import { changedFilters } from "@/analytics/filters";
 import { SearchSurface, useSearchResultImpression, useStableSearchSurface } from "@/analytics/search";
 import { nextSearchStep, type SearchFlowState } from "@/analytics/searchFlow";
 import { getHighCreditOptions } from "@/domain/creditFilter";
@@ -392,18 +393,29 @@ export function ExplorePage() {
     resultSetKeyRef.current = resultSetKey;
     const pending = pendingSearch.current;
     pendingSearch.current = undefined;
+    // Browsing the initial catalogue is not a keyword search and does not
+    // need a search interaction. A result-set interaction is created only
+    // after a real search has happened, so its cards cannot be mistaken for
+    // search results in analytics.
+    if (!pending && !resultSet) return;
     const interactionId = pending?.interactionId ?? newInteractionId("search");
     const resultCount = total;
-    track("search", {
-      search_mode: "keyword",
-      query_length: pending?.queryLength ?? debouncedQuery.trim().length,
-      result_count: resultCount,
-      latency_ms: Math.max(0, Math.round(performance.now() - (pending?.startedAt ?? resultSetStartedAt.current))),
-    }, { interactionId });
-    if (resultCount === 0) track("zero_result", { search_mode: "keyword" }, { interactionId });
-    if (pending?.flow.refinementIndex && pending.flow.refinementIndex > 0) track("search_refined", { refinement_index: pending.flow.refinementIndex }, { interactionId: pending.flow.flowId });
+    // Only a settled keyword change is a search. Initial catalogue loading,
+    // pagination, and filter changes get their own result-set interaction for
+    // impression/click attribution, but must not inflate search or zero-result
+    // counts.
+    if (pending) {
+      track("search", {
+        search_mode: "keyword",
+        query_length: pending.queryLength,
+        result_count: resultCount,
+        latency_ms: Math.max(0, Math.round(performance.now() - pending.startedAt)),
+      }, { interactionId });
+      if (resultCount === 0) track("zero_result", { search_mode: "keyword" }, { interactionId });
+      if (pending.flow.refinementIndex && pending.flow.refinementIndex > 0) track("search_refined", { refinement_index: pending.flow.refinementIndex }, { interactionId: pending.flow.flowId });
+    }
     setResultSet({ interactionId, readyAt: performance.now() });
-  }, [coursesData, coursesError, filterCount, fullFilterError, fullFilterLoading, isFetching, isPending, resultSetKey, total]);
+  }, [coursesData, coursesError, filterCount, fullFilterError, fullFilterLoading, isFetching, isPending, resultSet, resultSetKey, total]);
 
   const selectPage = (value: number) => setPage(Math.min(Math.max(1, value), totalPages));
   const fullFilterLabel = filterCount
@@ -426,6 +438,14 @@ export function ExplorePage() {
   };
   const saveFullFilters = () => {
     const target = fullFilterReturnFocus.current;
+    for (const use of changedFilters(filters, draftFilters)) {
+      track("filter_used", use);
+      if (use.filter === "conflict_filter") {
+        track("schedule_conflict_action", {
+          action: use.value === "on" ? "enable_conflict_filter" : "disable_conflict_filter",
+        });
+      }
+    }
     setFilters(draftFilters);
     setPage(1);
     setFilterDialogOpen(false);

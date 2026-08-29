@@ -5,15 +5,15 @@
  * desktop rows, mobile cards, and the add action so the funnel survives the
  * responsive layout switch without joining on course identity alone.
  */
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { trackV3 } from "./client";
 import type { SearchMode } from "./events";
 
 export interface SearchSurfaceValue {
   interactionId: string;
   searchMode: SearchMode;
-  recordImpression: () => void;
-  recordClick: () => void;
+  recordImpression: (courseId: string) => boolean;
+  recordClick: (courseId: string) => boolean;
   elapsedSinceReady: () => number | undefined;
 }
 
@@ -35,6 +35,8 @@ export function useSearchResultImpression(courseId: string, position: number | u
 
   useEffect(() => {
     if (!node || !interactionId || !searchMode || !position) return;
+    const activeSurface = surface;
+    if (!activeSurface) return;
     if (typeof IntersectionObserver !== "function") return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const observer = new IntersectionObserver((entries) => {
@@ -46,8 +48,9 @@ export function useSearchResultImpression(courseId: string, position: number | u
       if (timer !== undefined) return;
       timer = setTimeout(() => {
         observer.disconnect();
-        trackV3("search_result_impression", { course_id: courseId, position, search_mode: searchMode }, { interactionId });
-        surface.recordImpression();
+        if (activeSurface.recordImpression(courseId)) {
+          trackV3("search_result_impression", { course_id: courseId, position, search_mode: searchMode }, { interactionId });
+        }
       }, 300);
     }, { threshold: 0.5 });
     observer.observe(node);
@@ -62,12 +65,9 @@ export function useSearchResultImpression(courseId: string, position: number | u
 
 export function useSearchResultClick(courseId: string, position: number | undefined) {
   const surface = useSearchSurface();
-  const clicked = useRef("");
   return useCallback(() => {
     if (!surface || !position) return;
-    const key = `${surface.interactionId}:${courseId}`;
-    if (clicked.current === key) return;
-    clicked.current = key;
+    if (!surface.recordClick(courseId)) return;
     const elapsedMs = surface.elapsedSinceReady();
     trackV3(
       "search_result_clicked",
@@ -79,16 +79,25 @@ export function useSearchResultClick(courseId: string, position: number | undefi
       },
       { interactionId: surface.interactionId },
     );
-    surface.recordClick();
   }, [courseId, position, surface]);
 }
 
 export function createSearchSurface(interactionId: string, searchMode: SearchMode, readyAt: number): SearchSurfaceValue {
+  const impressionIds = new Set<string>();
+  const clickIds = new Set<string>();
   return {
     interactionId,
     searchMode,
-    recordImpression: () => undefined,
-    recordClick: () => undefined,
+    recordImpression: (courseId) => {
+      if (impressionIds.has(courseId)) return false;
+      impressionIds.add(courseId);
+      return true;
+    },
+    recordClick: (courseId) => {
+      if (clickIds.has(courseId)) return false;
+      clickIds.add(courseId);
+      return true;
+    },
     elapsedSinceReady: () => {
       const elapsed = Math.round(performance.now() - readyAt);
       return elapsed >= 0 && elapsed <= 7_200_000 ? elapsed : undefined;

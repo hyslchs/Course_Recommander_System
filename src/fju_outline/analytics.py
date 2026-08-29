@@ -33,6 +33,7 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
+import math
 import os
 import re
 import sqlite3
@@ -495,6 +496,11 @@ def assert_no_forbidden_keys(payload: Any, *, depth: int = 0) -> None:
 def _coerce_int(value: Any, field: Field, name: str) -> int:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise AnalyticsRejection(f"{name} must be a number")
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise AnalyticsRejection(f"{name} must be finite")
+        if not value.is_integer():
+            raise AnalyticsRejection(f"{name} must be an integer")
     number = int(value)
     if number < field.minimum or number > field.maximum:
         raise AnalyticsRejection(f"{name} out of range")
@@ -1039,10 +1045,39 @@ class AnalyticsStore:
             for row in rows
         ]
         with self._lock, self._connect() as connection:
-            self._enforce_capacity(connection, incoming=len(payload))
+            # `INSERT OR IGNORE` makes event retries idempotent, but counting
+            # every retry as an incoming row would evict old data before SQLite
+            # has a chance to ignore it. Filter existing and within-batch event
+            # ids first, then apply capacity pressure only to rows that can be
+            # inserted.
+            event_ids = [item[0] for item in payload if item[0] is not None]
+            existing_ids: set[str] = set()
+            if event_ids:
+                placeholders = ", ".join("?" for _ in event_ids)
+                existing_ids = {
+                    str(item[0])
+                    for item in connection.execute(
+                        f"SELECT event_id FROM analytics_events WHERE event_id IN ({placeholders})",
+                        tuple(event_ids),
+                    ).fetchall()
+                }
+            insertable: list[tuple[Any, ...]] = []
+            seen_ids: set[str] = set()
+            for item in payload:
+                event_id = item[0]
+                if event_id is not None:
+                    event_id = str(event_id)
+                    if event_id in existing_ids or event_id in seen_ids:
+                        continue
+                    seen_ids.add(event_id)
+                insertable.append(item)
+            if not insertable:
+                return 0
+
+            self._enforce_capacity(connection, incoming=len(insertable))
             before = connection.total_changes
             try:
-                connection.executemany(_INSERT_SQL, payload)
+                connection.executemany(_INSERT_SQL, insertable)
             except sqlite3.DatabaseError as exc:
                 connection.rollback()
                 if "full" in str(exc).lower() or "max_page_count" in str(exc).lower():

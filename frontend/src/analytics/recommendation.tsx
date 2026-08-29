@@ -34,8 +34,8 @@ export interface RecommendationSurfaceValue {
    * `recommendation_skipped` event for this run — see {@link useRecommendationRun}.
    */
   markEngaged: () => void;
-  recordImpression: () => void;
-  recordClick: () => void;
+  recordImpression: (courseId: string) => boolean;
+  recordClick: (courseId: string) => boolean;
   recordAdd: () => void;
   elapsedSinceReady: () => number | undefined;
 }
@@ -77,6 +77,8 @@ export function useRecommendationImpression(courseId: string, position: number, 
 
   useEffect(() => {
     if (!node || !interactionId || !method) return;
+    const activeSurface = surface;
+    if (!activeSurface) return;
     if (typeof IntersectionObserver !== "function") return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const observer = new IntersectionObserver(
@@ -90,13 +92,14 @@ export function useRecommendationImpression(courseId: string, position: number, 
         if (timer !== undefined) return;
         timer = setTimeout(() => {
           observer.disconnect();
-          trackWithLegacy(
-            "recommendation_impression",
-            { course_id: courseId, position, method, department_relation: relation },
-            { course_id: courseId, position, method },
-            { interactionId },
-          );
-          surface?.recordImpression();
+          if (activeSurface.recordImpression(courseId)) {
+            trackWithLegacy(
+              "recommendation_impression",
+              { course_id: courseId, position, method, department_relation: relation },
+              { course_id: courseId, position, method },
+              { interactionId },
+            );
+          }
         }, 300);
       },
       { threshold: 0.5 },
@@ -121,14 +124,10 @@ export function useRecommendationImpression(courseId: string, position: number, 
  */
 export function useRecommendationClick(courseId: string, position: number | undefined, relation: DepartmentRelation = "unknown") {
   const surface = useRecommendationSurface();
-  const clicked = useRef("");
   return useCallback(() => {
     if (!surface || !position) return;
-    const key = `${surface.interactionId}:${courseId}`;
-    if (clicked.current === key) return;
-    clicked.current = key;
+    if (!surface.recordClick(courseId)) return;
     surface.markEngaged();
-    surface.recordClick();
     const elapsedMs = surface.elapsedSinceReady();
     const enhanced = {
       course_id: courseId,
@@ -180,6 +179,8 @@ export function useRecommendationRun(method: RecommendationMethod): Recommendati
     resultReadyAt?: number;
     pending: boolean;
   } | undefined>(undefined);
+  const impressionIds = useRef(new Set<string>());
+  const clickIds = useRef(new Set<string>());
 
   const closeCurrentRun = useCallback((forcedOutcome?: RecommendationRunOutcome) => {
     const run = active.current;
@@ -214,6 +215,8 @@ export function useRecommendationRun(method: RecommendationMethod): Recommendati
   const start = useCallback((pendingOutcome?: RecommendationRunOutcome) => {
     closeCurrentRun(pendingOutcome);
     const id = newInteractionId("rec");
+    impressionIds.current.clear();
+    clickIds.current.clear();
     active.current = { id, resultCount: 0, impressionCount: 0, clickCount: 0, addCount: 0, pending: true };
     setInteractionId(id);
     return id;
@@ -232,13 +235,19 @@ export function useRecommendationRun(method: RecommendationMethod): Recommendati
     // engagement is now derived from the explicit click/add counters.
   }, []);
 
-  const recordImpression = useCallback(() => {
-    if (active.current) active.current.impressionCount += 1;
-  }, []);
+  const recordImpression = useCallback((courseId: string) => {
+    if (!interactionId || active.current?.id !== interactionId || impressionIds.current.has(courseId)) return false;
+    impressionIds.current.add(courseId);
+    active.current.impressionCount += 1;
+    return true;
+  }, [interactionId]);
 
-  const recordClick = useCallback(() => {
-    if (active.current) active.current.clickCount += 1;
-  }, []);
+  const recordClick = useCallback((courseId: string) => {
+    if (!interactionId || active.current?.id !== interactionId || clickIds.current.has(courseId)) return false;
+    clickIds.current.add(courseId);
+    active.current.clickCount += 1;
+    return true;
+  }, [interactionId]);
 
   const recordAdd = useCallback(() => {
     if (active.current) active.current.addCount += 1;

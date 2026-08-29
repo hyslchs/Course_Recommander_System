@@ -1509,7 +1509,15 @@ def _analytics_instrumentation_v3_enabled() -> bool:
 
 
 def _analytics_research_report_v2_enabled() -> bool:
-    """Phase 2 report switch; enabled by default for immediate dashboard cutover."""
+    """Use the research report only when its v3 source stream is enabled.
+
+    The report is derived from the additive v3 funnel events. An explicit report
+    switch may still turn it off, but it can never turn it on while v3
+    instrumentation is disabled; that combination silently produces empty
+    denominators and was the source of misleading zeroes in local deployments.
+    """
+    if not _analytics_instrumentation_v3_enabled():
+        return False
     return os.environ.get("FJU_ANALYTICS_RESEARCH_REPORT_V2", "1").strip().lower() in {
         "1", "true", "yes", "on",
     }

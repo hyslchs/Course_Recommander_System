@@ -37,8 +37,13 @@ const dbMocks = vi.hoisted(() => ({
   putRecord: vi.fn(),
   validateBackup: vi.fn(),
 }));
+const analyticsMocks = vi.hoisted(() => ({ track: vi.fn() }));
 vi.mock("@/data/api", () => apiMocks);
 vi.mock("@/data/db", () => dbMocks);
+vi.mock("@/analytics/client", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/analytics/client")>()),
+  track: analyticsMocks.track,
+}));
 
 function course(overrides: Partial<Course> = {}): Course {
   return {
@@ -244,6 +249,31 @@ describe("ExplorePage — complete filter dialog", () => {
     expect(within(appliedFilters).getByText("3 學分")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: "三學分課" })).toBeInTheDocument();
     expect(screen.queryByRole("heading", { level: 2, name: "二學分課" })).not.toBeInTheDocument();
+    expect(analyticsMocks.track).toHaveBeenCalledWith("filter_used", { filter: "credits", value: "3" });
+  });
+});
+
+describe("ExplorePage — search analytics", () => {
+  it("does not count initial loading, pagination, or filters as searches", async () => {
+    const user = userEvent.setup();
+    respondWith([course()], 51);
+    renderPage();
+
+    await screen.findByRole("heading", { level: 2, name: "機器學習概論" });
+    expect(analyticsMocks.track.mock.calls.filter(([event]) => event === "search")).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: "第 2 頁" }));
+    await waitFor(() => expect(apiMocks.getCourses.mock.calls.some(
+      ([params]) => params.get("page") === "2",
+    )).toBe(true));
+    expect(analyticsMocks.track.mock.calls.filter(([event]) => event === "search")).toHaveLength(0);
+
+    await user.click(screen.getByRole("button", { name: /上課星期/ }));
+    await user.click(await screen.findByRole("option", { name: "星期三" }));
+    await waitFor(() => expect(apiMocks.getCourses.mock.calls.some(
+      ([params]) => params.get("weekday") === "3",
+    )).toBe(true));
+    expect(analyticsMocks.track.mock.calls.filter(([event]) => event === "search")).toHaveLength(0);
   });
 });
 

@@ -19,6 +19,7 @@
 
 import {
   ANALYTICS_ENDPOINT,
+  MAX_ANALYTICS_BATCH_BYTES,
   MAX_EVENTS_PER_BATCH,
   type AnalyticsContext,
   type AnalyticsEnvelope,
@@ -53,6 +54,7 @@ interface SessionRecord {
 let queue: AnalyticsEnvelope[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | undefined;
 let failureCount = 0;
+let maxBatchEvents = MAX_EVENTS_PER_BATCH;
 let sessionDisabled = false;
 let listenersAttached = false;
 let memorySession: SessionRecord | undefined;
@@ -221,11 +223,43 @@ function scheduleFlush(delay: number): void {
 function onTransportFailure(fatal: boolean): void {
   failureCount += 1;
   if (fatal || failureCount >= FAILURE_LIMIT) {
-    // A 4xx means this build is sending something the server will never accept;
-    // retrying it for the rest of the session is pure waste. Stop, silently.
+    // A fatal server response or repeated transport failures make retrying for
+    // the rest of this session wasteful. Stop silently, but leave the queued
+    // events intact so callers can inspect or retry them after the circuit closes.
     sessionDisabled = true;
-    queue = [];
   }
+}
+
+function utf8ByteLength(value: string): number {
+  if (typeof TextEncoder !== "undefined") return new TextEncoder().encode(value).byteLength;
+  if (typeof Blob !== "undefined") return new Blob([value]).size;
+  // This branch is only for very old runtimes. The client still keeps the
+  // server-side event-count limit, and modern browsers take one of the exact
+  // branches above.
+  return value.length;
+}
+
+function prependFailedBatch(batch: AnalyticsEnvelope[]): void {
+  // Keep the failed batch ahead of newer events so a later flush cannot make a
+  // retry look like a different interaction order. The queue cap is still the
+  // last line of defence for an offline tab.
+  queue = [...batch, ...queue].slice(0, MAX_QUEUED_EVENTS);
+}
+
+function takeBatch(): { batch: AnalyticsEnvelope[]; body: string } | undefined {
+  if (!queue.length) return undefined;
+  const limit = Math.min(maxBatchEvents, queue.length);
+  const batch = queue.slice(0, limit);
+  let body = JSON.stringify({ events: batch });
+  // A v3 event carries provenance, so event count alone is not a safe request
+  // size bound. A single event is always returned so its failure can be kept in
+  // the queue and handled by the normal circuit breaker rather than silently
+  // dropping it.
+  while (batch.length > 1 && utf8ByteLength(body) > MAX_ANALYTICS_BATCH_BYTES) {
+    batch.pop();
+    body = JSON.stringify({ events: batch });
+  }
+  return { batch, body };
 }
 
 /**
@@ -238,40 +272,65 @@ function onTransportFailure(fatal: boolean): void {
  */
 export function flushAnalytics({ beacon = false }: { beacon?: boolean } = {}): void {
   if (!queue.length || typeof window === "undefined") return;
-  if (!isAnalyticsEnabled()) { queue = []; return; }
+  if (isAnalyticsOptedOut()) { queue = []; return; }
+  if (sessionDisabled) return;
 
-  const batch = queue.slice(0, MAX_EVENTS_PER_BATCH);
+  const selected = takeBatch();
+  if (!selected) return;
+  const { batch, body } = selected;
   queue = queue.slice(batch.length);
-  const body = JSON.stringify({ events: batch });
 
   if (beacon && typeof navigator !== "undefined" && typeof navigator.sendBeacon === "function") {
+    let accepted = false;
     try {
-      navigator.sendBeacon(ANALYTICS_ENDPOINT, new Blob([body], { type: "application/json" }));
+      accepted = navigator.sendBeacon(ANALYTICS_ENDPOINT, new Blob([body], { type: "application/json" }));
     } catch {
-      // The page is going away; there is nothing useful left to do.
+      accepted = false;
     }
-    if (queue.length) flushAnalytics({ beacon: true });
+    if (!accepted) prependFailedBatch(batch);
+    else if (queue.length) flushAnalytics({ beacon: true });
     return;
   }
 
-  void fetch(ANALYTICS_ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body,
-    // Lets the request outlive the page, and keeps it out of the connection
-    // pool the app's own requests use.
-    keepalive: true,
-  })
+  let request: Promise<Response>;
+  try {
+    request = fetch(ANALYTICS_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body,
+      // Lets the request outlive the page, and keeps it out of the connection
+      // pool the app's own requests use.
+      keepalive: true,
+    });
+  } catch {
+    prependFailedBatch(batch);
+    onTransportFailure(false);
+    return;
+  }
+
+  void request
     .then((response) => {
       if (response.ok) failureCount = 0;
-      // A 4xx means this build is sending something the server will never
-      // accept — except 429 (slow down) and 413 (this *batch* was too big),
-      // which are about one request, not about the payload shape. Treating
-      // either as fatal would switch analytics off for the session over a
-      // transient condition.
-      else onTransportFailure(RETRYABLE_STATUSES.has(response.status) ? false : response.status >= 400 && response.status < 500);
+      // Retryable statuses describe a temporary request problem: 429 means
+      // slow down and 413 means this batch was too big. Other 4xx responses
+      // are permanent payload/configuration failures; repeated transport or
+      // server failures also open the session circuit below.
+      else {
+        const retryable = RETRYABLE_STATUSES.has(response.status);
+        prependFailedBatch(batch);
+        if (response.status === 413 && batch.length > 1) {
+          // Be resilient if a proxy has a lower limit than the application. The
+          // next attempt will still use the byte-aware splitter, with a smaller
+          // count ceiling as an additional bound.
+          maxBatchEvents = Math.max(1, Math.floor(batch.length / 2));
+        }
+        onTransportFailure(retryable ? false : response.status >= 400 && response.status < 500);
+      }
     })
-    .catch(() => onTransportFailure(false));
+    .catch(() => {
+      prependFailedBatch(batch);
+      onTransportFailure(false);
+    });
 
   if (queue.length) scheduleFlush(0);
 }
@@ -342,6 +401,7 @@ export function trackWithLegacy<K extends AnalyticsEventName>(
 export function __resetAnalyticsForTests(): void {
   queue = [];
   failureCount = 0;
+  maxBatchEvents = MAX_EVENTS_PER_BATCH;
   sessionDisabled = false;
   instrumentationV3Enabled = false;
   analyticsProvenance = {

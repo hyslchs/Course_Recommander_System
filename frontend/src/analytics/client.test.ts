@@ -15,7 +15,7 @@ import {
   track,
   trackV3,
 } from "./client";
-import { pageForPath } from "./events";
+import { MAX_ANALYTICS_BATCH_BYTES, pageForPath } from "./events";
 import { nextSearchStep } from "./searchFlow";
 
 function lastRequestBody(fetchMock: ReturnType<typeof vi.fn>): { events: unknown[] } {
@@ -82,6 +82,7 @@ describe("analytics client", () => {
     vi.advanceTimersByTime(FLUSH_DELAY_MS);
     await vi.runAllTimersAsync();
     expect(isAnalyticsEnabled()).toBe(true);
+    expect(__queuedEventsForTests()).toHaveLength(1);
   });
 
   it("stamps a session id that lives in sessionStorage, never localStorage", () => {
@@ -152,6 +153,48 @@ describe("analytics client", () => {
       (call) => (JSON.parse((call[1] as RequestInit).body as string) as { events: unknown[] }).events.length,
     );
     expect(sizes).toEqual([40, 5]);
+  });
+
+  it("splits v3 events by UTF-8 body size as well as event count", () => {
+    setAnalyticsInstrumentationV3(true);
+    setAnalyticsProvenance({
+      client_build_sha: "frontend-build-0123456789",
+      client_artifact_version: "artifact-1151-embeddinggemma-768",
+      client_artifact_bundle_id: "bundle-0123456789abcdef",
+      client_model_revision: "model-revision-0123456789",
+      client_ranking_version: "rank-courses-v1",
+      client_query_analysis_version: "deterministic-v1",
+    });
+    for (let index = 0; index < 40; index += 1) {
+      trackV3("search_result_impression", {
+        course_id: `D${index}`,
+        position: index + 1,
+        search_mode: "keyword",
+      }, { interactionId: "search_abc123" });
+    }
+
+    vi.advanceTimersByTime(FLUSH_DELAY_MS);
+    const calls = fetchMock.mock.calls;
+    const sentEvents = calls.flatMap((call) => (
+      JSON.parse((call[1] as RequestInit).body as string) as { events: Record<string, unknown>[] }
+    ).events);
+    expect(calls.length).toBeGreaterThan(1);
+    expect(sentEvents).toHaveLength(40);
+    for (const call of calls) {
+      const body = (call[1] as RequestInit).body as string;
+      expect(new TextEncoder().encode(body).byteLength).toBeLessThanOrEqual(MAX_ANALYTICS_BATCH_BYTES);
+    }
+  });
+
+  it("puts a failed batch back at the front of the queue", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("offline"));
+    track("page_view", { page: "schedule" });
+    vi.advanceTimersByTime(FLUSH_DELAY_MS);
+    await vi.runAllTimersAsync();
+
+    expect(__queuedEventsForTests()).toHaveLength(1);
+    const failed = __queuedEventsForTests()[0];
+    expect(failed.event).toBe("page_view");
   });
 
   it("carries an interaction id only when one is supplied", () => {

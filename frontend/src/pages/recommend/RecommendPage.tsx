@@ -77,6 +77,15 @@ interface PendingSearch {
   startedAt: number;
 }
 
+/** A request token is separate from the run id, which must not change while
+ * the previous result cards are still visible. */
+interface ActiveRecommendationRequest {
+  requestId: number;
+  flow: SearchFlowState;
+  queryLength: number;
+  startedAt: number;
+}
+
 /**
  * One result card, with its impression observer.
  *
@@ -141,7 +150,8 @@ export function RecommendPage() {
   const recommendationRun = useRecommendationRun("semantic");
   const searchFlow = useRef<SearchFlowState>(undefined);
   /** In flight: the clock and the flow position, before there is a run to stamp. */
-  const activeRequest = useRef<PendingSearch>(undefined);
+  const activeRequest = useRef<ActiveRecommendationRequest>(undefined);
+  const requestSequence = useRef(0);
   /** Results are back; the next re-rank emits the `search` event and clears this. */
   const pendingSearch = useRef<PendingSearch>(undefined);
   useEffect(() => setInterest(profile?.interests ?? ""), [profile?.interests]);
@@ -321,29 +331,34 @@ export function RecommendPage() {
         return;
       }
     }
-    // Open the run at request start so zero-result, error, and abandoned runs
-    // all have a denominator. `settle` later records the result count.
+    // Keep the current run and its surface while this request is in flight. The
+    // previous cards remain interactive until a newer result set is ready.
     const flow = nextSearchStep(searchFlow.current, Date.now());
     searchFlow.current = flow;
-    const interactionId = recommendationRun.start();
-    activeRequest.current = { interactionId, flow, queryLength: sanitizedPreview.subjectQuery.length, startedAt };
+    const requestId = requestSequence.current + 1;
+    requestSequence.current = requestId;
+    activeRequest.current = { requestId, flow, queryLength: sanitizedPreview.subjectQuery.length, startedAt };
 
     sources.mutate(sanitizedPreview.subjectQuery, {
       onError: () => {
-        if (activeRequest.current?.interactionId !== interactionId) return;
+        if (activeRequest.current?.requestId !== requestId) return;
         activeRequest.current = undefined;
         pendingSearch.current = undefined;
-        recommendationRun.complete("error");
         track("error", { component: "recommendation", error_code: "EMBEDDING_REQUEST_FAILED" });
       },
       onSuccess: (loaded) => {
-        // Ignore a late response from an older request. The active request owns
-        // the run id, so a superseded response cannot settle or relabel a newer
-        // run.
+        // Ignore a late response from an older request. The request token is
+        // intentionally not the funnel interaction id: that id only changes
+        // once these results replace the cards on screen.
         const request = activeRequest.current;
-        if (!request || request.interactionId !== interactionId) return;
+        if (!request || request.requestId !== requestId) return;
         activeRequest.current = undefined;
-        pendingSearch.current = request;
+        const interactionId = recommendationRun.start();
+        pendingSearch.current = { interactionId, flow: request.flow, queryLength: request.queryLength, startedAt: request.startedAt };
+        // Do not let the new interaction observe the previous cards during the
+        // render between request completion and browser-side re-ranking.
+        setResults([]);
+        setCandidateCount(0);
         setCatalog(loaded.catalog);
         setLastEmbedding({
           query: loaded.query,

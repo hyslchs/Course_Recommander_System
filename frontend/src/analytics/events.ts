@@ -23,6 +23,13 @@ export const ANALYTICS_ENDPOINT = "/api/v1/analytics/events";
 /** Kept in step with the server's `MAX_EVENTS_PER_BATCH`. */
 export const MAX_EVENTS_PER_BATCH = 40;
 
+/**
+ * The backend's global POST ceiling is 16 KiB. Keep analytics below it with a
+ * little headroom for the envelope and calculate the actual UTF-8 size before
+ * sending, because v3 provenance makes event sizes vary considerably.
+ */
+export const MAX_ANALYTICS_BATCH_BYTES = 15 * 1024;
+
 export type AnalyticsPage =
   | "assistant"
   | "course_search"

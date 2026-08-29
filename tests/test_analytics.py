@@ -85,6 +85,22 @@ def test_valid_event_is_projected_onto_typed_columns():
     assert "timestamp" not in row
 
 
+@pytest.mark.parametrize("invalid_value", [1.9, float("nan"), float("inf"), float("-inf")])
+def test_integer_fields_reject_fractional_and_non_finite_numbers(invalid_value):
+    with pytest.raises(AnalyticsRejection):
+        validate_event({
+            "event": "search",
+            "data": {"search_mode": "keyword", "query_length": invalid_value, "result_count": 0, "latency_ms": 1},
+        })
+
+    # An integral floating-point value is numerically unambiguous and remains
+    # valid for JSON producers that encode all numbers as doubles.
+    assert validate_event({
+        "event": "search",
+        "data": {"search_mode": "keyword", "query_length": 1.0, "result_count": 0, "latency_ms": 1},
+    })["query_length"] == 1
+
+
 def test_search_timing_fields_are_validated_without_accepting_query_text():
     row = validate_event({
         "event": "search",
@@ -334,6 +350,7 @@ def test_phase_two_small_department_and_provenance_slices_are_suppressed(tmp_pat
 
 def test_phase_two_report_gate_rolls_back_to_legacy_view(tmp_path, monkeypatch):
     monkeypatch.setenv("FJU_ANALYTICS_ADMIN_TOKEN", "s3cret")
+    monkeypatch.setenv("FJU_ANALYTICS_INSTRUMENTATION_V3", "1")
     monkeypatch.setenv("FJU_ANALYTICS_RESEARCH_REPORT_V2", "0")
     with _client(tmp_path, token="s3cret", monkeypatch=monkeypatch) as client:
         legacy = client.get("/api/v1/analytics/report", headers={"X-Analytics-Token": "s3cret"})
@@ -343,6 +360,16 @@ def test_phase_two_report_gate_rolls_back_to_legacy_view(tmp_path, monkeypatch):
         research = client.get("/api/v1/analytics/report", headers={"X-Analytics-Token": "s3cret"})
         assert research.status_code == 200
         assert research.json()["data_definition_version"] == "phase2-research-v1"
+
+
+def test_research_report_cannot_enable_without_v3_instrumentation(tmp_path, monkeypatch):
+    monkeypatch.setenv("FJU_ANALYTICS_ADMIN_TOKEN", "s3cret")
+    monkeypatch.delenv("FJU_ANALYTICS_INSTRUMENTATION_V3", raising=False)
+    monkeypatch.setenv("FJU_ANALYTICS_RESEARCH_REPORT_V2", "1")
+    with _client(tmp_path, token="s3cret", monkeypatch=monkeypatch) as client:
+        response = client.get("/api/v1/analytics/report", headers={"X-Analytics-Token": "s3cret"})
+    assert response.status_code == 200
+    assert response.json()["data_definition_version"] == "legacy-mixed-v1"
 
 
 def test_search_timing_percentiles_and_states_are_reported(tmp_path):
@@ -540,6 +567,29 @@ def test_duplicate_event_id_is_ignored_and_does_not_poison_aggregates(tmp_path):
     assert store.record(accepted, user_agent=None) == 1
     assert store.record(accepted, user_agent=None) == 0
     assert store.report(days=7)["events"] == {"page_view": 1.0}
+
+
+def test_duplicate_event_ids_do_not_trigger_capacity_eviction(tmp_path):
+    store = AnalyticsStore(
+        tmp_path / "analytics.sqlite3",
+        retention=Retention(),
+        max_rows=2,
+        max_db_bytes=64 * 1024 * 1024,
+    )
+    events = [
+        {"event": "page_view", "event_id": f"evt_{letter * 32}", "data": {"page": "schedule"}}
+        for letter in ("a", "b")
+    ]
+    accepted, rejected = validate_batch(events)
+    assert not rejected
+    assert store.record(accepted, user_agent=None) == 2
+
+    # The retry is a no-op before capacity enforcement. Both original rows must
+    # remain, rather than being evicted and inserted again.
+    assert store.record([accepted[0], accepted[0], accepted[1]], user_agent=None) == 0
+    with store._connect() as connection:  # noqa: SLF001
+        ids = {row[0] for row in connection.execute("SELECT event_id FROM analytics_events")}
+    assert ids == {"evt_" + "a" * 32, "evt_" + "b" * 32}
 
 
 def test_http_retry_of_the_same_event_is_idempotent(tmp_path):

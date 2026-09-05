@@ -1,123 +1,126 @@
-# FJU Course Recommender System
+# 輔仁大學課程推薦系統
 
-An open-source course discovery and course-selection decision-support system for students at Fu Jen Catholic University.
+[English](README-en.md) | [繁體中文](README.md)
 
-The project combines structured course-outline data, semantic retrieval, BM25 lexical search, eligibility rules, filters, and timetable information to help students discover and compare courses.
+本專案是一套提供輔仁大學學生使用的開源課程探索與選課決策支援系統。
 
-> This is an independent open-source project. It is not an official Fu Jen Catholic University service.
+本系統結合結構化課程大綱資料、語意檢索、BM25 詞彙搜尋、資格規則、篩選條件與課表資訊，協助學生探索並比較課程。
 
-## Demo
+> 本專案是獨立的開源專案，不是輔仁大學官方服務。
 
-**Live demo:** https://crs.sixhuang.com
+## 線上展示
 
-![FJU Course Recommender System](assets/overview.png)
+**線上展示網站：** https://crs.sixhuang.com
 
-## Features
+![輔仁大學課程推薦系統](assets/overview.png)
 
-* **Semantic course search** — describe what you want to learn in natural language instead of relying only on exact course-title matches.
-* **Hybrid retrieval** — combines course embeddings with field-weighted BM25 lexical search.
-* **Eligibility-aware recommendations** — uses available study-level, department, grade, prerequisite, and audience information.
-* **Course filtering** — filter courses by schedule, credits, course type, department, teaching method, assessment method, language, and other available metadata.
-* **Timetable and conflict detection** — compare courses while detecting conflicts with an existing schedule.
-* **Course-family deduplication and diversity** — groups closely related offerings and uses diversity-aware ranking to avoid filling the result list with near-duplicates.
-* **Local-first student data** — profiles, completed courses, favorites, dismissed courses, schedules, and recommendation preferences are stored in browser IndexedDB.
-* **No generative LLM in the core recommendation path** — the main recommender uses embeddings, deterministic query processing, filtering, and ranking rather than Chat Completion.
-* **Optional compound-query analysis** — a deterministic frontend parser can recognize multiple goals, exclusions, contexts, and supported hard constraints. This feature is controlled by `FJU_COMPOUND_QUERY_ENABLED` and is disabled by default.
+## 功能
 
-## How Recommendation Works
+* **語意課程搜尋** — 使用自然語言描述想學習的內容，不必只依賴完全符合的課程名稱。
+* **混合式檢索** — 結合課程向量嵌入與依欄位加權的 BM25 詞彙搜尋。
+* **考量修課資格的推薦** — 使用可取得的修課層級、系所、年級、先修課程與適合對象等資訊。
+* **課程篩選** — 可依上課時間、學分、課程類型、系所、教學方式、評量方式、授課語言及其他可用資料欄位篩選課程。
+* **課表與衝堂偵測** — 比較課程時，同時偵測課程與現有課表之間的時間衝突。
+* **課程家族去重與多樣性** — 將高度相關的開課項目分組，並使用考量多樣性的排序方式，避免結果清單被幾乎重複的課程占滿。
+* **以本機為優先的學生資料** — 個人資料、已修課程、收藏課程、略過的課程、課表與推薦偏好都儲存在瀏覽器的 IndexedDB 中。
+* **核心推薦流程不使用生成式大型語言模型** — 主要推薦器使用向量嵌入、確定性的查詢處理、篩選與排序，而不是 Chat Completion。
+* **可選的複合查詢分析** — 確定性的前端解析器可以辨識多個目標、排除條件、情境與支援的硬性限制。此功能由 `FJU_COMPOUND_QUERY_ENABLED` 控制，預設停用。
 
-The recommendation pipeline is primarily executed in the browser.
+## 推薦如何運作
+
+推薦流程主要在瀏覽器中執行。
 
 ```text
-User query
+使用者查詢
     │
     ├─────────────────────────────────────┐
     │                                     │
     ▼                                     ▼
-FastAPI query-embedding API         Deterministic query analysis
-    │                               (when enabled)
+FastAPI 查詢向量嵌入 API              確定性的查詢分析
+    │                               （啟用時才執行）
     ▼                                     │
-Query vector                              │
+查詢向量                                  │
     │                                     │
     └─────────────────┬───────────────────┘
                       ▼
-              Browser-side ranking
+              瀏覽器端排序
                       │
         ┌─────────────┴─────────────┐
         ▼                           ▼
-Dense semantic ranking        BM25 lexical ranking
+密集語意排序                   BM25 詞彙排序
         │                           │
         └─────────────┬─────────────┘
                       ▼
-          Reciprocal Rank Fusion
+              倒數排名融合
+              （RRF）
                       │
                       ▼
-       Eligibility / hard constraints
-       Schedule / user-selected filters
+             修課資格／硬性限制
+             課表／使用者選定的篩選條件
                       │
                       ▼
-           Course-family grouping
+                課程家族分組
                       │
                       ▼
-          Diversity selection (MMR)
+              多樣性選擇（MMR）
                       │
                       ▼
-             Recommended courses
+                推薦課程
 ```
 
-### Dense retrieval
+### 密集檢索
 
-Course embeddings are downloaded from the backend and cached by the frontend. For each query, the backend generates a compatible query embedding and the browser compares it against course vectors.
+課程向量嵌入會從後端下載，並由前端快取。每次收到查詢時，後端會產生相容的查詢向量嵌入，接著由瀏覽器將它與各課程向量進行比較。
 
-The pinned production artifact currently uses:
+目前固定使用的正式環境產物（production artifact）如下：
 
 |                |                              |
 | -------------- | ---------------------------- |
-| Model          | `google/embeddinggemma-300m` |
-| Dimension      | `768`                        |
-| Vector type    | `float32`                    |
-| Catalog schema | `fju_catalog_v4`             |
-| Course records | `4,565`                      |
+| 模型           | `google/embeddinggemma-300m` |
+| 維度           | `768`                        |
+| 向量型別       | `float32`                    |
+| 課程目錄結構   | `fju_catalog_v4`             |
+| 課程紀錄數     | `4,565`                      |
 
-The exact model revision, canonical-data checksum, artifact checksums, and build metadata are recorded in:
+確切的模型版本、標準資料校驗碼、產物校驗碼與建置中繼資料，記錄在：
 
 [`artifact-locks/1151-embeddinggemma-768.json`](artifact-locks/1151-embeddinggemma-768.json)
 
-### Lexical retrieval
+### 詞彙檢索
 
-The frontend also builds a field-weighted BM25 index over:
+前端也會針對以下欄位建立依欄位加權的 BM25 索引：
 
-* course title
-* course objective
-* weekly progress
-* prerequisites
-* materials
-* skills
+* 課程名稱
+* 課程目標
+* 每週進度
+* 先修課程
+* 教材
+* 技能
 
-The dense and lexical rankings are combined using **Reciprocal Rank Fusion (RRF)**.
+系統會使用**倒數排名融合（Reciprocal Rank Fusion，RRF）**，將密集檢索與詞彙檢索的排序結果合併。
 
-### Eligibility, filtering, and diversity
+### 修課資格、篩選與多樣性
 
-Before a course is presented as a recommendation, the frontend can account for information such as:
+在一門課程被呈現為推薦之前，前端可以考量以下資訊：
 
-* student profile and study level
-* department relationship
-* completed courses
-* known prerequisites
-* existing timetable conflicts
-* preferred weekdays
-* course category
-* credits
-* advanced course filters
-* supported query-level hard constraints
+* 學生個人資料與修課層級
+* 系所關係
+* 已修課程
+* 已知的先修課程
+* 現有課表的衝堂情況
+* 偏好的上課星期
+* 課程類別
+* 學分
+* 進階課程篩選條件
+* 支援的查詢層級硬性限制
 
-Confirmed restrictions may block a course. Conditions that cannot be determined from available data can instead remain marked as requiring confirmation.
+已確認的限制可能會直接排除某門課。若系統無法從現有資料判斷某項條件，則可以將它標記為需要確認，而不是直接判定為不符合。
 
-After retrieval, similar course offerings are grouped into course families and a **Maximal Marginal Relevance (MMR)** step is used to improve result diversity.
+檢索完成後，相似的開課項目會被分成課程家族，並使用**最大邊際相關性（Maximal Marginal Relevance，MMR）**步驟提升結果多樣性。簡單來說，MMR 會在相關性與避免重複之間取得平衡。
 
-### Compound queries
+### 複合查詢
 
-The repository also contains an optional deterministic query-analysis layer for queries such as:
+本儲存庫也包含一個可選的確定性查詢分析層，可處理以下類型的查詢：
 
 ```text
 資料庫＋後端
@@ -125,103 +128,103 @@ The repository also contains an optional deterministic query-analysis layer for 
 不要星期三的通識
 ```
 
-It can distinguish supported relations such as single-goal, coverage, intersection, filtering, exclusions, and selected metadata constraints.
+它可以辨識受支援的關係，例如單一目標、涵蓋、交集、篩選、排除，以及特定的資料欄位限制。
 
-It does **not** use a generative LLM to interpret these searches.
+它**不會**使用生成式大型語言模型解讀這些搜尋內容。
 
-The feature is disabled by default:
+此功能預設停用：
 
 ```text
 FJU_COMPOUND_QUERY_ENABLED=0
 ```
 
-Evaluation material for this feature is available in [`evaluation/`](evaluation/).
+此功能的評估資料位於 [`evaluation/`](evaluation/)。
 
-## Architecture
+## 系統架構
 
 ```text
 ┌──────────────────────────────────────────────┐
-│                  Browser                     │
+│                  瀏覽器                      │
 │                                              │
 │ React / TypeScript                           │
 │                                              │
-│ • Course discovery UI                        │
-│ • Query analysis                             │
-│ • Eligibility and schedule checks            │
-│ • Dense + BM25 + RRF ranking                 │
-│ • Course-family grouping + MMR               │
-│ • IndexedDB user data                        │
-│ • Cached catalog and vector artifacts        │
+│ • 課程探索介面                               │
+│ • 查詢分析                                   │
+│ • 修課資格與課表檢查                         │
+│ • 密集檢索 + BM25 + RRF 排序                 │
+│ • 課程家族分組 + MMR                         │
+│ • IndexedDB 使用者資料                      │
+│ • 快取的課程目錄與向量產物                   │
 └──────────────────────┬───────────────────────┘
                        │ HTTP
                        ▼
 ┌──────────────────────────────────────────────┐
 │                  FastAPI                     │
 │                                              │
-│ • Course catalog APIs                        │
-│ • Facets / department metadata               │
-│ • Query embedding                            │
-│ • Catalog and embedding artifacts            │
-│ • Optional analytics                         │
-│ • Optional AI assistant                      │
+│ • 課程目錄 API                               │
+│ • Facet／系所中繼資料                        │
+│ • 查詢向量嵌入                               │
+│ • 課程目錄與向量嵌入產物                     │
+│ • 可選的分析功能                             │
+│ • 可選的 AI 助理                             │
 └──────────────────────┬───────────────────────┘
                        │
                        ▼
 ┌──────────────────────────────────────────────┐
-│               Artifact Bundle                │
+│               產物套件                       │
 │                                              │
-│ canonical catalog                            │
-│ course embeddings                            │
-│ embedding index                              │
-│ query-route artifacts                        │
-│ pinned model runtime                         │
+│ 標準課程目錄                                 │
+│ 課程向量嵌入                                 │
+│ 向量嵌入索引                                 │
+│ 查詢路由產物                                 │
+│ 固定版本的模型執行環境                       │
 └──────────────────────────────────────────────┘
 ```
 
-### Main technologies
+### 主要技術
 
-| Layer             | Technology                   |
-| ----------------- | ---------------------------- |
-| Frontend          | React 19, TypeScript, Vite   |
-| UI                | HeroUI, Tailwind CSS         |
-| Client-side state | IndexedDB, TanStack Query    |
-| Backend           | FastAPI                      |
-| Embedding         | EmbeddingGemma               |
-| Retrieval         | Dense retrieval + BM25 + RRF |
-| Diversification   | MMR                          |
-| Data pipeline     | Python                       |
-| Deployment        | Docker                       |
+| 層級             | 技術                         |
+| ---------------- | ---------------------------- |
+| 前端             | React 19、TypeScript、Vite   |
+| 使用者介面       | HeroUI、Tailwind CSS         |
+| 用戶端狀態       | IndexedDB、TanStack Query    |
+| 後端             | FastAPI                      |
+| 向量嵌入         | EmbeddingGemma               |
+| 檢索             | 密集檢索 + BM25 + RRF        |
+| 多樣性處理       | MMR                          |
+| 資料處理流程     | Python                       |
+| 部署             | Docker                       |
 
-## Dataset and Data Pipeline
+## 資料集與資料處理流程
 
-The current production artifact is based on Fu Jen Catholic University course-outline data for:
+目前的正式環境產物是以輔仁大學以下條件的課程大綱資料為基礎：
 
-* Academic year: **115**
-* Semester: **1**
-* Course type: `100`
-* Language setting: `1028`
+* 學年度：**115**
+* 學期：**1**
+* 課程類型：`100`
+* 語言設定：`1028`
 
-The crawler accesses the public JSON APIs used by the university's course-outline system.
+爬蟲會存取輔仁大學課程大綱系統使用的公開 JSON API。
 
-The pipeline consists of:
+資料處理流程如下：
 
 ```text
-Course discovery
+探索課程
       ↓
-Department metadata
+系所中繼資料
       ↓
-Course crawling
+爬取課程
       ↓
-Normalization
+資料正規化
       ↓
-Validation
+資料驗證
       ↓
-Canonical JSONL
+標準 JSONL
       ↓
-Embedding artifact build
+建置向量嵌入產物
 ```
 
-The main CLI commands are:
+主要 CLI（命令列介面）指令如下：
 
 ```bash
 fju-outline discover --hy 115 --ht 1
@@ -232,40 +235,50 @@ fju-outline export --hy 115 --ht 1
 fju-outline validate --hy 115 --ht 1
 ```
 
-Generated raw course data, canonical datasets, derived tables, and production artifact bundles are not all committed to this repository.
+### 比較課程搜尋資料與課程大綱
 
-The tracked `data/` directory currently contains reference data used by the project, including department metadata and department-matching review data.
+兩個學生課程搜尋頁面會透過其公開 JSON API 查詢。稽核工具使用 Scrapling，儲存原始回應，並將課程 ID 與課程代碼變體和標準課程大綱 JSONL 進行比較：
 
-The production-compatible EmbeddingGemma builder is:
+```bash
+python scripts/course_search_audit.py --hy 115 --ht 1 --page-size 100 --concurrency 3
+```
+
+預設情況下，快照與報告會寫入 `tmp/course_search_audit_<hy><ht>/`。報告會記錄兩個資料來源的擷取時間，因為不同日期之間的數量不一致，本身並不能證明爬蟲漏抓了資料。
+
+爬取產生的原始課程資料、標準資料集、衍生資料表與正式環境產物套件，不會全部提交到本儲存庫。
+
+目前受 Git 追蹤的 `data/` 目錄包含本專案使用的參考資料，例如系所中繼資料與系所比對審查資料。
+
+相容於正式環境的 EmbeddingGemma 建置工具是：
 
 [`scripts/build_embedding_bundle.py`](scripts/build_embedding_bundle.py)
 
-Artifact verification is implemented in:
+產物驗證功能實作於：
 
 [`scripts/verify_artifact_bundle.py`](scripts/verify_artifact_bundle.py)
 
-## Quick Start
+## 快速開始
 
-### Requirements
+### 系統需求
 
-* Python 3.11+
+* Python 3.11 以上
 * Node.js
 * pnpm
 
-Clone the repository:
+複製儲存庫：
 
 ```bash
 git clone https://github.com/hyslchs/Course_Recommender_System.git
 cd Course_Recommender_System
 ```
 
-Create a Python environment:
+建立 Python 虛擬環境：
 
 ```bash
 python -m venv .venv
 ```
 
-Activate it:
+啟用虛擬環境：
 
 ```bash
 # Linux / macOS
@@ -277,19 +290,19 @@ source .venv/bin/activate
 .venv\Scripts\Activate.ps1
 ```
 
-Install the backend, pipeline dependencies, and test dependencies:
+安裝後端、資料處理流程與測試所需的依賴套件：
 
 ```bash
 pip install -e ".[pipeline,test]"
 ```
 
-Run backend tests:
+執行後端測試：
 
 ```bash
 pytest -q
 ```
 
-### Frontend development
+### 前端開發
 
 ```bash
 cd frontend
@@ -298,19 +311,19 @@ pnpm test
 pnpm dev
 ```
 
-The Vite development server proxies `/api` and `/health` to:
+Vite 開發伺服器會將 `/api` 與 `/health` 代理到：
 
 ```text
 http://127.0.0.1:8080
 ```
 
-### Running the complete application
+### 執行完整應用程式
 
-A fresh clone does **not** contain the complete production artifact bundle.
+全新複製的儲存庫不包含完整的正式環境產物套件。
 
-The backend requires a compatible vector artifact directory containing the catalog, embedding index, course vectors, and model metadata.
+後端需要一個相容的向量產物目錄，其中包含課程目錄、向量嵌入索引、課程向量與模型中繼資料。
 
-If you already have a compatible artifact bundle:
+如果你已經有相容的產物套件：
 
 ```bash
 fju-outline-web \
@@ -318,55 +331,55 @@ fju-outline-web \
   --port 8080
 ```
 
-Then run the frontend in another terminal:
+接著在另一個終端機執行前端：
 
 ```bash
 cd frontend
 pnpm dev
 ```
 
-For rebuilding the pinned EmbeddingGemma artifact format, inspect the builder options with:
+如果要重新建置固定版本的 EmbeddingGemma 產物格式，請使用以下指令查看建置工具選項：
 
 ```bash
 python scripts/build_embedding_bundle.py --help
 ```
 
-Before using a generated production bundle, it can be checked with:
+使用產生的正式環境套件之前，可以用以下指令進行檢查：
 
 ```bash
 python scripts/verify_artifact_bundle.py --help
 ```
 
-## Evaluation
+## 評估
 
-The repository includes recommendation and compound-query evaluation resources under [`evaluation/`](evaluation/).
+本儲存庫在 [`evaluation/`](evaluation/) 下包含推薦與複合查詢的評估資源。
 
-These include:
+其中包括：
 
 * `relevance_v1.json`
 * `manual_test_cases_v1.csv`
 * `manual_test_cases_v1.json`
 * `compound_queries_v1.json`
-* RESQUE user-simulation reports
+* RESQUE 使用者模擬報告
 
-The hybrid recommendation evaluator compares dense retrieval against the hybrid ranking using **Recall@10** and **NDCG@10**:
+混合式推薦評估器會使用 **Recall@10** 與 **NDCG@10**，比較密集檢索和混合式排序的結果：
 
 ```bash
 python -m fju_outline.evaluation \
   --artifacts-dir /path/to/vector-artifacts
 ```
 
-The compound-query evaluation material and its review status are documented in:
+複合查詢的評估資料與審查狀態記錄在：
 
 [`evaluation/README.md`](evaluation/README.md)
 
-Some evaluation files are explicitly drafts or require manual review; they should not automatically be treated as validated relevance ground truth.
+部分評估檔案明確標示為草稿或需要人工審查，不應自動視為已驗證的相關性標註基準資料。
 
-## Local Data and Optional Services
+## 本機資料與可選服務
 
-Student-side application data is stored in browser IndexedDB.
+學生端應用程式資料儲存在瀏覽器的 IndexedDB 中。
 
-The current stores include:
+目前的資料儲存區包括：
 
 ```text
 profile
@@ -379,61 +392,62 @@ catalogCache
 preferences
 ```
 
-The repository also contains two optional server-side features:
+本儲存庫另外包含兩項可選的伺服器端功能：
 
-**Product analytics**
+**產品分析**
 
-Analytics support exists in the backend and frontend, but the example configuration disables collection by default:
+後端與前端都支援分析功能，但範例設定預設停用資料收集：
 
 ```text
 FJU_ANALYTICS_ENABLED=0
 ```
 
-**AI course assistant**
+**AI 課程助理**
 
-An optional AI course assistant is also implemented separately from the main recommender. It requires an explicitly configured `OPENAI_API_KEY`.
+本專案也另外實作了可選的 AI 課程助理，與主要推薦器分開。啟用它需要明確設定 `OPENAI_API_KEY`。
 
-The example configuration leaves the key empty, so the feature is not enabled by default.
+範例設定中的金鑰欄位是空白的，因此此功能預設不會啟用。
 
-Neither feature is required for the core semantic recommendation flow.
+這兩項功能都不是核心語意推薦流程的必要條件。
 
-See [`.env.example`](.env.example) for the available runtime configuration.
+可用的執行環境設定請參閱 [`.env.example`](.env.example)。
 
-## Repository Structure
+## 儲存庫結構
 
 ```text
 .
 ├── .github/
-│   └── workflows/             # CI
-├── artifact-locks/            # Pinned production artifact metadata
+│   └── workflows/             # CI（持續整合）
+├── artifact-locks/            # 固定版本正式環境產物的中繼資料
 ├── assets/
-│   └── overview.png           # README screenshot
+│   └── overview.png           # README 截圖
 ├── data/
-│   └── reference/             # Tracked reference datasets
-├── evaluation/                # Recommendation and query evaluation data
-├── frontend/                  # React / TypeScript application
-├── scripts/                   # Artifact and deployment utilities
+│   └── reference/             # 受 Git 追蹤的參考資料集
+├── evaluation/                # 推薦與查詢評估資料
+├── frontend/                  # React / TypeScript 應用程式
+├── scripts/                   # 產物與部署工具
 ├── src/
-│   └── fju_outline/           # Backend, crawler, pipeline and evaluation code
+│   └── fju_outline/           # 後端、爬蟲、資料處理流程與評估程式碼
 ├── .env.example
 ├── Dockerfile
 ├── compose.yaml
 ├── pyproject.toml
 ├── THIRD_PARTY_NOTICES.md
 ├── LICENSE
-└── README.md
+├── README-en.md
+└── README.md                # 預設繁體中文版 README
 ```
 
-## Development
+## 開發
 
-Backend:
+後端：
 
 ```bash
 pip install -e ".[pipeline,test]"
 pytest -q
 ```
 
-Frontend:
+前端：
 
 ```bash
 cd frontend
@@ -442,33 +456,31 @@ pnpm test
 pnpm build
 ```
 
-Changes to embedding generation, lexical retrieval, ranking, eligibility rules, or compound-query behavior should also be checked against the relevant evaluation material.
+如果修改了向量嵌入產生、詞彙檢索、排序、修課資格規則或複合查詢行為，也應使用相關評估資料進行檢查。
 
-## License
+## 授權條款
 
-Original source code developed for this project is licensed under the **Apache License 2.0**.
+本專案開發的原始碼採用 **Apache License 2.0** 授權。
 
-The Apache License 2.0 for this repository's original source code does not automatically apply to third-party materials such as:
+本儲存庫原始碼所使用的 Apache License 2.0，不會自動套用到以下第三方素材：
 
-* Fu Jen Catholic University course data
-* EmbeddingGemma model files
+* 輔仁大學課程資料
+* EmbeddingGemma 模型檔案
 * Noto Sans TC
-* third-party Python and JavaScript dependencies
-* other externally provided data or services
+* 第三方 Python 與 JavaScript 依賴套件
+* 其他由外部提供的資料或服務
 
-Those materials remain subject to their respective licenses, terms, and applicable laws.
+這些素材仍受各自的授權條款、使用條件與適用法律規範。
 
-See:
+詳情請參閱：
 
 * [LICENSE](LICENSE)
 * [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 
-for details.
+## 免責聲明
 
-## Disclaimer
+本專案是用於課程探索、推薦系統研究與選課決策支援的獨立工具。
 
-This project is an independent tool for course discovery, recommender-system research, and course-selection decision support.
+推薦結果與修課資格評估僅供參考。
 
-Recommendation results and eligibility assessments are for reference only.
-
-Official course availability, enrollment restrictions, prerequisites, capacity, schedules, and other registration requirements should always be verified through Fu Jen Catholic University's official systems.
+正式的開課狀態、選課限制、先修課程、修課人數上限、上課時間與其他註冊要求，應一律透過輔仁大學官方系統確認。

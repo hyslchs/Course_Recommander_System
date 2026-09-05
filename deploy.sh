@@ -97,8 +97,10 @@ printf 'deploy: verifying immutable artifact bundle\n'
 python3 scripts/verify_artifact_bundle.py --bundle "$BUNDLE_DIR"
 
 bundle_id="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["bundle_id"])' "$BUNDLE_DIR/bundle-lock.json")"
+client_build_sha="$(git rev-parse HEAD)"
 image_tag="crs-course-recommender:${bundle_id}-g$(git rev-parse --short=12 HEAD)"
 export CRS_IMAGE_TAG="$image_tag"
+export CLIENT_BUILD_SHA="$client_build_sha"
 
 printf 'deploy: building image with verified named context\n'
 CRS_ARTIFACT_BUNDLE_DIR="$BUNDLE_DIR" \
